@@ -17,7 +17,7 @@ const productSchema = new mongoose.Schema({
     },
     img:{
         type: String,
-        required: [true, "Image is required"]
+        // required: [true, "Image is required"]
     },
     rating: { // THE OVERALL AVERAGE RATING
         type: Number,
@@ -31,7 +31,7 @@ const productSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        required: true
+        // required: true
     },
     isFeatured: {
         type: Boolean,
