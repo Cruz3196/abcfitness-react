@@ -17,6 +17,7 @@ const productSchema = new mongoose.Schema({
     },
     img:{
         type: String,
+        required: [true, "Image is required"]
     },
     rating: { // THE OVERALL AVERAGE RATING
         type: Number,
@@ -28,13 +29,13 @@ const productSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
-    // category: {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: 'Category', // Reference the Category model (optional)
-    // },
-    stock: {
-        type: Number,
-        min: 0, // Enforce non-negative stock
+    category: {
+        type: String,
+        required: true
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
     },
     reviews:[
         {
