@@ -30,6 +30,19 @@ export const getAllProducts = async (req, res) => {
         res.status(200).json(products);
     }catch (error){
         res.status(500).json({ error: "Error fetching products" });
-        console.log("Error in createProduct controller: ", error);
+        console.log("Error in getting all products controller: ", error);
     }
 };
+
+export const getProductId = async (req, res) => {
+    try{
+        const product = await Product.findById(req.params.id);
+        if(!product){
+            return res.status(404).send(); 
+        }
+        res.status(200).json(product);
+    }catch (error){
+        res.status(500).json({ error: "Error fetching product" });
+        console.log("Error in getting product controller: ", error);
+    }
+}
