@@ -46,3 +46,16 @@ export const getProductId = async (req, res) => {
         console.log("Error in getting product controller: ", error);
     }
 }
+
+export const deleteProduct = async (req, res) => {
+    try{
+        const product = await Product.findByIdAndDelete(req.params.id);
+        if(!product){
+            return res.status(404).send(); 
+        }
+        res.json({message: "Product deleted"});
+    }catch (error){
+        res.status(500).json({ error: "Error deleting product" });
+        console.log("Error in deleting product controller: ", error);
+    }
+}
