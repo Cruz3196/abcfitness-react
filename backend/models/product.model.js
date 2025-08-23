@@ -4,7 +4,6 @@ const productSchema = new mongoose.Schema({
     name:{
         type: String,
         required: true,
-        trim: true
     },
     description: {
         type: String,
@@ -20,11 +19,6 @@ const productSchema = new mongoose.Schema({
         // required: [true, "Image is required"]
     },
     rating: { // THE OVERALL AVERAGE RATING
-        type: Number,
-        required: true,
-        default: 0,
-    },
-    numReviews: { // THE TOTAL NUMBER OF REVIEWS
         type: Number,
         required: true,
         default: 0,
