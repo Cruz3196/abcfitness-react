@@ -5,7 +5,7 @@ import { createUser, loginUser, logoutUser } from "../controllers/auth.controlle
 
 const router = express.Router();
 //end points for signing up 
-router.get("/signup", createUser)
+router.post("/signup", createUser)
 //endpoint for logging in 
 router.get("/login", loginUser)
 //endpoint for logging out 
