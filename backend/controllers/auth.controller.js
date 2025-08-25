@@ -57,7 +57,6 @@ export const createUser = async (req, res) => {
         await storageRefreshToken(user._id, refreshToken);
         //setting the cookies
         setCookies(res,accessToken, refreshToken);
-        console.log(email, password, username);
         // returning the user message, displaying the user, email and role
         res.status(201).json({ user: {
             _id: user._id,
@@ -77,5 +76,22 @@ export const loginUser = async (req, res) => {
 }
 
 export const logoutUser = async (req, res) => {
-    res.json({message: "User has been logged out"}); 
+    try {
+        // creating a variable for the refresh token
+		const refreshToken = req.cookies.refreshToken;
+        // if the refresh token exists then will decode and delete the refresh token
+		if (refreshToken) {
+            // jwt verifying the refresh token
+			const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+			await redis.del(`refresh_token:${decoded.userId}`);
+		}
+        // if the refresh token exists then will clear the cookies
+		res.clearCookie("accessToken");
+        // clearing the refresh token
+		res.clearCookie("refreshToken");
+		res.json({ message: "Logged out successfully" });
+	} catch (error) {
+		console.log("Error in logout controller", error.message);
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
 }

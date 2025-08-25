@@ -1,6 +1,7 @@
 // importing modules 
 import dotenv from 'dotenv';
 import express from 'express';
+import cookieParser from 'cookie-parser';
 
 //routes
 import productRoutes from './routes/product.route.js';
@@ -18,6 +19,7 @@ const PORT = process.env.PORT || 3001;
 //*This middleware parses incoming JSON requests and puts the parsed data in req.body
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })) // for put and post to form the data and gives us a response of that data that was created or edited
+app.use(cookieParser()); //enable cookie parser for cookies 
 
 //routes for api
 app.use('/api/auth', authRoutes);

@@ -9,7 +9,7 @@ router.post("/signup", createUser)
 //endpoint for logging in 
 router.get("/login", loginUser)
 //endpoint for logging out 
-router.get("/logout",logoutUser)
+router.post("/logout", logoutUser)
 
 
 export default router;
