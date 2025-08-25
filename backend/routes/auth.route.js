@@ -7,7 +7,7 @@ const router = express.Router();
 //end points for signing up 
 router.post("/signup", createUser)
 //endpoint for logging in 
-router.get("/login", loginUser)
+router.post("/login", loginUser)
 //endpoint for logging out 
 router.post("/logout", logoutUser)
 

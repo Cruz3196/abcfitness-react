@@ -67,13 +67,38 @@ export const createUser = async (req, res) => {
 
     }catch (error){
         // returing an error in the message, if their is an error in creating the user
+        console.log("Error in create user controller", error.message);
         res.status(500).json({message: "Error in creating user"});
     }
 };
 
 export const loginUser = async (req, res) => {
-    res.json({message: "User has been logged in"}); 
-}
+    try{
+        // getting the email and password from the body
+        const {email, password} = req.body;
+        // finding the user from the database
+        const user = await User.findOne({email});
+        // if the user exists and the password is correct
+        if(user && (await user.comparePassword(password))) {
+            // generating the token for the user
+            const {accessToken, refreshToken} = generateTokens(user._id);
+            // storing the refresh token
+            await storageRefreshToken(user._id, refreshToken);
+            // setting the cookies
+            setCookies(res,accessToken, refreshToken);
+            // if the user exists and the password is correct then return the user
+            res.json({
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            })
+        }
+    }catch (error){
+        console.log("Error in login controller", error.message);
+        res.status(500).json({message: "Error in logging in user"});
+    };
+};
 
 export const logoutUser = async (req, res) => {
     try {
