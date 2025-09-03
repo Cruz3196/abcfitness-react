@@ -156,3 +156,11 @@ export const refresh = async (req, res) => {
         res.status(500).json({message: "Error in refreshing token"});
     }
 }
+
+export const getProfile = async (req,res) => {
+    try{
+        res.json(req.user);
+    } catch (error){
+        res.status(500).json({message: "Error in getting profile"});
+    }
+}
