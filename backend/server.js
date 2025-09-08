@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 //routes
 import productRoutes from './routes/product.route.js';
 import authRoutes from './routes/auth.route.js';
+// import trainerRoutes from './routes/trainer.route.js';
+// import bookingRoutes from './routes/booking.route.js';
 
 //database connection 
 import connectMongoDB from './db/connectMongoDB.js';
@@ -23,7 +25,9 @@ app.use(cookieParser()); //enable cookie parser for cookies
 
 //routes for api
 app.use('/api/auth', authRoutes);
-app.use("/api/products", productRoutes);
+app.use('/api/products', productRoutes);
+// app.use('/api/trainer', trainerRoutes);
+// app.use('/api/booking', bookingRoutes);
 
 
 app.listen(PORT, () => {

@@ -28,8 +28,8 @@ export const createProduct = async(req, res) => {
 
 export const getAllProducts = async (req, res) => {
     try{
-        const products = await Product.find();
-        res.status(200).json(products);
+        const products = await Product.find({});
+        res.status(200).json({ products });
     }catch (error){
         res.status(500).json({ error: "Error fetching products" });
         console.log("Error in getting all products controller: ", error);
@@ -50,7 +50,26 @@ export const getProductId = async (req, res) => {
 }
 
 export const updateProduct = async (req, res) => {
-    
+    const productId = req.params.id;
+    const updatedName = req.body.name;
+    const updatedDescription = req.body.description;
+    const updatedPrice = req.body.price;
+    const updatedImage = req.body.img;
+    try{
+        const product = await Product.findByIdAndUpdate(productId, {
+            name: updatedName,
+            description: updatedDescription,
+            price: updatedPrice,
+            img: updatedImage
+        }, {new: true});
+        if(!product){
+            return res.status(404).json({ message: "Product not found" }); 
+        }
+        res.status(200).json(product);
+    }catch (error){
+        res.status(500).json({ error: "Error updating product" });
+        console.log("Error in updating product controller: ", error);
+    }
 }
 
 export const deleteProduct = async (req, res) => {
