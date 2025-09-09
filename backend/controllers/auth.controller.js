@@ -63,7 +63,7 @@ export const createUser = async (req, res) => {
             username: user.username,
             email: user.email,
             role: user.role
-        }, message: "User created successfully"});
+        }, message: "Thanks for signing up for ABC Fitness!"});
 
     }catch (error){
         // returing an error in the message, if their is an error in creating the user

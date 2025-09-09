@@ -1,9 +1,10 @@
 import Product from "../models/product.model.js";
 import cloudinary from "../lib/cloudinaryConfig.js";
 
+//! Admin Controllers
 export const createProduct = async(req, res) => {
     try{
-        const { name, description, price, img} = req.body;
+        const { productName, productDescription, productPrice, img} = req.body;
 
         let cloudinaryResponse = null;
 
@@ -12,9 +13,9 @@ export const createProduct = async(req, res) => {
         }
 
         const product = await Product.create({
-            name,
-            description,
-            price,
+            productName,
+            productDescription,
+            productPrice,
             img: cloudinaryResponse?.secure_url ? cloudinaryResponse.secure_url : ""
         });
 
@@ -36,30 +37,17 @@ export const getAllProducts = async (req, res) => {
     }
 };
 
-export const getProductId = async (req, res) => {
-    try{
-        const product = await Product.findById(req.params.id);
-        if(!product){
-            return res.status(404).json({ message: "Product not found" }); 
-        }
-        res.status(200).json(product);
-    }catch (error){
-        res.status(500).json({ error: "Error fetching product" });
-        console.log("Error in getting product controller: ", error);
-    }
-}
-
 export const updateProduct = async (req, res) => {
     const productId = req.params.id;
-    const updatedName = req.body.name;
-    const updatedDescription = req.body.description;
-    const updatedPrice = req.body.price;
+    const updatedName = req.body.productName;
+    const updatedDescription = req.body.productDescription;
+    const updatedPrice = req.body.productPrice;
     const updatedImage = req.body.img;
     try{
         const product = await Product.findByIdAndUpdate(productId, {
-            name: updatedName,
-            description: updatedDescription,
-            price: updatedPrice,
+            productName: updatedName,
+            productDescription: updatedDescription,
+            productPrice: updatedPrice,
             img: updatedImage
         }, {new: true});
         if(!product){
@@ -96,4 +84,23 @@ export const deleteProduct = async (req, res) => {
         res.status(500).json({ error: "Error deleting product" });
         console.log("Error in deleting product controller: ", error);
     }
+}
+
+// ^ Admin and User Controllers
+export const getProductId = async (req, res) => {
+    try{
+        const product = await Product.findById(req.params.id);
+        if(!product){
+            return res.status(404).json({ message: "Product not found" }); 
+        }
+        res.status(200).json(product);
+    }catch (error){
+        res.status(500).json({ error: "Error fetching product" });
+        console.log("Error in getting product controller: ", error);
+    }
+}
+
+// ? User Controllers
+export const getFeaturedProducts = async (req, res) => {
+    
 }

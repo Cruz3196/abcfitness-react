@@ -1,31 +1,58 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 
 const trainerSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    }, 
-    age:{
-        type: Number,
-        required: true  
-    },
-    gender:{
-        type:String,
-        required: true
-    },
-    price:{
-        type:Number,
+    // The field links this trainer profile to specific user document.
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
-        min: 0
+        ref: "User",
+        unique: true
     },
-    speciality: {
+
+    bio: {
+        type: String,
+    },
+
+    specialization: {
         type: String,
         required: true
     },
-    timeslot:{
+
+    certifications: {
         type: String,
-        required: true
-    }
+    },
+
+    experience: {
+        type: Number,
+    },
+
+    rating: {
+        averageRating: { 
+            type: Number,
+            default: 0
+        },
+        totalReviews: {
+            type: Number,
+            default: 0
+        }
+    },
+
+    availability:[
+        {
+            day: {
+                type: String,
+            },
+            timeSlots:{
+                type: String,
+            }
+        }
+    ],
+
+    canceledUserIds: [{ 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    
 }, {timestamps: true}
 );
 

@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
-    name:{
+    productName:{
         type: String,
         required: true,
     },
-    description: {
+    productDescription: {
         type: String,
         required: true
     },
-    price:{
+    productPrice:{
         type: Number,
         required: true,
         min: 0 // Price cannot be negative
@@ -18,12 +18,12 @@ const productSchema = new mongoose.Schema({
         type: String,
         // required: [true, "Image is required"]
     },
-    rating: { // THE OVERALL AVERAGE RATING
+    productRating: { // THE OVERALL AVERAGE RATING
         type: Number,
         required: true,
         default: 0,
     },
-    category: {
+    productCategory: {
         type: String,
         // required: true
     },
@@ -31,7 +31,7 @@ const productSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    reviews:[
+    productReviews:[
         {
             text: {
                 type: String,

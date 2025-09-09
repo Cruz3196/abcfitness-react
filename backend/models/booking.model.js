@@ -1,28 +1,56 @@
 import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema({
-    user: {
+// this will refer to the user schema 
+    user: { // The user who books the class
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-    trainer: {
+// this will refer to the class schema for the class that the user is booking
+    class: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Trainer",
+        ref: "Class",
         required: true
     },
-    date: {
+
+    bookingStatus: {
+        type: String, 
+        enum: ["confirmed", "cancelled", "pending", "completed"],
+        default: "confirmed"
+    },
+
+    paymentStatus:{
+        type: String,
+        enum: ["none", "requested", "processed", "denied"],
+        default: "none",
+    },
+
+    refundStatus: {
+        type: String,
+        enum: ["none", "requested", "processed", "denied"],
+        default: "none",
+    },
+
+    cancellationReason: {
+        type: String,
+    },
+
+    bookingDate: {
         type: Date,
         required: true
     },
-    time: {
-        type: String,
+
+    classDate: {
+        type: Date,
         required: true
     },
-    duration:{
-        type: Number,
+
+    classStatus: {
+        type: String, 
+        enum: ["upcoming", "completed", "cancelled"],
         required: true,
-        default: 60
+        default: "upcoming", // default to upcoming when the booking is booked.
     }
 }, {timestamps: true}
 );

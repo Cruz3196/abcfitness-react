@@ -26,7 +26,7 @@ app.use(cookieParser()); //enable cookie parser for cookies
 //routes for api
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-// app.use('/api/trainer', trainerRoutes);
+//app.use('/api/trainer', trainerRoutes);
 // app.use('/api/booking', bookingRoutes);
 
 
