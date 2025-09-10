@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 
 const trainerSchema = new mongoose.Schema({
     // The field links this trainer profile to specific user document.

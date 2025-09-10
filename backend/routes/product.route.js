@@ -4,7 +4,6 @@ import { adminRoute, protectRoute } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-//!routes controllers 
 //!Public Routes  
 router.get('/:id',getProductId)
 

@@ -32,10 +32,20 @@ export const protectRoute = async (req, res, next) => {
 	}
 };
 
+// verify if the user matches the role of the admin allow access, if not access is denied.
 export const adminRoute = (req, res, next) => {
 	if (req.user && req.user.role === "admin") {
 		next();
 	} else {
 		return res.status(403).json({ message: "Access denied - Admin only" });
+	}
+};
+
+// verify if the user matches the role of the trainer allow access, if not access is denied.
+export const trainerRoute = (req, res, next) => {
+	if (req.user && req.user.role === "trainer") {
+		next();
+	} else {
+		return res.status(403).json({ message: "Access denied - Trainer only" });
 	}
 };

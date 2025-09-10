@@ -6,7 +6,8 @@ import cookieParser from 'cookie-parser';
 //routes
 import productRoutes from './routes/product.route.js';
 import authRoutes from './routes/auth.route.js';
-// import trainerRoutes from './routes/trainer.route.js';
+import trainerRoutes from './routes/trainer.route.js';
+import adminRoutes from './routes/admin.route.js';
 // import bookingRoutes from './routes/booking.route.js';
 
 //database connection 
@@ -26,7 +27,8 @@ app.use(cookieParser()); //enable cookie parser for cookies
 //routes for api
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-//app.use('/api/trainer', trainerRoutes);
+app.use('/api/trainer', trainerRoutes);
+app.use('/api/admin', adminRoutes)
 // app.use('/api/booking', bookingRoutes);
 
 

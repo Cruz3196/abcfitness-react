@@ -1,4 +1,8 @@
+// importing models 
 import User from "../models/user.model.js";
+import Trainer from "../models/trainer.model.js";
+
+// importing utilities
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
 
@@ -156,10 +160,23 @@ export const refresh = async (req, res) => {
         res.status(500).json({message: "Error in refreshing token"});
     }
 }
-
+// getting the user profile 
 export const getProfile = async (req,res) => {
     try{
-        res.json(req.user);
+        const user = req.user;
+        // if the user is a trainer then get the trainer profile
+        if(user.role === 'trainer'){
+            const trainerProfile = await Trainer.findOne({ user: user._id});
+            // combining the user and trainer profile data
+            const fullProfile = {
+                ...user.toObject(), // conver the mongoose document to a plain object
+                trainerProfile: trainerProfile // attaching the trainer specific data 
+            }
+            // return the full trainer profile is they exist or a trainer 
+            return res.status(200).json(fullProfile);
+        }
+        // if not trainer then return the user profile
+        res.status(200).json(user);
     } catch (error){
         res.status(500).json({message: "Error in getting profile"});
     }
