@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import Class from "../models/class.model.js";
 
 
 // viewing all users including trainers from the data base 
@@ -95,5 +96,17 @@ export const deleteUser = async (req, res) => {
     }catch (error){
         res.status(500).json({message: error.message});
         console.log("Error in deleting user in admin controller", error.message);
+    }
+}
+
+// viewing all the classes from the data base 
+export const viewClassInsights = async (req, res) => {
+    console.log("Testing view class controller")
+    try {
+        const viewClasses = await Class.find();
+        res.status(200).json(viewClasses);
+    } catch (error){
+        console.log("Error in viewing class insights in admin controller", error.message);
+        res.status(500).json({message: error.message});
     }
 }

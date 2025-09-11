@@ -38,7 +38,6 @@ export const createTrainerProfile = async (req, res) => {
 
 // updating the trainer profile 
 export const updateTrainerProfile = async (req, res) => {
-    console.log("Testing update profile controller");
     try {
         // using the findByIdAndUpdate without upsert 
         const updatedTrainerProfile = await Trainer.findOneAndUpdate(
@@ -59,13 +58,26 @@ export const updateTrainerProfile = async (req, res) => {
 // creating a class
 export const createClass = async (req, res) => {
     try {
-        // this will create a new class and associate it with the trainer's user ID
+        // if user is a trainer then they can create a class 
+        const trainer = await Trainer.findOne({ user: req.user._id });
+        if(!trainer){
+            return res.status(403).json({ message: "Only trainers can create classes." });
+
+        }
+        const { classTitle, classDescription, classType, duration, timeSlot, classPic,capacity, price} = req.body;
+
         const newClass = await Class.create({
-            trainer: req.user._id, // Assuming req.user contains the authenticated user's info
-            ...req.body // Spread the rest of the class details from the request body
+           trainer: trainer._id, // This is the verified ID of the logged-in trainer.
+            classTitle, // Assuming schema field is classTitle
+            classDescription,
+            classType,
+            duration,
+            timeSlot,
+            classPic,
+            capacity,
+            price
         });
-        // if credentials are correct, it'll create the class
-        res.status(201).json({ message: "Class created successfully", newClass });
+        res.status(201).json(newClass);
     }catch (error){
         console.log("Error in creating class controller", error);
         res.status(500).json({ error: "Error creating class" });

@@ -48,12 +48,15 @@ const classSchema = new mongoose.Schema({
 // how many people can be in the class
     capacity: {
         type: Number,
-        required: true
+        required: true,
+        default: 0 // need to set a default value for required numbers
+
     },
 // price of the class
     price: {
         type: Number,
-        required: true
+        required: true,
+        min: 0
     },
 // how many people are in the class
     attendees:[{

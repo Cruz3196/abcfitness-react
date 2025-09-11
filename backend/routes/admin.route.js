@@ -1,6 +1,6 @@
 import express from 'express';
 import { adminRoute, protectRoute } from '../middleware/auth.middleware.js';
-import { changeUserStatus, viewAllUsers, viewAllTrainers, pendingTrainerProfiles, deleteUser } from '../controllers/admin.controller.js';
+import { changeUserStatus, viewAllUsers, viewAllTrainers, pendingTrainerProfiles, viewClassInsights ,deleteUser } from '../controllers/admin.controller.js';
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/users', protectRoute, adminRoute, viewAllUsers);
 router.get('/trainers', protectRoute, adminRoute, viewAllTrainers);
 router.get('/trainers/pending-profiles', protectRoute, adminRoute, pendingTrainerProfiles); // viewing pending trainer profiles
-
+router.get('/classes', protectRoute, adminRoute,viewClassInsights)
 //deleting a user from the database, will need user id from DB to test in postman
 router.delete('/users/:userId', protectRoute, adminRoute, deleteUser);
 
