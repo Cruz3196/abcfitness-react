@@ -101,7 +101,6 @@ export const deleteUser = async (req, res) => {
 
 // viewing all the classes from the data base 
 export const viewClassInsights = async (req, res) => {
-    console.log("Testing view class controller")
     try {
         const viewClasses = await Class.find();
         res.status(200).json(viewClasses);
