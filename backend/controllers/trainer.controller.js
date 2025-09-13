@@ -1,7 +1,7 @@
 import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 
-// in controllers/trainer.controller.js
+// in controllers/trainer.controller.js, setting up the trainers profile.
 export const createTrainerProfile = async (req, res) => {
     try {
         // logic for checking if the trainer already exist, if the user does then it'll end here, if then proceed creating the profile 
@@ -81,5 +81,84 @@ export const createClass = async (req, res) => {
     }catch (error){
         console.log("Error in creating class controller", error);
         res.status(500).json({ error: "Error creating class" });
+    }
+}
+
+// getting the trainers classes
+export const getMyClasses = async (req, res) => {
+    console.log("Testing view my classes endpoint" )
+    try{
+        // requesting the user id from the token 
+        const  userId  = req.user._id;
+        // finding the trainer profile using the user id from the token
+        const trainer = await Trainer.findOne({ user: userId });
+        if(!trainer) {
+        // if user is not a trainer then they can't view classes
+            return res.status(200).json("Trainer needs to complete profile set up first, then is able to create and view classes");
+        }
+        const classes = await Class.find({ trainer: trainer._id });
+        res.status(200).json(classes);
+    }catch (error){
+        console.log("Error in getting classes controller", error)
+        res.status(500).json({ error: "Error getting classes" });;
+    }
+};
+
+// updating a class 
+export const updatingClass = async (req, res) => {
+        //* these are the parameters that are going to be updated
+
+    const { classTitle, classDescription, classType, duration, timeSlot, capacity, price} = req.body;
+        //* requesting the class id from the params 
+
+    const classId = req.params.classId;
+
+    try {
+        // calling the class by its id
+        let classToUpdate = await Class.findById(classId);
+        // if the class does not exist then return the message
+        if(!classToUpdate) return res.status(404).json({ message: "Class not found"});
+
+        classToUpdate.classTitle = classTitle || classToUpdate.classTitle;
+        classToUpdate.classDescription = classDescription || classToUpdate.classDescription;
+        classToUpdate.classType = classType || classToUpdate.classType;
+        classToUpdate.duration = duration || classToUpdate.duration;
+        classToUpdate.timeSlot = timeSlot || classToUpdate.timeSlot;
+        classToUpdate.capacity = capacity || classToUpdate.capacity;
+        classToUpdate.price = price || classToUpdate.price;
+
+        await classToUpdate.save();
+        res.status(200).json({ message: "Class updated successfully", classToUpdate });
+
+    }catch (error){
+        console.log("Error in updating class controller", error);
+        res.status(500).json({ error: "Error updating class"}); 
+    }
+}
+
+// deleting a class 
+export const deleteClass = async (req,res) => {
+    try{
+        // find the user of the logged in trainer 
+        const trainer = await Trainer.findOne({ user: req.user._id });
+        // if the trainer profile is not found then return this message
+        if(!trainer){
+            return res.status(403).json({ error: "Trainer profile not found"});
+        }
+
+        const deletingClass = await Class.findOneAndDelete({
+            _id: req.params.classId, // looking for the class if in the database
+            trainer: trainer._id // searching for the trainer id that is logged in and created the class
+        })
+        // if the class is not found then return this message
+        if(!deletingClass){
+            return res.status(404).json({ error: "Clas not found or you are not authorized to delete this class"});
+        };
+        // return a success code if the class is deleted
+        res.status(200).json({ message: "Class has been deleted successfully"});
+
+    } catch (error){
+        console.log("Error in deleting class controller", error);
+        res.status(500).json({ error: "Error deleting class"});
     }
 }
