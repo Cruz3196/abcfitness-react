@@ -5,9 +5,10 @@ import cookieParser from 'cookie-parser';
 
 //routes
 import productRoutes from './routes/product.route.js';
-import authRoutes from './routes/auth.route.js';
+import userRoutes from './routes/user.route.js';
 import trainerRoutes from './routes/trainer.route.js';
 import adminRoutes from './routes/admin.route.js';
+// import userRoutes from './routes/user.route.js';
 // import bookingRoutes from './routes/booking.route.js';
 
 //database connection 
@@ -25,10 +26,11 @@ app.use(express.urlencoded({ extended: true })) // for put and post to form the 
 app.use(cookieParser()); //enable cookie parser for cookies 
 
 //routes for api
-app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/trainer', trainerRoutes);
-app.use('/api/admin', adminRoutes)
+app.use('/api/admin', adminRoutes);
+// app.use('/api/user', userRoutes);
 // app.use('/api/booking', bookingRoutes);
 
 
