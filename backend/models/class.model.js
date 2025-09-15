@@ -49,8 +49,7 @@ const classSchema = new mongoose.Schema({
     capacity: {
         type: Number,
         required: true,
-        default: 0 // need to set a default value for required numbers
-
+        min: 1
     },
 // price of the class
     price: {

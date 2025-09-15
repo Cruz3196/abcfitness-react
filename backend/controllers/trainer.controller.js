@@ -86,7 +86,6 @@ export const createClass = async (req, res) => {
 
 // getting the trainers classes
 export const getMyClasses = async (req, res) => {
-    console.log("Testing view my classes endpoint" )
     try{
         // requesting the user id from the token 
         const  userId  = req.user._id;
