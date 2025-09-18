@@ -200,27 +200,27 @@ export const bookClass = async (req, res) => {
 
     // 6. Create booking with proper field names and data types
     const booking = await Booking.create({
-        user: req.user._id,  // Changed from userId to user
-        class: classId,      // Changed from classId to class
+        user: req.user._id,
+        class: classId,      
         bookingStatus: "confirmed",
-        paymentStatus: paymentStatus || "pending", // Use provided value or default
+        paymentStatus: paymentStatus || "pending", 
         bookingDate: bookingDate ? new Date(bookingDate) : new Date(),
-        classDate: classDate ? new Date(classDate) : new Date(), // Proper Date object
+        classDate: classDate ? new Date(classDate) : new Date(), 
     });
 
     // 7. Update class with attendee (fix the query)
     await Class.updateOne(
-        { _id: classId }, // Fixed: use _id instead of classId
+        { _id: classId }, 
         { 
             $inc: { bookedCount: 1 }, 
-            $push: { attendees: req.user._id } // Fixed: use _id
+            $push: { attendees: req.user._id } 
         }
     );
 
     // 8. Add booking to user's bookings array
     await User.updateOne(
-      { _id: req.user._id }, // Fixed: use _id instead of id
-      { $push: { bookings: booking._id } } // Use booking._id instead of classId
+        { _id: req.user._id }, 
+        { $push: { bookings: booking._id } } 
     );
 
     res.status(201).json({ 
@@ -238,37 +238,36 @@ export const bookClass = async (req, res) => {
 export const viewBookedClasses = async (req, res) => {
     try {
         // Extract userId from the token
-        const userId = req.user._id; // Fixed: use _id
+        const userId = req.user._id;
 
         // Find all bookings associated with the user
-        const userBookings = await Booking.find({ user: userId }); // Fixed: use 'user'
+        const userBookings = await Booking.find({ user: userId }); 
 
         // Create an array to hold booked class details
         const bookedClasses = [];
 
     // Loop through each booking and find the associated class
     for (const booking of userBookings) {
-      const selectedClass = await Class.findById(booking.class); // Fixed: use booking.class and findById
-        if (selectedClass) {
-            bookedClasses.push({
-            bookingId: booking._id,
-            classId: selectedClass._id, // Fixed: use _id
-            className: selectedClass.classTitle, // Fixed: use classTitle
-            classType: selectedClass.classType,
-            duration: selectedClass.duration,
-            timeSlot: selectedClass.timeSlot,
-            capacity: selectedClass.capacity,
-            price: selectedClass.price,
-            attendeesCount: selectedClass.attendees?.length || 0, // Fixed: count attendees
-            classPic: selectedClass.classPic,
-            status: booking.bookingStatus,
-            classDate: booking.classDate,
-            paymentStatus: booking.paymentStatus,
+        const selectedClass = await Class.findOne({classId: booking.classId}); 
+            if (selectedClass) {
+                bookedClasses.push({
+                bookingId: booking._id,
+                classId: selectedClass._id, 
+                className: selectedClass.classTitle, 
+                classType: selectedClass.classType,
+                duration: selectedClass.duration,
+                timeSlot: selectedClass.timeSlot,
+                capacity: selectedClass.capacity,
+                price: selectedClass.price,
+                attendeesCount: selectedClass.attendees?.length || 0, 
+                classPic: selectedClass.classPic,
+                status: booking.bookingStatus,
+                classDate: booking.classDate,
+                paymentStatus: booking.paymentStatus,
             });
         }
     }
 
-    // Rest of the function remains the same with the fixes from above...
     const now = new Date();
     const upcoming = bookedClasses.filter(
         (b) => new Date(b.classDate) > now && b.status !== "cancelled"
@@ -279,7 +278,7 @@ export const viewBookedClasses = async (req, res) => {
 
     const bookedClassIds = bookedClasses.map((b) => b.classId);
 
-    const user = await User.findById(userId); // Fixed: use findById
+    const user = await User.findById(userId); 
     if (!user) {
         return res.status(404).json({ message: "User not found" });
     }
@@ -288,7 +287,7 @@ export const viewBookedClasses = async (req, res) => {
     const goalTypes = user.goals || [];
 
     const recommendedClasses = await Class.find({
-        _id: { $nin: bookedClassIds }, // Fixed: use _id
+        _id: { $nin: bookedClassIds }, 
         status: "available",
         $or: [
             { classType: { $in: preferredTypes } },
@@ -303,3 +302,43 @@ export const viewBookedClasses = async (req, res) => {
         res.status(500).json({ message: "An error occurred while fetching booked classes." });
     }
 };
+
+// cancelling a booking 
+export const cancelBooking = async (req,res) => {
+    try{
+        // getting the classId from params and User from req.user
+        const { classId } = req.params;
+        const userId = req.user._id;
+
+        // find the booking based on classId and userId 
+        const booking = await Booking.findOne({ class: classId, user: userId});
+
+        if(!booking){
+            return res.status(404).json({message: "Booking not found"});
+        };
+
+        //retrieve the class details using classId from the booking
+        const selectedClass = await Class.findOne({_id: classId});
+
+        // if the class if is not found 
+        if(!selectedClass){
+            return res.status(404).json({message: "class is not found"});
+        }
+
+        //update the booking status and refund status
+        booking.bookingStatus = "cancelled";
+        booking.refundStatus = "processed";
+        await booking.save();
+
+        // removing the user from the attendees array in the class model
+        await Class.updateOne({ _id: classId }, { $pull: {attendees: userId}});
+
+        // pull the class from the user's booking array 
+        await User.updateOne({ _id: userId}, {$pull: {bookings: classId}});
+
+        res.json({message: "Booking cancelled and return processed"});
+    }catch(error){
+        console.error("error in cancelling your book", error)
+        res.status(500).json({message: "an error occurred while trying to cancel your booking"});
+    }
+}

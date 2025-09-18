@@ -4,7 +4,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 
 // importing controllers
 import { createUser, loginUser, logoutUser, refresh} from "../controllers/auth.controller.js";
-import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses } from "../controllers/user.controller.js";
+import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking} from "../controllers/user.controller.js";
 
 const router = express.Router();
 
@@ -16,6 +16,7 @@ router.post("/refresh-token", refresh)
 // booking class
 router.post("/bookings/:classId", protectRoute, bookClass);
 router.get("/bookings/viewBookedclasses", protectRoute, viewBookedClasses)
+router.post("/cancelBooking/:classId", protectRoute, cancelBooking)
 
 // Profile route for logged in users / profile management
 router.get("/profile",protectRoute, getProfile)
@@ -27,6 +28,5 @@ router.get("/viewAllClasses", viewAllClasses)
 
 // logging out the user
 router.post("/logout", logoutUser)
-
 
 export default router;
