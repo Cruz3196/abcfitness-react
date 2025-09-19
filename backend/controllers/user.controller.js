@@ -478,20 +478,70 @@ export const deleteFeedback = async (req, res) => {
 // viewing all trainers from customer standpoint 
 export const allTrainers = async(req, res) => {
     try{
-        const trainers = await User.find({ role: "trainer"}).select('-password') // when fetching all the trainers the -password will exclude the password
-        res.status(200).json(trainers);
+    const trainers = await Trainer.find({})
+        .populate({
+            path: 'user',
+            select: 'username email -_id' // Get username and email, exclude the user's _id since you have trainer _id
+        })
+      .select('-__v'); // Optionally exclude version key
+
+    if (trainers.length === 0) {
+        return res.status(404).json({ message: "No trainers found" });
+    }
+
+    res.status(200).json(trainers);
     }catch (error){
         console.log("Error in getting all trainers",error.message);
         res.status(500).json({message: "error in the view all trainers controller"});
     }
 }
 
-// find the trainer by his user name or id 
-export const viewTrainer = async (req ,res) => {
-    try{
+// viewing a specific trainer by their profile id
+export const viewTrainer = async (req, res) => {
+    //! testing to see if the server is receiving the request and the trainerId
+    const { trainerId } = req.params;
+    // debug statement
+    //console.log("Server received request for trainerId:", req.params.trainerId);
+    try {
+        // searching for the trainer, if he does exist return his profile with user info, username and email
+        const trainer = await Trainer.findById(trainerId)
+            .populate({
+                path: 'user', // In the Trainer model, populate the 'user' field.
+                select: 'username email' // Only get the username and email from the User model.
+            });
 
-    }catch (error){
-        console.log("Error in viewing trainer", error.message);
-        res.status(500).json({message: "error in the view trainer controller"});
+        // user does not exist return a status of not found
+        if (!trainer) {
+            return res.status(404).json({ message: "Trainer not found" });
+        }
+
+        //Find all classes where the 'trainer' field matches the Trainer's PROFILE ID.
+        // This is the corrected query. also added class data to be shown on the trainer profile
+        const classes = await Class.find({ trainer: trainerId, status: 'available' }).select(
+        "classType className duration timeSlot  price bookedCount classId classPic"
+    );
+;
+
+        //Combine the data into a clean response object.
+        const response = {
+            trainer: {
+                _id: trainer._id,
+                username: trainer.user.username, // Get username from the populated user object
+                email: trainer.user.email,       // Get email from the populated user object
+                specialization: trainer.specialization,
+                bio: trainer.bio,
+                experience: trainer.experience,
+                certifications: trainer.certifications,
+                rating: trainer.rating,
+                availability: trainer.availability
+            },
+            classes: classes // The array of classes taught by this trainer
+        };
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        console.log("Error in viewTrainerById controller", error.message);
+        res.status(500).json({ message: "Error in the view trainer controller" });
     }
-}
+};
