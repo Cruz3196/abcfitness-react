@@ -103,6 +103,27 @@ export const getMyClasses = async (req, res) => {
     }
 };
 
+// viewing a class by id
+export const viewClassById = async (req, res) => {
+    try{
+        // creating a variable to request the class id from the params.
+        const {classId} = req.params;
+        //creating another variable to get class information by its id.
+        const classInfo = await Class.findById({ _id: classId });
+        //now if the class if is not found then return an error.
+        if(!classInfo){
+            return res.status(404).json({ message: "Class not found"});
+        }
+        // returning the class information if found.
+        res.json(classInfo);
+
+    }catch (error){
+        console.log("Error in viewing by class Id controller", error);
+        res.status(500).json({ message: "Error viewing class by Id" });
+    }
+}
+
+
 // updating a class 
 export const updatingClass = async (req, res) => {
         //* these are the parameters that are going to be updated

@@ -1,6 +1,6 @@
 // in routes/trainer.route.js
 import express from "express";
-import { createTrainerProfile, updateTrainerProfile, createClass, getMyClasses, updatingClass, deleteClass} from "../controllers/trainer.controller.js";
+import { createTrainerProfile, updateTrainerProfile, createClass, getMyClasses, updatingClass, deleteClass, viewClassById} from "../controllers/trainer.controller.js";
 // Import your new middleware
 import { protectRoute, trainerRoute } from "../middleware/auth.middleware.js"; 
 
@@ -10,11 +10,16 @@ const router = express.Router();
 router.post("/creatingTrainerProfile", protectRoute, trainerRoute, createTrainerProfile);
 router.put("/updatingTrainerProfile", protectRoute, trainerRoute, updateTrainerProfile);
 
-// class routes that a trainer can control 
+// class routes that a trainer can control classes
 router.post("/createClass", protectRoute, trainerRoute, createClass);
-router.get("/viewMyClasses", protectRoute, trainerRoute, getMyClasses);;
+router.get("/viewMyClasses", protectRoute, trainerRoute, getMyClasses);
+router.get("/viewClass/:classId", protectRoute, trainerRoute, viewClassById);
 router.put("/updatingClass/:classId", protectRoute, trainerRoute, updatingClass);
 router.delete("/deletingClass/:classId", protectRoute, trainerRoute, deleteClass);
+
+// viewing books in a specific class
+// router.get('viewBookedUsers', protectRoute, trainerRoute, viewBookedUsers);
+
 
 
 export default router;
