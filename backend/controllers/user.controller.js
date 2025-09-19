@@ -180,7 +180,7 @@ export const bookClass = async (req, res) => {
     // 3. Check if user already has a booking
     const existingBooking = await Booking.findOne({
         class: classId,  // Changed from classId to class
-        user: req.user._id,  // Changed from userId to user
+        user: req.user._id,  // Changed from userId to user\
         bookingStatus: "confirmed",
     });
 
@@ -221,7 +221,7 @@ export const bookClass = async (req, res) => {
     // 8. Add booking to user's bookings array
     await User.updateOne(
         { _id: req.user._id }, 
-        { $push: { bookings: booking._id } } 
+        { $push: { bookings: booking._id } }
     );
 
     res.status(201).json({ 
@@ -304,43 +304,47 @@ export const viewBookedClasses = async (req, res) => {
     }
 };
 
-// cancelling a booking 
 export const cancelBooking = async (req,res) => {
     try{
-        // getting the classId from params and User from req.user
         const { classId } = req.params;
         const userId = req.user._id;
-
-        // find the booking based on classId and userId 
+        
+        // Find the booking
         const booking = await Booking.findOne({ class: classId, user: userId});
 
         if(!booking){
             return res.status(404).json({message: "Booking not found"});
         };
-
-        //retrieve the class details using classId from the booking
+        
+        // Get the class and check if user is in attendees
         const selectedClass = await Class.findOne({_id: classId});
-
-        // if the class if is not found 
-        if(!selectedClass){
-            return res.status(404).json({message: "class is not found"});
+            if(!selectedClass){
+        return res.status(404).json({message: "Class not found"});
         }
-
-        //update the booking status and refund status
+        
+        // Check if user is actually in the attendees list
+        if(!selectedClass.attendees.includes(userId)) {
+            return res.status(400).json({message: "User not found in class attendees"});
+        }
+        
+        // Update booking status
         booking.bookingStatus = "cancelled";
         booking.refundStatus = "processed";
         await booking.save();
-
-        // removing the user from the attendees array in the class model
-        await Class.updateOne({ _id: classId }, { $pull: {attendees: userId}});
-
-        // pull the class from the user's booking array 
-        await User.updateOne({ _id: userId}, {$pull: {bookings: classId}});
-
-        res.json({message: "Booking cancelled and return processed"});
+        
+        // Remove user from attendees array AND decrease booked count
+        await Class.updateOne({ _id: classId }, { 
+            $pull: { attendees: userId },
+            $inc: { bookedCount: -1 }
+        });
+        
+        // Remove booking from user's bookings array
+        await User.updateOne({ _id: userId}, {$pull: {bookings: booking._id}});
+        
+        res.json({message: "Booking cancelled and user removed from attendees"});
     }catch(error){
-        console.error("error in cancelling your book", error.message)
-        res.status(500).json({message: "an error occurred while trying to cancel your booking"});
+        console.error("error in cancelling booking", error.message)
+        res.status(500).json({message: "Error occurred while cancelling booking"});
     }
 }
 

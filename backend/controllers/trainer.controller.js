@@ -1,5 +1,7 @@
 import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
+import User from "../models/user.model.js";
+import Booking from "../models/booking.model.js";
 
 // in controllers/trainer.controller.js, setting up the trainers profile.
 export const createTrainerProfile = async (req, res) => {
@@ -120,8 +122,44 @@ export const viewClassById = async (req, res) => {
     }catch (error){
         console.log("Error in viewing by class Id controller", error);
         res.status(500).json({ message: "Error viewing class by Id" });
+    };
+};
+
+// viewing booked users in a specific class
+export const viewClassAttendees = async (req, res) => {
+    try {
+        const { classId } = req.params;
+
+        //Find the trainer profile of the currently logged-in user.
+        const trainer = await Trainer.findOne({ user: req.user._id });
+        if (!trainer) {
+            return res.status(403).json({ message: "You must have a trainer profile to view class attendees." });
+        }
+
+        // Find the class to ensure it exists.
+        const classToCheck = await Class.findById(classId);
+
+        // Verify that the class exists AND that its 'trainer' field matches the logged-in trainer's profile ID.
+        if (!classToCheck || classToCheck.trainer.toString() !== trainer._id.toString()) {
+            return res.status(403).json({ message: "You are not authorized to view attendees for this class." });
+        }
+
+        // Find all bookings for this class and populate the user's details in ONE efficient query.
+        const bookings = await Booking.find({ class: classId })
+            .populate({
+                path: 'user', // In the Booking model, populate the 'user' field.
+                select: 'username email' // Get the username and email of the user who booked.
+            });
+
+        // The 'bookings' array now contains all the user info you need.
+        res.status(200).json(bookings);
+
+    } catch (error) {
+        console.log("Error in viewClassAttendees:", error);
+        res.status(500).json({ message: "Error fetching class attendees." });
     }
-}
+};
+
 
 
 // updating a class 
