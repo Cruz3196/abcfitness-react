@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 import Booking from "../models/booking.model.js";
+import Review from "../models/review.model.js";
 
 // getting user info by id 
 export const getProfile = async (req, res) => {
@@ -33,7 +34,7 @@ export const getProfile = async (req, res) => {
         res.status(200).json(user);
 
     } catch (error) {
-        console.log("Error in getting profile", error);
+        console.log("Error in getting profile", error.message);
         res.status(500).json({ message: "Error in getting profile" });
     }
 };
@@ -94,7 +95,7 @@ export const editUserInfo = async (req, res) => {
         res.status(200).json({ message: "Profile updated successfully", user: userResponse });
 
     } catch (error) {
-        console.log("Error in editing user info", error);
+        console.log("Error in editing user info", error.message);
         res.status(500).json({ message: "An error occurred while editing the user profile" });
     }
 };
@@ -158,7 +159,7 @@ export const viewAllClasses = async (req, res) => {
     // if classes were found then return all the classes 
         res.status(200).json({message: "Classes Found", classes})
     }catch (error){
-        console.log("Error in viewing all the classes", error);
+        console.log("Error in viewing all the classes", error.message);
         res.status(500).json({message: "Cannot fetch all classes"});
     }
 };
@@ -229,7 +230,7 @@ export const bookClass = async (req, res) => {
     });
 
     } catch (error) {
-        console.log("Error in bookClass controller:", error);
+        console.log("Error in bookClass controller:", error.message);
         res.status(500).json({ message: "An error occurred while booking the class." });
     }
 };
@@ -248,7 +249,7 @@ export const viewBookedClasses = async (req, res) => {
 
     // Loop through each booking and find the associated class
     for (const booking of userBookings) {
-        const selectedClass = await Class.findOne({classId: booking.classId}); 
+        const selectedClass = await Class.findById(booking.class); 
             if (selectedClass) {
                 bookedClasses.push({
                 bookingId: booking._id,
@@ -298,7 +299,7 @@ export const viewBookedClasses = async (req, res) => {
     res.json({ upcoming, history, recommended: recommendedClasses });
 
     } catch (error) {
-        console.error("Error in viewBookedClasses:", error);
+        console.error("Error in viewBookedClasses:", error.message);
         res.status(500).json({ message: "An error occurred while fetching booked classes." });
     }
 };
@@ -338,7 +339,159 @@ export const cancelBooking = async (req,res) => {
 
         res.json({message: "Booking cancelled and return processed"});
     }catch(error){
-        console.error("error in cancelling your book", error)
+        console.error("error in cancelling your book", error.message)
         res.status(500).json({message: "an error occurred while trying to cancel your booking"});
+    }
+}
+
+// submitting feed back to the class 
+export const submitFeedback = async (req, res) => {
+    try {
+        // Getting the class ID from the URL and the feedback from the body.
+        const { classId } = req.params;
+        const { rating, reviewText } = req.body;
+        const userId = req.user._id;
+
+        //Finding the class by its primary _id.
+        const classInstance = await Class.findById(classId);
+        if (!classInstance) {
+            return res.status(404).json({ message: "Class not found" });
+        }
+        
+        // Verify that the user has actually booked this class before allowing a review.
+        const booking = await Booking.findOne({ user: userId, class: classId });
+        if (!booking) {
+            return res.status(403).json({ message: "You must book a class before you can review it." });
+        }
+
+        // Create the new review document. This works perfectly with your schema.
+        const newReview = await Review.create({
+            user: userId,
+            trainer: classInstance.trainer,
+            class: classId,
+            rating,
+            reviewText,
+        });
+
+        const trainer = await Trainer.findById(classInstance.trainer);
+        if (!trainer) {
+            return res.status(404).json({ message: "Trainer associated with this class not found" });
+        }
+
+        const oldTotalRating = trainer.rating.averageRating * trainer.rating.totalReviews;
+        const newTotalReviews = trainer.rating.totalReviews + 1;
+        const newAverageRating = (oldTotalRating + rating) / newTotalReviews;
+
+        trainer.rating.averageRating = newAverageRating;
+        trainer.rating.totalReviews = newTotalReviews;
+        await trainer.save();
+
+        res.status(201).json({ message: "Feedback submitted successfully!", review: newReview });
+
+    } catch (error) {
+        console.log("Error in submitFeedback controller:", error.message);
+        res.status(500).json({ message: "An error occurred while submitting feedback." });
+    }
+};
+
+// updating review post 
+export const updateFeedback = async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        const { rating, reviewText } = req.body;
+        const userId = req.user._id;
+
+        // finding the review by its ID 
+        const review = await Review.findById(reviewId);
+
+        // Security Check: Does the review exist and does it belong to the logged-in user?
+        if (!review) {
+            return res.status(404).json({ message: "Review not found." });
+        }
+        if (review.user.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "You are not authorized to edit this review." });
+        }
+
+        const oldRating = review.rating;
+        const trainer = await Trainer.findById(review.trainer);
+
+
+        review.rating = rating ?? review.rating;
+        review.reviewText = reviewText ?? review.reviewText;
+        const updatedReview = await review.save();
+
+        if (trainer && rating !== undefined) {
+            const oldTotalScore = (trainer.rating.averageRating * trainer.rating.totalReviews) - oldRating;
+            const newTotalScore = oldTotalScore + rating;
+            trainer.rating.averageRating = newTotalScore / trainer.rating.totalReviews; // Total reviews stays the same
+            await trainer.save();
+        }
+
+        res.status(200).json({ message: "Review updated successfully", review: updatedReview });
+
+    } catch (error) {
+        console.log("Error in updateReview controller:", error.message);
+        res.status(500).json({ message: "An error occurred while updating the review." });
+    }
+};
+
+// Allows a user to delete a review they have previously submitted.
+export const deleteFeedback = async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        const userId = req.user._id;
+
+        const review = await Review.findById(reviewId);
+
+        // Security Check: Does the review exist and does it belong to the logged-in user?
+        if (!review) {
+            return res.status(404).json({ message: "Review not found." });
+        }
+        if (review.user.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "You are not authorized to delete this review." });
+        }
+
+        const trainer = await Trainer.findById(review.trainer);
+        if (trainer) {
+            const oldTotalScore = trainer.rating.averageRating * trainer.rating.totalReviews;
+            const newTotalReviews = trainer.rating.totalReviews - 1;
+
+            if (newTotalReviews > 0) {
+                trainer.rating.averageRating = (oldTotalScore - review.rating) / newTotalReviews;
+            } else {
+                trainer.rating.averageRating = 0; 
+            }
+            trainer.rating.totalReviews = newTotalReviews;
+            await trainer.save();
+        }
+
+        await Review.findByIdAndDelete(reviewId);
+
+        res.status(200).json({ message: "Review deleted successfully." });
+
+    } catch (error) {
+        console.log("Error in deleteReview controller:", error);
+        res.status(500).json({ message: "An error occurred while deleting the review." });
+    }
+};
+
+// viewing all trainers from customer standpoint 
+export const allTrainers = async(req, res) => {
+    try{
+        const trainers = await User.find({ role: "trainer"}).select('-password') // when fetching all the trainers the -password will exclude the password
+        res.status(200).json(trainers);
+    }catch (error){
+        console.log("Error in getting all trainers",error.message);
+        res.status(500).json({message: "error in the view all trainers controller"});
+    }
+}
+
+// find the trainer by his user name or id 
+export const viewTrainer = async (req ,res) => {
+    try{
+
+    }catch (error){
+        console.log("Error in viewing trainer", error.message);
+        res.status(500).json({message: "error in the view trainer controller"});
     }
 }

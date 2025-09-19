@@ -1,6 +1,5 @@
 // importing models 
 import User from "../models/user.model.js";
-// import Trainer from "../models/trainer.model.js";
 
 // importing utilities
 import { redis } from "../lib/redis.js";
