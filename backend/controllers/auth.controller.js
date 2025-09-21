@@ -5,6 +5,9 @@ import User from "../models/user.model.js";
 import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
 
+// import nodemailer transporter
+import { sendEmail } from "../utils/emailService.js";
+
 // 15 minutes for storage to host the token
 const generateTokens = (userId) => {
     const accessToken = jwt.sign({userId}, process.env.ACCESS_TOKEN_SECRET, {
@@ -54,6 +57,17 @@ export const createUser = async (req, res) => {
         }
         //creating the user
         const user = await User.create({email, password, username});
+
+        // after the user is successfully created, send a welcome email
+        try {
+            const subject = "Welcome to ABC Fitness!";
+            const text = `Hi ${username},\n\nThank you for signing up. We're excited to have you!`;
+            await sendEmail(user.email, subject, text);
+            console.log(`Welcome email sent to ${user.email}`);
+        } catch (emailError) {
+            // Log the error but don't stop the signup process if the email fails.
+            console.error("Failed to send welcome email:", emailError);
+        }
 
         //authenticate user .id is how mongodb stores the id
         const {accessToken, refreshToken} = generateTokens(user._id);

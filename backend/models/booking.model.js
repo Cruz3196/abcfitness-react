@@ -1,59 +1,59 @@
 import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema({
-// this will refer to the user schema 
-    user: { // The user who books the class
+    // Reference to the user who made the booking.
+    user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-// this will refer to the class schema for the class that the user is booking
+    // Reference to the class template that was booked.
     class: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Class",
         required: true
     },
-
-    bookingStatus: {
-        type: String, 
-        enum: ["confirmed", "cancelled", "pending", "completed"],
-        default: "confirmed"
+    // Denormalized reference to the trainer for easier queries.
+    trainer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Trainer",
+        required: true
     },
 
-    paymentStatus:{
-        type: String,
-        enum: ["none", "requested", "processed", "denied"],
-        default: "none",
+    // --- REVISED DATE/TIME (Recommended) ---
+    // The exact start date and time of the booked session.
+    startTime: {
+        type: Date,
+        required: true
     },
-
-    refundStatus: {
-        type: String,
-        enum: ["none", "requested", "processed", "denied"],
-        default: "none",
-    },
-
-    cancellationReason: {
-        type: String,
-    },
-
-    bookingDate: {
+    // The exact end time of the session.
+    endTime: {
         type: Date,
         required: true
     },
 
-    classDate: {
-        type: Date,
-        required: true
+    // --- REVISED STATUS ---
+    // A single, clear status for the booking.
+    status: {
+        type: String,
+        enum: ["upcoming", "completed", "cancelled", "no-show"],
+        default: "upcoming"
     },
-
-    classStatus: {
-        type: String, 
-        enum: ["upcoming", "completed", "cancelled"],
-        required: true,
-        default: "upcoming", // default to upcoming when the booking is booked.
+    paymentStatus: {
+        type: String,
+        enum: ["pending", "paid", "refunded"],
+        default: "pending",
+    },
+    stripePaymentIntentId: {
+        type: String,
     }
-}, {timestamps: true}
-);
+
+
+}, { timestamps: true });
+
+// Prevents a user from booking the exact same class session twice.
+// This is very precise and reliable.
+bookingSchema.index({ class: 1, user: 1, startTime: 1 }, { unique: true });
 
 const Booking = mongoose.model("Booking", bookingSchema);
 

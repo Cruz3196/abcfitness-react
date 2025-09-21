@@ -3,6 +3,8 @@ import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 import Booking from "../models/booking.model.js";
 import Review from "../models/review.model.js";
+import { sendEmail } from "../utils/emailService.js";
+import crypto from "crypto";
 
 // getting user info by id 
 export const getProfile = async (req, res) => {
@@ -41,6 +43,99 @@ export const getProfile = async (req, res) => {
     } catch (error) {
         console.log("Error in getting profile", error.message);
         res.status(500).json({ message: "Error in getting profile" });
+    }
+};
+
+// forgot password 
+export const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(200).json({ message: "If a user with that email exists, a password reset link has been sent." });
+        }
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+
+        const passwordResetToken = crypto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex");
+
+        const passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+        user.passwordResetToken = passwordResetToken;
+        user.passwordResetExpires = passwordResetExpires;
+        await user.save();
+
+        const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+        const subject = "Your Password Reset Link (Valid for 10 Minutes)";
+        const text = `Hi ${user.username},\n\nYou requested a password reset. Please click on the following link to reset your password:\n\n${resetURL}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
+
+        await sendEmail(user.email, subject, text);
+
+        res.status(200).json({ message: "If a user with that email exists, a password reset link has been sent." });
+
+    } catch (error) {
+        // This is a safety measure. req.user will likely not exist here.
+        // The core logic is to prevent leaving hanging tokens in the DB if something fails.
+        try {
+            const user = await User.findOne({ email: req.body.email });
+            if (user) {
+                user.passwordResetToken = undefined;
+                user.passwordResetExpires = undefined;
+                await user.save();
+            }
+        } catch (cleanupError) {
+            console.log("Error during forgotPassword cleanup:", cleanupError);
+        }
+        console.log("Error in forgotPassword controller:", error);
+        res.status(500).json({ message: "An error occurred." });
+    }
+};
+
+
+// reset password
+export const resetPassword = async (req, res) => {
+    try {
+        const { token } = req.params;
+        const { password } = req.body;
+
+        // 1. Hash the incoming token to match the one stored in the database
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        // 2. Find the user by the hashed token and check if it's still valid
+        const user = await User.findOne({
+            passwordResetToken: hashedToken,
+            passwordResetExpires: { $gt: Date.now() }, // Check if token is not expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Token is invalid or has expired." });
+        }
+
+        // 3. Set the new password
+        user.password = password; // The pre-save hook will hash this automatically
+
+        // 4. Clear the reset token fields from the user document
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        await user.save();
+
+        // (Optional) Log the user in by generating new tokens
+        // const { accessToken, refreshToken } = generateTokens(user._id); ...
+
+        res.status(200).json({ message: "Password has been successfully reset." });
+
+    } catch (error) {
+        console.log("Error in resetPassword controller:", error);
+        res.status(500).json({ message: "An error occurred." });
     }
 };
 
@@ -108,37 +203,49 @@ export const editUserInfo = async (req, res) => {
 // deleting the user profile 
 export const deleteUserAccount = async (req, res) => {
     try {
-        // 1. Get the user's ID securely from their token.
         const userId = req.user._id;
 
-        // 2. Check if the user is a trainer.
-        if (req.user.role === 'trainer') {
-            // Find the associated trainer profile document.
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Store the details for the email in a separate, simple object before deleting anything.
+        const emailDetails = {
+            email: user.email,
+            username: user.username
+        };
+
+        // If the user is a trainer, delete their profile and classes first.
+        if (user.role === 'trainer') {
             const trainerProfile = await Trainer.findOne({ user: userId });
-
             if (trainerProfile) {
-                // If they have a profile, delete all classes created by this trainer.
-                // This prevents orphaned class documents.
                 await Class.deleteMany({ trainer: trainerProfile._id });
-
-                // Now, delete the trainer profile itself.
                 await Trainer.findByIdAndDelete(trainerProfile._id);
             }
         }
 
-        // 3. Delete the main User document. This runs for ALL users.
-        const deletedUser = await User.findByIdAndDelete(userId);
+        // Also delete all bookings made by this user to clean up the database.
+        await Booking.deleteMany({ user: userId });
 
-        if (!deletedUser) {
-            return res.status(404).json({ message: "User not found." });
+        // Finally, delete the main User document.
+        await User.findByIdAndDelete(userId);
+
+        // good bye email to the user
+        try {
+            const subject = "Your ABC Fitness Account Has Been Deleted";
+
+            const text = `Hi ${emailDetails.username},\n\nThis is a confirmation that your account with the email ${emailDetails.email} has been permanently deleted as you requested.`;
+            await sendEmail(emailDetails.email, subject, text);
+            console.log(`Goodbye email sent to ${emailDetails.email}`);
+        } catch (emailError) {
+            console.error("Failed to send goodbye email, but account was deleted.", emailError);
         }
-
-        // 4. Clear the authentication cookies to log the user out.
+        // Clear authentication cookies
         res.clearCookie("accessToken");
         res.clearCookie("refreshToken");
-        // You can also delete the refresh token from Redis here if you wish.
 
-        res.status(200).json({ message: "Your account and all associated data have been successfully deleted." });
+        res.status(200).json({ message: "Your account has been successfully deleted." });
 
     } catch (error) {
         console.log("Error in deleting account", error);
@@ -250,48 +357,59 @@ export const viewBookedClasses = async (req, res) => {
 };
 
 // cancelling a booking by book id logged in as the user
-export const cancelBooking = async (req,res) => {
-    try{
+export const cancelBooking = async (req, res) => {
+    try {
         const { bookingId } = req.params;
         const userId = req.user._id;
-        
-        // Find the booking
-        const booking = await Booking.findOne({ user: userId, _id: bookingId });
-        if(!booking){
-            return res.status(404).json({message: "Booking not found"});
-        };
-        
-        // Get the class using booking.class (not undefined classId)
-        const selectedClass = await Class.findOne({_id: booking.class});  // ✅ Fixed
-        if(!selectedClass){
-            return res.status(404).json({message: "Class not found"});
+
+        // ✅ FIXED: Populate user and class details to use in the email later
+        const booking = await Booking.findById(bookingId).populate('user').populate('class');
+
+        // Security check: Does booking exist and belong to the user?
+        if (!booking || booking.user._id.toString() !== userId.toString()) {
+            return res.status(404).json({ message: "Booking not found or you are not authorized to cancel it." });
+        }
+
+        // Only process a refund if the booking was actually paid for
+        if (booking.paymentStatus === 'paid' && booking.stripePaymentIntentId) {
+            try {
+                // 1. PROCESS STRIPE REFUND
+                await stripe.refunds.create({
+                    payment_intent: booking.stripePaymentIntentId,
+                });
+            } catch (stripeError) {
+                console.error("Stripe refund failed:", stripeError);
+                // Don't stop the whole process, but log the error. The user may need manual support.
+                // In a production app, you would flag this for admin review.
+            }
         }
         
-        // Check if user is actually in the attendees list
-        if(!selectedClass.attendees.includes(userId)) {
-            return res.status(400).json({message: "User not found in class attendees"});
-        }
-        
-        // Update booking status
-        booking.bookingStatus = "cancelled";
-        booking.refundStatus = "processed";
+        // 2. UPDATE YOUR DATABASE
+        booking.status = "cancelled";
+        booking.paymentStatus = "refunded";
         await booking.save();
-        
-        // Remove user from attendees array AND decrease booked count
-        await Class.updateOne({ _id: booking.class }, {  // ✅ Use booking.class
-            $pull: { attendees: userId },
-            $inc: { bookedCount: -1 }
-        });
-        
-        // Remove booking from user's bookings array
-        await User.updateOne({ _id: userId}, {$pull: {bookings: booking._id}});  // ✅ Fixed _id fields
-        
-        res.json({message: "Booking cancelled and user removed from attendees"});
-    }catch(error){
-        console.error("error in cancelling booking", error.message)
-        res.status(500).json({message: "Error occurred while cancelling booking"});
+
+        // 3. SEND CANCELLATION & REFUND EMAIL
+        try {
+            // This code will now work because booking.user and booking.class are populated
+            const subject = `Booking Cancelled: ${booking.class.classTitle}`;
+            const text = `Hi ${booking.user.username},\n\nThis is a confirmation that your booking for the class "${booking.class.classTitle}" on ${booking.startTime.toDateString()} has been cancelled.\n\nA refund has been issued to your original payment method. Please allow 5-10 business days for it to appear on your statement.\n\nThank you.`;
+            
+            await sendEmail(booking.user.email, subject, text);
+            console.log(`Cancellation email sent to ${booking.user.email}`);
+        } catch (emailError) {
+            // If the email fails, the cancellation should still succeed.
+            // Log the error for review.
+            console.error("Failed to send cancellation email, but refund was processed:", emailError);
+        }
+
+        res.status(200).json({ message: "Booking has been successfully cancelled and refunded.", booking });
+
+    } catch (error) {
+        console.log("Error in cancelling your booking", error);
+        res.status(500).json({ message: "An error occurred while trying to cancel your booking." });
     }
-}
+};
 
 // submitting feed back to the class 
 export const submitFeedback = async (req, res) => {

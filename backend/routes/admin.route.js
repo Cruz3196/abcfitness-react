@@ -1,6 +1,6 @@
 import express from 'express';
 import { adminRoute, protectRoute } from '../middleware/auth.middleware.js';
-import { changeUserStatus, viewAllUsers, viewAllTrainers, pendingTrainerProfiles, viewClassInsights ,deleteUser } from '../controllers/admin.controller.js';
+import { changeUserStatus, viewAllUsers, viewAllTrainers, pendingTrainerProfiles, viewClassInsights ,deleteUser, getDashboardStats } from '../controllers/admin.controller.js';
 
 const router = express.Router();
 
@@ -15,5 +15,8 @@ router.delete('/users/:userId', protectRoute, adminRoute, deleteUser);
 
 // will need to put user id in from DB to test in post man 
 router.put('/users/:userId/statusChange', protectRoute, adminRoute, changeUserStatus);
+
+// getting the dasboard statistics
+router.get('/dashboard/stats', protectRoute, adminRoute, getDashboardStats);
 
 export default router; 

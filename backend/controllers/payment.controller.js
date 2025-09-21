@@ -3,6 +3,7 @@ import User from "../models/user.model.js";
 import Booking from "../models/booking.model.js";
 import Class from "../models/class.model.js";
 import { stripe } from "../lib/stripe.js";
+import { sendEmail } from "../utils/emailService.js";
 
  // Creates a Stripe checkout session for a list of products from a shopping cart.
 export const createCheckoutSession = async (req, res) => {
@@ -29,7 +30,7 @@ export const createCheckoutSession = async (req, res) => {
             return {
                 price_data: {
                     currency: "usd",
-                    product_data: productData, 
+                    product_data: productData, // Use the conditionally built object
                     unit_amount: amount,
                 },
                 quantity: product.quantity,
@@ -54,7 +55,8 @@ export const createCheckoutSession = async (req, res) => {
             },
         });
 
-        res.status(200).json({ id: session.id });
+        // ✅ UPDATED: Return the full URL to make testing easy.
+        res.status(200).json({ id: session.id, url: session.url });
     } catch (error) {
         console.log("Error in createCheckoutSession:", error);
         res.status(500).json({ message: "Server Error" });
@@ -66,13 +68,11 @@ export const createCheckoutSession = async (req, res) => {
 
 export const checkoutSuccess = async (req, res) => {
     try {
-        // fetching the session id from the request body
         const { session_id } = req.body;
-        // if the session id is not found then return an error
         if (!session_id) {
             return res.status(400).json({ message: "Session ID is required" });
         }
-        // creating a variable to fetch the session from stripe
+
         const session = await stripe.checkout.sessions.retrieve(session_id);
 
         if (session.payment_status === "paid") {
@@ -98,6 +98,21 @@ export const checkoutSuccess = async (req, res) => {
             await newOrder.save();
             await User.updateOne({ _id: userId }, { $set: { cartItems: [] } });
 
+            // sending order confirmation email to the user
+            try {
+                const user = await User.findById(userId);
+                if (user) {
+                    const subject = `Your ABC Fitness Order Confirmation #${newOrder._id}`;
+                    const text = `Hi ${user.username},\n\nThank you for your purchase! We've received your order and are getting it ready.\n\nOrder ID: ${newOrder._id}\nTotal Amount: $${newOrder.totalAmount.toFixed(2)}\n\nYou can view your order details in your profile.\n\nThanks for shopping with us!`;
+                    
+                    await sendEmail(user.email, subject, text);
+                    console.log(`Order confirmation email sent to ${user.email}`);
+                }
+            } catch (emailError) {
+                // If the email fails, the order should still succeed.
+                console.error("Failed to send order confirmation email, but order was created:", emailError);
+            }
+
             res.status(200).json({
                 success: true,
                 message: "Payment successful and order created",
@@ -113,11 +128,7 @@ export const checkoutSuccess = async (req, res) => {
 };
 
 
-// --- CLASS BOOKING PAYMENT CONTROLLERS ---
-
-
 //Creates a Stripe checkout session for a single class booking.
-
 export const createBookingCheckoutSession = async (req, res) => {
     try {
         const { bookingId } = req.body;
@@ -163,7 +174,7 @@ export const createBookingCheckoutSession = async (req, res) => {
             },
         });
 
-        res.status(200).json({ id: session.id });
+        res.status(200).json({ id: session.id, url: session.url });
     } catch (error) {
         console.log("Error in createBookingCheckoutSession:", error);
         res.status(500).json({ message: "Server Error" });
@@ -171,11 +182,10 @@ export const createBookingCheckoutSession = async (req, res) => {
 };
 
 
-// Verifies a successful booking payment and updates the booking status.
+//Verifies a successful booking payment and updates the booking status.
 
 export const bookingCheckoutSuccess = async (req, res) => {
     try {
-        // fetching the session id from the request body
         const { session_id } = req.body;
         if (!session_id) {
             return res.status(400).json({ message: "Session ID is required" });
@@ -188,12 +198,44 @@ export const bookingCheckoutSuccess = async (req, res) => {
 
             const updatedBooking = await Booking.findByIdAndUpdate(
                 bookingId,
-                { $set: { paymentStatus: 'paid' } },
+                { $set: { paymentStatus: 'paid', status: 'upcoming' } },
                 { new: true }
-            );
+            ).populate('user').populate({
+                path: 'class',
+                populate: {
+                    path: 'trainer',
+                    populate: {
+                        path: 'user',
+                        select: 'username email'
+                    }
+                }
+            });
 
             if (!updatedBooking) {
                 return res.status(404).json({ message: "Booking not found to update." });
+            }
+
+            // --- SEND CONFIRMATION EMAILS ---
+            const user = updatedBooking.user;
+            const classDetails = updatedBooking.class;
+            const trainerUser = updatedBooking.class.trainer.user;
+
+            // 1. Send email to the CUSTOMER
+            try {
+                const subject = `Booking Confirmation: ${classDetails.classTitle}`;
+                const text = `Hi ${user.username},\n\nThis confirms your booking for the class:\n\nClass: ${classDetails.classTitle}\nDate: ${updatedBooking.startTime.toDateString()}\nTime: ${classDetails.timeSlot.startTime}\n\nWe look forward to seeing you!`;
+                await sendEmail(user.email, subject, text);
+            } catch (emailError) {
+                console.error("Failed to send booking confirmation email to user:", emailError);
+            }
+
+            // 2. Send notification email to the TRAINER
+            try {
+                const subject = `New Booking for Your Class: ${classDetails.classTitle}`;
+                const text = `Hi ${trainerUser.username},\n\nA new user, ${user.username}, has just booked your class "${classDetails.classTitle}" for ${updatedBooking.startTime.toDateString()} at ${classDetails.timeSlot.startTime}.\n\nYour class roster has been updated.`;
+                await sendEmail(trainerUser.email, subject, text);
+            } catch (emailError) {
+                console.error("Failed to send new booking notification to trainer:", emailError);
             }
 
             res.status(200).json({
@@ -209,4 +251,3 @@ export const bookingCheckoutSuccess = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
-

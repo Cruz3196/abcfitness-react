@@ -15,29 +15,30 @@ const userSchema = new mongoose.Schema(
             lowercase: true,
             trim: true,
         },
-
         password: {
             type: String,
 			required: [true, "Password is required"],
 			minlength: [6, "Password must be at least 6 characters long"],
         },
-
+		passwordResetToken: {
+			type: String,
+		},
+		passwordResetExpires: {
+			type: Date,
+		},
 		goals: {
 			type: String,
 		},
-
 		bookings: [
 			{
 				type: String,
 				ref: "Booking",
 			}
 		],
-
 		availability: {
 			type: String,
 			enum: ["morning", "afternoon", "evening"]
 		},
-
         cartItems: [
 			{
 				quantity: {
@@ -50,7 +51,6 @@ const userSchema = new mongoose.Schema(
 				},
 			},
 		],
-
 		role: {
 			type: String,
 			enum: ["customer", "admin", "trainer"],

@@ -1,5 +1,7 @@
 import User from "../models/user.model.js";
 import Class from "../models/class.model.js";
+import Order from "../models/order.model.js";
+import Booking from "../models/booking.model.js";
 
 
 // viewing all users including trainers from the data base 
@@ -109,3 +111,103 @@ export const viewClassInsights = async (req, res) => {
         res.status(500).json({message: error.message});
     }
 }
+
+// getting dashboard statistics
+export const getDashboardStats = async (req, res) => {
+    try {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+        // --- Financial Stats ---
+        const orderStats = await Order.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: "$totalAmount" },
+                    totalOrders: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // ✅ NEW: Calculate total revenue from paid class bookings
+        const bookingRevenueStats = await Booking.aggregate([
+            { $match: { paymentStatus: 'paid' } },
+            {
+                $lookup: { // Join with the classes collection to get the price
+                    from: 'classes',
+                    localField: 'class',
+                    foreignField: '_id',
+                    as: 'classDetails'
+                }
+            },
+            { $unwind: '$classDetails' }, // Deconstruct the classDetails array
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$classDetails.price' }
+                }
+            }
+        ]);
+
+        const totalProductRevenue = orderStats[0]?.totalRevenue || 0;
+        const totalClassRevenue = bookingRevenueStats[0]?.totalRevenue || 0; // Get the result
+        const totalOrders = orderStats[0]?.totalOrders || 0;
+        const totalPaidBookings = await Booking.countDocuments({ paymentStatus: 'paid' });
+
+        // --- User Stats ---
+        const totalUsers = await User.countDocuments();
+        const totalTrainers = await User.countDocuments({ role: 'trainer' });
+        const totalCustomers = await User.countDocuments({ role: 'customer' });
+        const newUsersThisMonth = await User.countDocuments({ createdAt: { $gte: oneMonthAgo } });
+
+        // --- Class Stats ---
+        const mostBookedClasses = await Booking.aggregate([
+            { $match: { status: 'upcoming' } },
+            { $group: { _id: "$class", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 },
+            {
+                $lookup: {
+                    from: 'classes',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'classDetails'
+                }
+            },
+            { $unwind: '$classDetails' },
+            { 
+                $project: {
+                    _id: 0,
+                    classId: '$_id',
+                    className: '$classDetails.classTitle',
+                    bookingCount: '$count'
+                }
+            }
+        ]);
+
+        // Combine all stats into a single response object
+        const stats = {
+            financials: {
+                totalProductRevenue,
+                totalClassRevenue, // ✅ ADDED: Include the new stat in the response
+                totalOrders,
+                totalPaidBookings
+            },
+            users: {
+                totalUsers,
+                totalTrainers,
+                totalCustomers,
+                newUsersThisMonth
+            },
+            classes: {
+                mostBookedClasses
+            }
+        };
+
+        res.status(200).json(stats);
+
+    } catch (error) {
+        console.log("Error in getDashboardStats controller:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
