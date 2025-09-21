@@ -23,8 +23,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 //*This middleware parses incoming JSON requests and puts the parsed data in req.body
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })) // for put and post to form the data and gives us a response of that data that was created or edited
+app.use(express.json({limit: "50mb"})); // Set limit to handle large payloads
+app.use(express.urlencoded({ limit: "50mb", extended: true })) // for put and post to form the data and gives us a response of that data that was created or edited
 app.use(cookieParser()); //enable cookie parser for cookies 
 
 //routes for api

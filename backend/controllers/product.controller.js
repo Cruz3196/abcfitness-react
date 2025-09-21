@@ -6,24 +6,24 @@ import {redis} from "../lib/redis.js";
 async function updateFeaturedProductsCache() {
     try {
         const featuredProducts = await Product.find({ isFeatured: true }).lean();
-        // ✅ STANDARDIZED: Use the same key as your GET function for consistency.
         await redis.set("featuredProducts", JSON.stringify(featuredProducts));
         console.log("Featured products cache updated.");
     } catch (error) {
         console.log("Error in updateFeaturedProductsCache helper:", error);
-    };
-};
+    }
+}
 
 
 //! Admin Controllers
-export const createProduct = async(req, res) => {
-    try{
-        const { productName, productDescription, productPrice, img, productCategory} = req.body;
+export const createProduct = async (req, res) => {
+    try {
+        // Use the consistent field name 'productImage' from your model
+        const { productName, productDescription, productPrice, productImage, productCategory } = req.body;
 
-        let cloudinaryResponse = null;
-
-        if(img){
-            cloudinaryResponse = await cloudinary.uploader.upload(img,{folder:"products"});
+        let imageUrl = "";
+        if (productImage) {
+            const cloudinaryResponse = await cloudinary.uploader.upload(productImage, { folder: "products" });
+            imageUrl = cloudinaryResponse.secure_url;
         }
 
         const product = await Product.create({
@@ -31,13 +31,13 @@ export const createProduct = async(req, res) => {
             productDescription,
             productPrice,
             productCategory,
-            img: cloudinaryResponse?.secure_url ? cloudinaryResponse.secure_url : ""
+            productImage: imageUrl // Save the URL to the correct field
         });
-        // calling the upfeatured products cache to update it if needed
+        
         await updateFeaturedProductsCache();
         res.status(201).json(product);
 
-    } catch (error){
+    } catch (error) {
         res.status(500).json({ error: "Error Creating Product" });
         console.log("Error in createProduct controller: ", error);
     }
@@ -72,61 +72,77 @@ export const getAllProducts = async (req, res) => {
 };
 
 export const updateProduct = async (req, res) => {
-    const productId = req.params.id;
-    const updatedName = req.body.productName;
-    const updatedDescription = req.body.productDescription;
-    const updatedPrice = req.body.productPrice;
-    const updatedImage = req.body.img;
-    const updatedCategory = req.body.productCategory;
+    try {
+        const { id } = req.params;
+        const { productName, productDescription, productPrice, productImage, productCategory } = req.body;
 
-    try{
-        const product = await Product.findByIdAndUpdate(productId, {
-            productName: updatedName,
-            productDescription: updatedDescription,
-            productPrice: updatedPrice,
-            img: updatedImage,
-            productCategory: updatedCategory
-        }, {new: true});
-        if(!product){
-            return res.status(404).json({ message: "Product not found" }); 
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
         }
 
-        // calling the upfeatured products cache to update it if needed
+        // --- PRODUCT IMAGE UPLOAD LOGIC ---
+        if (productImage) {
+            // If an old image exists, delete it from Cloudinary first
+            if (product.productImage) {
+                try {
+                    const publicId = product.productImage.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`products/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error("Failed to delete old product image from Cloudinary:", cloudinaryError);
+                }
+            }
+            // Upload the new image
+            const uploadedImage = await cloudinary.uploader.upload(productImage, {
+                folder: "products",
+            });
+            product.productImage = uploadedImage.secure_url;
+        }
+
+        // --- SECURE FIELD UPDATES ---
+        product.productName = productName || product.productName;
+        product.productDescription = productDescription || product.productDescription;
+        product.productPrice = productPrice || product.productPrice;
+        product.productCategory = productCategory || product.productCategory;
+
+        const updatedProduct = await product.save();
+
         await updateFeaturedProductsCache();
-        res.status(200).json(product);
-    }catch (error){
+        res.status(200).json(updatedProduct);
+
+    } catch (error) {
         res.status(500).json({ error: "Error updating product" });
         console.log("Error in updating product controller: ", error);
     }
-}
+};
 
 export const deleteProduct = async (req, res) => {
-    try{
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if(!product){
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) {
             return res.status(404).json({ message: "Product not found" }); 
         }
+
         // If the product has an image on Cloudinary, delete it
-        if (product.img) {
-            // Extract the public_id from the URL
-            const publicId = product.img.split('/').pop().split('.')[0]; // this will get the id of the image 
-            try{
+        if (product.productImage) {
+            const publicId = product.productImage.split('/').pop().split('.')[0];
+            try {
                 await cloudinary.uploader.destroy(`products/${publicId}`);
-                console.log("Image deleted from Cloudinary");
-            }catch (error){
-                console.log("error deleting image from cloudinary: ", error);
+            } catch (error) {
+                console.log("Error deleting image from Cloudinary: ", error);
             }
         }
-        // Update the featured products cache
-        await updateFeaturedProductsCache();
+
+        // Now, delete the product from the database
         await Product.findByIdAndDelete(req.params.id);
 
-        res.json({message: "Product deleted"});
-    }catch (error){
+        await updateFeaturedProductsCache();
+        res.json({ message: "Product deleted successfully" });
+    } catch (error) {
         res.status(500).json({ error: "Error deleting product" });
         console.log("Error in deleting product controller: ", error);
     }
-}
+};
 
 // getting a product by id for customer & admin
 export const getProductId = async (req, res) => {

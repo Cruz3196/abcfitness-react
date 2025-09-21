@@ -2,38 +2,40 @@ import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 import User from "../models/user.model.js";
 import Booking from "../models/booking.model.js";
+import cloudinary from "../lib/cloudinaryConfig.js";
 
 // in controllers/trainer.controller.js, setting up the trainers profile.
 export const createTrainerProfile = async (req, res) => {
     try {
-        // logic for checking if the trainer already exist, if the user does then it'll end here, if then proceed creating the profile 
-        const existingTrainerProfile = await Trainer.findOne({ user: req.user._id });
-        if (existingTrainerProfile) {
+        const existingProfile = await Trainer.findOne({ user: req.user._id });
+        if (existingProfile) {
             return res.status(400).json({ message: "Trainer profile already exists for this user." });
         }
 
-        const userId = req.user._id;
-        // requesting the trainer data from the body 
-        const { specialization, bio, certifications, experience } = req.body; 
-        // this is locating the user ID in the trainer model and setting the data from the body
-        const trainer = await Trainer.findOneAndUpdate(
-            { user: userId }, // Find by the authenticated user's ID
-            { 
-                $set: { 
-                    user: userId,
-                    specialization,
-                    bio,
-                    certifications,
-                    experience,
-                },
-            },
+        const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
         
-            { new: true, upsert: true, runValidators: true }
-        );
+        let imageUrl = "";
+        if (trainerProfilePic) {
+            // Upload the new image to a 'trainer_profiles' folder in Cloudinary
+            const uploadedImage = await cloudinary.uploader.upload(trainerProfilePic, {
+                folder: "trainer_profiles",
+            });
+            imageUrl = uploadedImage.secure_url;
+        }
 
-        res.status(200).json({ message: "Trainer profile saved successfully", trainer });
-    } catch (error){
-        console.log("Error in creating trainer profile controller: ", error);
+        const newProfile = await Trainer.create({
+            user: req.user._id,
+            specialization,
+            bio,
+            certifications,
+            experience,
+            trainerProfilePic: imageUrl
+        });
+
+        res.status(201).json({ message: "Trainer profile created successfully", trainer: newProfile });
+
+    } catch (error) {
+        console.log("Error in creating trainer profile:", error.message);
         res.status(500).json({ error: "Error creating trainer profile" });
     }
 };
@@ -41,88 +43,140 @@ export const createTrainerProfile = async (req, res) => {
 // updating the trainer profile 
 export const updateTrainerProfile = async (req, res) => {
     try {
-        // using the findByIdAndUpdate without upsert 
-        const updatedTrainerProfile = await Trainer.findOneAndUpdate(
-            { user: req.user._id }, // this will check the user id from the token and match it to the user id in the trainer model
-            { $set: req.body }, // assuming req.body contains the fields to be updated
-            { new: true, runValidators: true } // return the updated document
-        ); 
-        if(!updatedTrainerProfile){
-            return res.status(404).json({ message: "Trainer profile not found" });
-        };
-        res.status(200).json({ message: "Trainer profile updated successfully", updatedTrainerProfile });
-    }catch (error){
-        res.status(500).json({message: error.message});
-        console.log("Error in updating trainer profile in trainer controller", error.message);
+        const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
+        
+        // 1. Find the full trainer document to access its properties.
+        const trainer = await Trainer.findOne({ user: req.user._id });
+        if (!trainer) {
+            return res.status(404).json({ message: "Trainer profile not found." });
+        }
+
+        // 2. --- TRAINER PROFILE PICTURE UPLOAD LOGIC ---
+        if (trainerProfilePic) {
+            // If the trainer already has a profile picture, delete the old one from Cloudinary.
+            if (trainer.trainerProfilePic) {
+                try {
+                    // Extract the unique public_id from the full Cloudinary URL
+                    const publicId = trainer.trainerProfilePic.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`trainer_profiles/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error("Failed to delete old trainer profile pic from Cloudinary:", cloudinaryError);
+                    // Don't block the update if deletion fails, just log the error.
+                }
+            }
+            // Upload the new image to a 'trainer_profiles' folder.
+            const uploadedImage = await cloudinary.uploader.upload(trainerProfilePic, {
+                folder: "trainer_profiles",
+            });
+            trainer.trainerProfilePic = uploadedImage.secure_url; // Save the new image URL
+        }
+
+        // 3. --- SECURE FIELD UPDATES ---
+        // This pattern prevents mass assignment vulnerabilities.
+        trainer.specialization = specialization || trainer.specialization;
+        trainer.bio = bio || trainer.bio;
+        trainer.certifications = certifications || trainer.certifications;
+        trainer.experience = experience || trainer.experience;
+
+        // 4. Save all the changes to the database.
+        const savedTrainer = await trainer.save();
+        res.status(200).json({ message: "Trainer profile updated successfully", trainer: savedTrainer });
+
+    } catch (error) {
+        console.log("Error in updating trainer profile:", error.message);
+        res.status(500).json({ error: "Error updating trainer profile" });
     }
 };
 
 // creating a class
 export const createClass = async (req, res) => {
     try {
-        // if user is a trainer then they can create a class 
         const trainer = await Trainer.findOne({ user: req.user._id });
-        if(!trainer){
-            return res.status(403).json({ message: "Only trainers can create classes." });
-
+        if (!trainer) {
+            return res.status(403).json({ message: "You must have a trainer profile to create a class." });
         }
-        const { classTitle, classDescription, classType, duration, timeSlot, classPic,capacity, price} = req.body;
+
+        const { classTitle, classDescription, classType, duration, timeSlot, classPic, capacity, price } = req.body;
+
+        let imageUrl = "";
+        if (classPic) {
+            const uploadedImage = await cloudinary.uploader.upload(classPic, {
+                folder: "classes" // Save images in a 'classes' folder
+            });
+            imageUrl = uploadedImage.secure_url;
+        }
 
         const newClass = await Class.create({
-           trainer: trainer._id, // This is the verified ID of the logged-in trainer.
-            classTitle, // Assuming schema field is classTitle
+            trainer: trainer._id,
+            classTitle,
             classDescription,
             classType,
             duration,
             timeSlot,
-            classPic,
+            classPic: imageUrl,
             capacity,
             price
         });
+
         res.status(201).json(newClass);
-    }catch (error){
+    } catch (error) {
         console.log("Error in creating class controller", error);
         res.status(500).json({ error: "Error creating class" });
     }
-}
+};
 
 // getting the trainers classes
+// A more powerful version of getMyClasses
 export const getMyClasses = async (req, res) => {
-    try{
-        // requesting the user id from the token 
-        const  userId  = req.user._id;
-        // finding the trainer profile using the user id from the token
+    try {
+        const userId = req.user._id;
         const trainer = await Trainer.findOne({ user: userId });
-        if(!trainer) {
-        // if user is not a trainer then they can't view classes
-            return res.status(200).json("Trainer needs to complete profile set up first, then is able to create and view classes");
+
+        if (!trainer) {
+            return res.status(404).json({ message: "Trainer profile not found." });
         }
-        const classes = await Class.find({ trainer: trainer._id });
+
+        const classes = await Class.find({ trainer: trainer._id })
+            .populate({
+                path: 'trainer',
+                populate: {
+                    path: 'user',
+                    select: 'username'
+                }
+            });
+
         res.status(200).json(classes);
-    }catch (error){
-        console.log("Error in getting classes controller", error)
-        res.status(500).json({ error: "Error getting classes" });;
+    } catch (error) {
+        console.log("Error in getting classes controller", error);
+        res.status(500).json({ error: "Error getting classes" });
     }
 };
 
 // viewing a class by id
 export const viewClassById = async (req, res) => {
-    try{
-        // creating a variable to request the class id from the params.
-        const {classId} = req.params;
-        //creating another variable to get class information by its id.
-        const classInfo = await Class.findById({ _id: classId });
-        //now if the class if is not found then return an error.
-        if(!classInfo){
-            return res.status(404).json({ message: "Class not found"});
+    try {
+        const { classId } = req.params;
+
+        // ✅ IMPROVED: Use populate to also fetch the trainer's name.
+        const classInfo = await Class.findById(classId).populate({
+            path: 'trainer',
+            populate: {
+                path: 'user',
+                select: 'username'
+            }
+        });
+
+        if (!classInfo) {
+            return res.status(404).json({ message: "Class not found" });
         }
-        // returning the class information if found.
+        
+        // This response will now include the classPic and the trainer's username.
         res.json(classInfo);
 
-    }catch (error){
+    } catch (error) {
         console.log("Error in viewing by class Id controller", error);
         res.status(500).json({ message: "Error viewing class by Id" });
-    };
+    }
 };
 
 // viewing booked users in a specific class
@@ -130,28 +184,28 @@ export const viewClassAttendees = async (req, res) => {
     try {
         const { classId } = req.params;
 
-        //Find the trainer profile of the currently logged-in user.
         const trainer = await Trainer.findOne({ user: req.user._id });
         if (!trainer) {
             return res.status(403).json({ message: "You must have a trainer profile to view class attendees." });
         }
 
-        // Find the class to ensure it exists.
         const classToCheck = await Class.findById(classId);
-
-        // Verify that the class exists AND that its 'trainer' field matches the logged-in trainer's profile ID.
         if (!classToCheck || classToCheck.trainer.toString() !== trainer._id.toString()) {
             return res.status(403).json({ message: "You are not authorized to view attendees for this class." });
         }
 
-        // Find all bookings for this class and populate the user's details in ONE efficient query.
+        // ✅ IMPROVED: Populate both the user and class details in one efficient query.
         const bookings = await Booking.find({ class: classId })
             .populate({
-                path: 'user', // In the Booking model, populate the 'user' field.
-                select: 'username email' // Get the username and email of the user who booked.
+                path: 'user',
+                select: 'username email profileImage' // Get user's name, email, and profile pic
+            })
+            .populate({
+                path: 'class',
+                select: 'classTitle classPic' // ✅ Get the class title and its picture
             });
 
-        // The 'bookings' array now contains all the user info you need.
+        // The 'bookings' array now contains all the info you need.
         res.status(200).json(bookings);
 
     } catch (error) {
@@ -164,59 +218,95 @@ export const viewClassAttendees = async (req, res) => {
 
 // updating a class 
 export const updatingClass = async (req, res) => {
-        //* these are the parameters that are going to be updated
-
-    const { classTitle, classDescription, classType, duration, timeSlot, capacity, price} = req.body;
-        //* requesting the class id from the params 
-
-    const classId = req.params.classId;
-
     try {
-        // calling the class by its id
-        let classToUpdate = await Class.findById(classId);
-        // if the class does not exist then return the message
-        if(!classToUpdate) return res.status(404).json({ message: "Class not found"});
+        const { classId } = req.params;
+        const { classTitle, classDescription, classType, duration, timeSlot, capacity, price, classPic } = req.body;
 
-        classToUpdate.classTitle = classTitle || classToUpdate.classTitle;
-        classToUpdate.classDescription = classDescription || classToUpdate.classDescription;
-        classToUpdate.classType = classType || classToUpdate.classType;
-        classToUpdate.duration = duration || classToUpdate.duration;
-        classToUpdate.timeSlot = timeSlot || classToUpdate.timeSlot;
-        classToUpdate.capacity = capacity || classToUpdate.capacity;
-        classToUpdate.price = price || classToUpdate.price;
-
-        await classToUpdate.save();
-        res.status(200).json({ message: "Class updated successfully", classToUpdate });
-
-    }catch (error){
-        console.log("Error in updating class controller", error);
-        res.status(500).json({ error: "Error updating class"}); 
-    }
-}
-
-// deleting a class 
-export const deleteClass = async (req,res) => {
-    try{
-        // find the user of the logged in trainer 
         const trainer = await Trainer.findOne({ user: req.user._id });
-        // if the trainer profile is not found then return this message
-        if(!trainer){
-            return res.status(403).json({ error: "Trainer profile not found"});
+        if (!trainer) {
+            return res.status(403).json({ message: "Trainer profile not found." });
         }
 
-        const deletingClass = await Class.findOneAndDelete({
-            _id: req.params.classId, // looking for the class if in the database
-            trainer: trainer._id // searching for the trainer id that is logged in and created the class
-        })
-        // if the class is not found then return this message
-        if(!deletingClass){
-            return res.status(404).json({ error: "Clas not found or you are not authorized to delete this class"});
-        };
-        // return a success code if the class is deleted
-        res.status(200).json({ message: "Class has been deleted successfully"});
+        let classToUpdate = await Class.findById(classId);
+        if (!classToUpdate) {
+            return res.status(404).json({ message: "Class not found" });
+        }
 
-    } catch (error){
-        console.log("Error in deleting class controller", error);
-        res.status(500).json({ error: "Error deleting class"});
+        // Security Check: Verify that the logged-in trainer owns this class.
+        if (classToUpdate.trainer.toString() !== trainer._id.toString()) {
+            return res.status(403).json({ message: "You are not authorized to update this class." });
+        }
+
+        // --- CLASS PICTURE UPLOAD LOGIC ---
+        if (classPic) {
+            // If an old image exists, delete it from Cloudinary first.
+            if (classToUpdate.classPic) {
+                try {
+                    const publicId = classToUpdate.classPic.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`classes/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error("Failed to delete old class pic from Cloudinary:", cloudinaryError);
+                }
+            }
+            // Upload the new image.
+            const uploadedImage = await cloudinary.uploader.upload(classPic, {
+                folder: "classes",
+            });
+            classToUpdate.classPic = uploadedImage.secure_url;
+        }
+
+        // --- SECURE FIELD UPDATES ---
+        classToUpdate.classTitle = classTitle ?? classToUpdate.classTitle;
+        classToUpdate.classDescription = classDescription ?? classToUpdate.classDescription;
+        classToUpdate.classType = classType ?? classToUpdate.classType;
+        classToUpdate.duration = duration ?? classToUpdate.duration;
+        classToUpdate.timeSlot = timeSlot ?? classToUpdate.timeSlot;
+        classToUpdate.capacity = capacity ?? classToUpdate.capacity;
+        classToUpdate.price = price ?? classToUpdate.price;
+
+        const updatedClass = await classToUpdate.save();
+        res.status(200).json({ message: "Class updated successfully", class: updatedClass });
+
+    } catch (error) {
+        console.log("Error in updating class controller", error);
+        res.status(500).json({ error: "Error updating class" });
     }
-}
+};
+
+// deleting a class 
+export const deleteClass = async (req, res) => {
+    try {
+        const trainer = await Trainer.findOne({ user: req.user._id });
+        if (!trainer) {
+            return res.status(403).json({ error: "Trainer profile not found" });
+        }
+
+        const classToDelete = await Class.findOne({
+            _id: req.params.classId,
+            trainer: trainer._id
+        });
+        
+        if (!classToDelete) {
+            return res.status(404).json({ error: "Class not found or you are not authorized to delete it" });
+        }
+
+        // If the class has an image on Cloudinary, delete it first.
+        if (classToDelete.classPic) {
+            try {
+                const publicId = classToDelete.classPic.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(`classes/${publicId}`);
+            } catch (error) {
+                console.log("Error deleting image from Cloudinary: ", error);
+            }
+        }
+
+        // Now, delete the class from the database.
+        await Class.findByIdAndDelete(req.params.classId);
+
+        res.status(200).json({ message: "Class has been deleted successfully" });
+
+    } catch (error) {
+        console.log("Error in deleting class controller", error);
+        res.status(500).json({ error: "Error deleting class" });
+    }
+};

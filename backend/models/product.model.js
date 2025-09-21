@@ -14,9 +14,10 @@ const productSchema = new mongoose.Schema({
         required: true,
         min: 0 // Price cannot be negative
     },
-    img:{
+    productImage:{
         type: String,
-        // required: [true, "Image is required"]
+        default: "",
+        required: true
     },
     productRating: { // THE OVERALL AVERAGE RATING
         type: Number,

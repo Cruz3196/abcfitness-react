@@ -3,8 +3,10 @@ import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 import Booking from "../models/booking.model.js";
 import Review from "../models/review.model.js";
+// services
 import { sendEmail } from "../utils/emailService.js";
 import crypto from "crypto";
+import cloudinary from "../lib/cloudinaryConfig.js";
 
 // getting user info by id 
 export const getProfile = async (req, res) => {
@@ -142,14 +144,33 @@ export const resetPassword = async (req, res) => {
 // editing user info by id
 export const editUserInfo = async (req, res) => {
     try {
-        // 1. Get all possible fields from the request body.
-        const { username, email, goals, availability, currentPassword, newPassword } = req.body;
+        const { username, email, goals, availability, currentPassword, newPassword, profileImage } = req.body;
         const userId = req.user._id;
 
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
+
+        // --- PROFILE IMAGE UPLOAD LOGIC ---
+        if (profileImage) {
+            // If the user already has a profile image, delete the old one from Cloudinary.
+            if (user.profileImage) {
+                try {
+                    const publicId = user.profileImage.split('/').pop().split('.')[0];
+                    await cloudinary.uploader.destroy(`user_profiles/${publicId}`);
+                } catch (cloudinaryError) {
+                    console.error("Failed to delete old profile image from Cloudinary:", cloudinaryError);
+                    // Don't block the update if deletion fails, just log it.
+                }
+            }
+            // Upload the new image to a 'user_profiles' folder in Cloudinary.
+            const uploadedImage = await cloudinary.uploader.upload(profileImage, {
+                folder: "user_profiles",
+            });
+            user.profileImage = uploadedImage.secure_url;
+        }
+
 
         // --- SECURITY CHECK: Prevent Duplicate Emails ---
         if (email) {
@@ -173,8 +194,7 @@ export const editUserInfo = async (req, res) => {
             return res.status(400).json({ error: "Please provide both the current and new password to change it" });
         }
 
-        // --- GENERAL PROFILE UPDATES (USING || OPERATOR) ---
-        // If a new value is provided, use it. Otherwise, keep the existing value.
+        // --- GENERAL PROFILE UPDATES ---
         user.username = username || user.username;
         user.email = email || user.email;
         user.goals = goals || user.goals;
@@ -187,6 +207,7 @@ export const editUserInfo = async (req, res) => {
             _id: savedUser._id,
             username: savedUser.username,
             email: savedUser.email,
+            profileImage: savedUser.profileImage, // Include the new image URL
             role: savedUser.role,
             goals: savedUser.goals,
             availability: savedUser.availability

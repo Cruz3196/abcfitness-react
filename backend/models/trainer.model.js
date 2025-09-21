@@ -8,7 +8,10 @@ const trainerSchema = new mongoose.Schema({
         ref: "User",
         unique: true
     },
-
+    trainerProfilePic:{
+        type: String,
+        default: "",
+    },
     bio: {
         type: String,
     },
