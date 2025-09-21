@@ -11,13 +11,13 @@ router.post("/creatingTrainerProfile", protectRoute, trainerRoute, createTrainer
 router.put("/updatingTrainerProfile", protectRoute, trainerRoute, updateTrainerProfile);
 
 // class routes that a trainer can control classes
-router.post("/createClass", protectRoute, trainerRoute, createClass);
-router.get("/viewMyClasses", protectRoute, trainerRoute, getMyClasses);
-router.get("/viewClass/:classId", protectRoute, trainerRoute, viewClassById);
-router.put("/updatingClass/:classId", protectRoute, trainerRoute, updatingClass);
-router.delete("/deletingClass/:classId", protectRoute, trainerRoute, deleteClass);
+router.post("/createClass", protectRoute, trainerRoute, createClass); // creating a class
+router.get("/viewMyClasses", protectRoute, trainerRoute, getMyClasses); // posted classes
+router.get("/viewClass/:classId", protectRoute, trainerRoute, viewClassById); // viewing a class by id
+router.put("/updatingClass/:classId", protectRoute, trainerRoute, updatingClass); // updating a class
+router.delete("/deletingClass/:classId", protectRoute, trainerRoute, deleteClass); // deleting a class
 
 // viewing books in a specific class
-router.get("/viewBookedUsers/:classId", protectRoute, trainerRoute, viewClassAttendees);
+router.get("/viewBookedUsers/:classId", protectRoute, trainerRoute, viewClassAttendees); // viewing booked users in a specific class
 
 export default router;

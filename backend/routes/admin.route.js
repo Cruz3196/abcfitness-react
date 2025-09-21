@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/users', protectRoute, adminRoute, viewAllUsers);
 router.get('/trainers', protectRoute, adminRoute, viewAllTrainers);
 router.get('/trainers/pending-profiles', protectRoute, adminRoute, pendingTrainerProfiles); // viewing pending trainer profiles
-router.get('/classes', protectRoute, adminRoute,viewClassInsights)
+router.get('/classes', protectRoute, adminRoute,viewClassInsights) // viewing class insights
 
 //deleting a user from the database, will need user id from DB to test in postman
 router.delete('/users/:userId', protectRoute, adminRoute, deleteUser);

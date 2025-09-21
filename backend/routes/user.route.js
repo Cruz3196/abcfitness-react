@@ -22,7 +22,7 @@ router.delete("/deleteAccount", protectRoute, deleteUserAccount)
 // User Booking class routes 
 router.post("/bookings/:classId", protectRoute, bookClass);
 router.get("/bookings/viewBookedclasses", protectRoute, viewBookedClasses)
-router.post("/cancelBooking/:classId", protectRoute, cancelBooking)
+router.post("/cancelBooking/:bookingId", protectRoute, cancelBooking)
 
 // Feedback routes 
 router.post("/submitFeedback/:classId", protectRoute, submitFeedback);

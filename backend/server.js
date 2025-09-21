@@ -8,6 +8,8 @@ import productRoutes from './routes/product.route.js';
 import userRoutes from './routes/user.route.js';
 import trainerRoutes from './routes/trainer.route.js';
 import adminRoutes from './routes/admin.route.js';
+import cartRoutes from './routes/cart.route.js';
+import PaymentRoutes from './routes/payment.route.js';
 // import userRoutes from './routes/user.route.js';
 // import bookingRoutes from './routes/booking.route.js';
 
@@ -30,6 +32,8 @@ app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/trainer', trainerRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/payment', PaymentRoutes);
 // app.use('/api/user', userRoutes);
 // app.use('/api/booking', bookingRoutes);
 

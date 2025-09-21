@@ -1,22 +1,22 @@
 import express from 'express';
-import { createProduct, getAllProducts, getProductId, deleteProduct, updateProduct} from '../controllers/product.controller.js';
+import { createProduct, getAllProducts, deleteProduct, updateProduct, getFeaturedProducts, getProductId,toggleFeaturedProduct, getRecommendedProducts, getProductsByCategory} from '../controllers/product.controller.js';
 import { adminRoute, protectRoute } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-//!Public Routes  
-router.get('/:id',getProductId)
 
 //!Admin routes 
+router.post('/create', protectRoute, adminRoute, createProduct);
 router.get('/',protectRoute, adminRoute, getAllProducts);
 router.put('/:id', protectRoute, adminRoute, updateProduct)
-router.post('/create', protectRoute, adminRoute, createProduct);
 router.delete('/:id',protectRoute, adminRoute,  deleteProduct);
+router.put("/:id/toggle-featured", protectRoute, adminRoute, toggleFeaturedProduct);
 
-//? Customer & Admin Routes 
-router.get('/:id',getProductId);
-
-//^ Customer Routes 
-
+//^ Public Routes 
+router.get('/all', getAllProducts);
+router.get("/getFeatured", getFeaturedProducts);
+router.get("/recommended", getRecommendedProducts);
+router.get("/category/:category", getProductsByCategory);
+router.get("/:id", getProductId);
 
 export default router;
