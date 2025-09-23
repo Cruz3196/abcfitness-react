@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { 
+    User, 
+    Mail, 
+    Phone, 
+    MapPin, 
+    Edit, 
+    Save, 
+    X, 
+    Calendar,
+    Clock,
+    UserCheck,
+    Package,
+    Eye,
+    ShoppingBag
+} from 'lucide-react';
 import { userStore } from '../storeData/userStore';
-import UpdateProfile from '../components/user/UpdateProfile';
-import DeleteAccount from '../components/user/DeleteAccount';
-import BookingHistory from '../components/user/BookingHistory';
-import UpcomingBookings from '../components/user/UpcomingBookings';
+import { useOrderStore } from '../storeData/useOrderStore';  // Fix this import
+import { toast } from 'react-hot-toast';
 
 const Profile = () => {
   const { user, logout } = userStore();
+  const { orders, isLoading: isLoadingOrders, fetchOrderHistory } = useOrderStore();  // Use the store
   const [activeTab, setActiveTab] = useState('view');
   const [message, setMessage] = useState('');
 
@@ -42,195 +57,361 @@ const Profile = () => {
   const upcomingBookings = mockBookings.filter(booking => 
     new Date(booking.date) > new Date() || booking.status === 'confirmed'
   );
-  
-  const pastBookings = mockBookings.filter(booking => 
-    new Date(booking.date) <= new Date() && booking.status === 'completed'
-  );
+
+  // Load user orders when orders tab is active
+  useEffect(() => {
+    if (activeTab === 'orders') {
+      fetchOrderHistory();  // Use the store function
+    }
+  }, [activeTab, fetchOrderHistory]);
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
-          <p className="text-gray-600">Please log in to view your profile.</p>
+      <div className="min-h-screen bg-base-200 flex items-center justify-center">
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body text-center">
+            <h2 className="card-title justify-center">Please log in to view your profile</h2>
+            <div className="card-actions justify-center">
+              <button className="btn btn-primary">Log In</button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  const handleUpdateSuccess = (successMessage) => {
-    setMessage(successMessage);
-    setActiveTab('view');
-    setTimeout(() => setMessage(''), 5000);
-  };
-
-  const handleDeleteSuccess = (successMessage) => {
-    setMessage(successMessage);
-    // Redirect to home page after account deletion
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 2000);
-  };
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'update':
-        return (
-          <UpdateProfile
-            onCancel={() => setActiveTab('view')}
-            onSuccess={handleUpdateSuccess}
-          />
-        );
-      case 'delete':
-        return (
-          <DeleteAccount
-            onCancel={() => setActiveTab('view')}
-            onSuccess={handleDeleteSuccess}
-          />
-        );
-      case 'bookings':
-        return (
-          <div className="space-y-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <UpcomingBookings bookings={upcomingBookings} />
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <BookingHistory bookings={pastBookings} />
-            </div>
-          </div>
-        );
-      default:
-        return (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center space-x-6 mb-6">
-              <img
-                src={user.profileImage || 'https://placehold.co/100x100/60a5fa/ffffff?text=U'}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-4 border-blue-200"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">{user.username}</h1>
-                <p className="text-gray-600">{user.email}</p>
-                <span className="inline-block bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full mt-2 capitalize">
-                  {user.role}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-2">Account Information</h3>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p><span className="font-medium">User ID:</span> {user._id}</p>
-                  <p><span className="font-medium">Role:</span> {user.role}</p>
-                  <p><span className="font-medium">Email:</span> {user.email}</p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-2">Quick Actions</h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setActiveTab('bookings')}
-                    className="w-full text-left px-3 py-2 text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                  >
-                    📅 View My Bookings
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('update')}
-                    className="w-full text-left px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                  >
-                    📝 Edit Profile
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="w-full text-left px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    🚪 Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-800 mb-2">Quick Stats</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-blue-600 font-medium">Upcoming Classes:</span>
-                    <span className="ml-2 text-blue-800">{upcomingBookings.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-blue-600 font-medium">Completed Classes:</span>
-                    <span className="ml-2 text-blue-800">{pastBookings.length}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-red-600 mb-4">Danger Zone</h3>
-              <button
-                onClick={() => setActiveTab('delete')}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              >
-                Delete Account
-              </button>
-              <p className="text-sm text-gray-500 mt-2">
-                Once you delete your account, there is no going back. Please be certain.
-              </p>
-            </div>
-          </div>
-        );
-    }
-  };
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      {message && (
-        <div className="mb-6 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
-          {message}
-        </div>
-      )}
+    <motion.div 
+      className="min-h-screen bg-base-200 py-8"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Header */}
+        <motion.div className="text-center mb-8" variants={itemVariants}>
+          <div className="avatar mb-4">
+            <div className="w-24 h-24 rounded-full">
+              <img src={user.profileImage || "https://placehold.co/96x96"} alt="Profile" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-base-content mb-2">Welcome, {user.username}!</h1>
+          <p className="text-base-content/70">Manage your fitness journey</p>
+        </motion.div>
 
-      {/* Tab Navigation */}
-      <div className="mb-6">
-        <nav className="flex space-x-1">
-          <button
+        {/* Tabs */}
+        <motion.div className="tabs tabs-boxed justify-center mb-8" variants={itemVariants}>
+          <button 
+            className={`tab ${activeTab === 'view' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('view')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === 'view'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-            }`}
           >
             Profile
           </button>
-          <button
+          <button 
+            className={`tab ${activeTab === 'bookings' ? 'tab-active' : ''}`}
             onClick={() => setActiveTab('bookings')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === 'bookings'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-            }`}
           >
-            My Bookings
+            Class Bookings
           </button>
-          <button
-            onClick={() => setActiveTab('update')}
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
-              activeTab === 'update'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-            }`}
+          <button 
+            className={`tab ${activeTab === 'orders' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('orders')}
           >
-            Update Profile
+            Order History
           </button>
-        </nav>
-      </div>
+          <button 
+            className={`tab ${activeTab === 'edit' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('edit')}
+          >
+            Edit Profile
+          </button>
+        </motion.div>
 
-      {renderTabContent()}
-    </div>
+        {/* Profile View Tab */}
+        {activeTab === 'view' && (
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={containerVariants}>
+            <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
+              <div className="card-body">
+                <h2 className="card-title">Personal Information</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Username:</span>
+                    <span>{user.username}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Email:</span>
+                    <span>{user.email}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <UserCheck className="w-5 h-5 text-primary" />
+                    <span className="font-medium">Role:</span>
+                    <div className="badge badge-primary">{user.role}</div>
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="card-actions justify-end mt-6">
+                  <button 
+                    className="btn btn-outline btn-sm gap-2"
+                    onClick={() => setActiveTab('orders')}
+                  >
+                    <Package className="w-4 h-4" />
+                    View Order History
+                  </button>
+                  <button 
+                    className="btn btn-primary btn-sm gap-2"
+                    onClick={() => setActiveTab('edit')}
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit Profile
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
+              <div className="card-body">
+                <h2 className="card-title">Quick Stats</h2>
+                <div className="stats stats-vertical shadow">
+                  <div className="stat">
+                    <div className="stat-title">Total Bookings</div>
+                    <div className="stat-value text-primary">{mockBookings.length}</div>
+                    <div className="stat-desc">Class enrollments</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-title">Total Orders</div>
+                    <div className="stat-value text-secondary">
+                      {isLoadingOrders ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        orders.length
+                      )}
+                    </div>
+                    <div className="stat-desc">Product purchases</div>
+                  </div>
+                  <div className="stat">
+                    <div className="stat-title">Member Since</div>
+                    <div className="stat-value text-accent text-lg">2024</div>
+                    <div className="stat-desc">Fitness journey</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Order History Tab */}
+        {activeTab === 'orders' && (
+          <motion.div variants={itemVariants}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Order History</h2>
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                <span>{orders.length} orders</span>
+              </div>
+            </div>
+
+            {isLoadingOrders ? (
+              <div className="text-center py-8">
+                <span className="loading loading-spinner loading-lg"></span>
+                <p>Loading orders...</p>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body text-center">
+                  <ShoppingBag className="w-16 h-16 text-base-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
+                  <p className="text-base-content/70 mb-4">Start shopping to see your order history here</p>
+                  <button className="btn btn-primary">Shop Now</button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <motion.div 
+                    key={order.orderId || order._id}
+                    className="card bg-base-100 shadow-lg"
+                    variants={itemVariants}
+                  >
+                    <div className="card-body">
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                        <div>
+                          <h3 className="card-title">Order #{order.orderId || order._id}</h3>
+                          <p className="text-base-content/70">
+                            {new Date(order.createdAt).toLocaleDateString()} • {order.itemCount || order.items?.length} items
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary">${order.total?.toFixed(2) || order.totalAmount?.toFixed(2)}</p>
+                          <div className="badge badge-success">{order.status || 'completed'}</div>
+                        </div>
+                      </div>
+
+                      {/* Order Items Preview */}
+                      {order.items && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          {order.items.slice(0, 3).map((item, index) => (
+                            <div key={index} className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
+                              <div className="avatar">
+                                <div className="w-12 h-12 rounded">
+                                  <img 
+                                    src={item.image || "/api/placeholder/48/48"} 
+                                    alt={item.name}
+                                    className="object-cover"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm truncate">{item.name}</h4>
+                                <p className="text-xs text-base-content/70">
+                                  Qty: {item.quantity} • ${item.price?.toFixed(2)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                          {order.items.length > 3 && (
+                            <div className="flex items-center justify-center p-3 bg-base-200 rounded-lg">
+                              <span className="text-sm text-base-content/70">
+                                +{order.items.length - 3} more items
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="card-actions justify-end">
+                        <button className="btn btn-sm btn-outline gap-2">
+                          <Eye className="w-4 h-4" />
+                          View Details
+                        </button>
+                        <button className="btn btn-sm btn-primary">Reorder</button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Rest of your tabs remain the same... */}
+        {/* Bookings Tab */}
+        {activeTab === 'bookings' && (
+          <motion.div variants={itemVariants}>
+            <h2 className="text-2xl font-bold mb-6">Class Bookings</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <h3 className="card-title text-lg mb-4">Upcoming Classes</h3>
+                  <div className="space-y-3">
+                    {upcomingBookings.length === 0 ? (
+                      <p className="text-base-content/70 text-center py-4">No upcoming bookings</p>
+                    ) : (
+                      upcomingBookings.map(booking => (
+                        <div key={booking._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
+                          <div>
+                            <h4 className="font-semibold">{booking.className}</h4>
+                            <p className="text-sm text-base-content/70">
+                              {booking.date} at {booking.time} • {booking.trainer}
+                            </p>
+                          </div>
+                          <div className="badge badge-success">{booking.status}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="card bg-base-100 shadow-lg">
+                <div className="card-body">
+                  <h3 className="card-title text-lg mb-4">Class History</h3>
+                  <div className="space-y-3">
+                    {mockBookings.filter(booking => booking.status === 'completed').map(booking => (
+                      <div key={booking._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
+                        <div>
+                          <h4 className="font-semibold">{booking.className}</h4>
+                          <p className="text-sm text-base-content/70">
+                            {booking.date} at {booking.time} • {booking.trainer}
+                          </p>
+                        </div>
+                        <div className="badge badge-outline">{booking.status}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Edit Profile Tab */}
+        {activeTab === 'edit' && (
+          <motion.div className="card bg-base-100 shadow-lg max-w-2xl mx-auto" variants={itemVariants}>
+            <div className="card-body">
+              <h2 className="card-title mb-6">Edit Profile</h2>
+              <form className="space-y-4">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Username</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className="input input-bordered" 
+                    defaultValue={user.username}
+                  />
+                </div>
+                
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text">Email</span>
+                  </label>
+                  <input 
+                    type="email" 
+                    className="input input-bordered" 
+                    defaultValue={user.email}
+                  />
+                </div>
+                
+                <div className="card-actions justify-end mt-6">
+                  <button 
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setActiveTab('view')}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary gap-2">
+                    <Save className="w-4 h-4" />
+                    Save Changes
+                  </button>
+                  </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

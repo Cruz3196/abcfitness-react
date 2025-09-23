@@ -25,6 +25,10 @@ import ProfilePage from "./pages/ProfilePage";
 import CartSummary from "./pages/CartSummary";
 import AdminDashboard from "./pages/AdminDashboard";
 import TrainerDashboard from "./pages/TrainerDashboard";
+import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
+import PurchaseCancelPage from "./pages/PurchaseCancelPage";
+import BookingSuccessPage from "./pages/BookingSuccessPage";
+import BookingCancelPage from "./pages/BookingCancelPage";
 
 //Container
 import Container from "./components/common/Container";
@@ -44,7 +48,14 @@ function App() {
             <Route path="/trainers" element={<Trainers />} />
             <Route path="/trainers/:id" element={<TrainerDetail />} />
             <Route path="/profile" element={<ProfilePage />} />
+          
+          {/* Cart Routes  */}
             <Route path="/cart" element={<CartSummary />} />
+            <Route path="/purchase-success" element={<PurchaseSuccessPage />} />
+            <Route path="/purchase-cancel" element={<PurchaseCancelPage />} />
+            <Route path="/booking-success" element={<BookingSuccessPage />} />
+            <Route path="/booking-cancel" element={<BookingCancelPage />} />
+
 
             {/* Protected Routes */}
             <Route 
