@@ -1,51 +1,31 @@
-const FeaturedProducts = () => {
+import ProductCard from './ProductCard';
+import { Link } from 'react-router-dom';
+
+// ✅ FIXED: The component now accepts and uses the 'title' and 'subtitle' props.
+const FeaturedProducts = ({ products, title, subtitle }) => {
+    if (!products || products.length === 0) {
+        return null; 
+    }
+
     return (
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4 py-12">
             <div className="text-center my-8">
-                <h2 className="text-3xl font-bold">Our Featured Products</h2>
-                <p className="text-gray-600 mt-6">Explore our diverse range of products across various categories.</p>
-                <button className="btn justify-center mt-7">Shop Now</button>
+                {/* It now displays the title passed in from the parent page */}
+                <h2 className="text-3xl font-bold">{title}</h2>
+                <p className="text-gray-400 mt-4 max-w-2xl mx-auto">{subtitle}</p>
+                <Link to="/store">
+                    <button className="btn btn-primary mt-7">Shop Now</button>
+                </Link>
             </div>
             
-            {/*  displaying the 3 cards horizontally centered */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 place-items-center mt-auto">
-                {/* card 1  */}
-                <div className="card my-5 lg:w-80 xl:w-96 bg-base-100 shadow-xl">
-                    <figure><img src="/images/stock/photo-1606107557195-0e29a4b5b4aa.jpg" alt="Shoes" /></figure>
-                        <div className="card-body">
-                            <h2 className="card-title">Shoes!</h2>
-                            <p>If a dog chews shoes whose shoes does he choose?</p>
-                            <div className="card-actions justify-end">
-                            <button className="btn btn-primary">Buy Now</button>
-                            </div>
-                        </div>
-                </div>
-                {/* card 2  */}
-                <div className="card my-5 lg:w-80 xl:w-96 bg-base-100 shadow-xl">
-                    <figure><img src="/images/stock/photo-1606107557195-0e29a4b5b4aa.jpg" alt="Shoes" /></figure>
-                        <div className="card-body">
-                            <h2 className="card-title">Shoes!</h2>
-                            <p>If a dog chews shoes whose shoes does he choose?</p>
-                            <div className="card-actions justify-end">
-                            <button className="btn btn-primary">Buy Now</button>
-                            </div>
-                        </div>
-                </div>
-                {/* card 3  */}
-                <div className="card my-5 lg:w-80 xl:w-96 bg-base-100 shadow-xl">
-                    <figure><img src="/images/stock/photo-1606107557195-0e29a4b5b4aa.jpg" alt="Shoes" /></figure>
-                        <div className="card-body">
-                            <h2 className="card-title">Shoes!</h2>
-                            <p>If a dog chews shoes whose shoes does he choose?</p>
-                            <div className="card-actions justify-end">
-                            <button className="btn btn-primary">Buy Now</button>
-                            </div>
-                        </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {products.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                ))}
             </div>
-
         </div>
-    )
-}
+    );
+};
 
 export default FeaturedProducts;
+

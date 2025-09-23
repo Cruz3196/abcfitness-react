@@ -6,7 +6,7 @@ const Navbar = () => {
     <div className="navbar bg-black text-white px-6">
         <div className="flex-1 justify-start">
             <Link to="/" className="btn btn-ghost normal-case text-xl">ABC Fitness</Link>
-            <Link to="/store" className="btn btn-ghost normal-case text-md">Store</Link>
+            <Link to="/store" className="btn btn-ghost normal-case text-md">Products</Link>
             <Link to="/classes" className="btn btn-ghost normal-case text-md">Classes</Link>
             <Link to="/trainers" className="btn btn-ghost normal-case text-md">Trainers</Link>
         </div>

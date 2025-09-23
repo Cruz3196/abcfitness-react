@@ -9,4 +9,4 @@ const HeroStore = () => {
     )
 }
 
-export default HeroStore    
+export default HeroStore;

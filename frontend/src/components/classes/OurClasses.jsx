@@ -1,30 +1,47 @@
-import ClassCard from './ClassCard'; // Import the reusable class card
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { classStore } from '../../storeData/classStore.js';
+import ClassCard from './ClassCard';
 
-// This component is dynamic and can be used for any class section.
-const Classes = ({ classes, title, subtitle }) => {
-    if (!classes || classes.length === 0) {
-        return null; 
+const OurClasses = () => {
+    const { classes, isLoading, fetchAllClasses } = classStore();
+
+    useEffect(() => {
+        fetchAllClasses();
+    }, [fetchAllClasses]);
+
+    // Get first 3 classes for featured section (or all if you want)
+    const featuredClasses = classes.slice(0, 3);
+
+    if (isLoading) {
+        return (
+        <div className="container mx-auto px-4 py-12">
+            <div className="flex justify-center">
+            <span className="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+        );
     }
 
     return (
         <div className="container mx-auto px-4 py-12">
             <div className="text-center my-8">
-                <h2 className="text-3xl font-bold">{title}</h2>
-                <p className="text-gray-400 mt-4 max-w-2xl mx-auto">{subtitle}</p>
-                <Link to="/classes">
-                    <button className="btn btn-primary mt-7">View All Classes</button>
-                </Link>
+                <h2 className="text-3xl font-bold">Explore Our Classes</h2>
+                <p className="text-gray-600 mt-6">Find the perfect class to match your fitness goals and schedule.</p>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* For each class, we render a reusable ClassCard */}
-                {classes.map((classInfo) => (
-                    <ClassCard key={classInfo._id} classInfo={classInfo} />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center">
+                {featuredClasses.map((classInfo) => (
+                <ClassCard key={classInfo._id} classInfo={classInfo} />
                 ))}
             </div>
+
+            {featuredClasses.length === 0 && !isLoading && (
+                <div className="text-center text-gray-500 py-12">
+                <p>No classes available at the moment.</p>
+                </div>
+            )}
         </div>
     );
 };
 
-export default Classes;
+export default OurClasses;
