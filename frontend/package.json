@@ -13,7 +13,7 @@
     "@stripe/stripe-js": "^4.3.0",
     "axios": "^1.7.5",
     "daisyui": "^3.9.4",
-    "framer-motion": "^12.23.16",
+    "framer-motion": "^12.23.18",
     "lucide-react": "^0.435.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

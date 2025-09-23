@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/useAuth";
 
 // This is your Navbar component, ready to be used in your main layout.
 const Navbar = () => {
+    const {isAuthenticated, logout} = useAuth();
+
     return (
     <div className="navbar bg-black text-white px-6">
         <div className="flex-1 justify-start">
@@ -28,22 +31,27 @@ const Navbar = () => {
                 </div>
             </div>
             </div>
-            <div className="dropdown dropdown-end">
-            <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
-                <div className="w-10 rounded-full">
-                <img src="https://placehold.co/100x100?text=User" alt="User Avatar" />
-                </div>
-            </label>
-            <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                <li>
-                <Link to="/profile" className="justify-between text-black">
-                    Profile
-                </Link>
-                </li>
-                <li><a className="text-black">Settings</a></li>
-                <li><a className="text-black">Logout</a></li>
-            </ul>
-            </div>
+                {isAuthenticated ? (
+                    <div className="dropdown dropdown-end">
+                        <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
+                            <div className="w-10 rounded-full">
+                                <img src="https://placehold.co/100x100?text=User" alt="User Avatar" />
+                            </div>
+                        </label>
+                        <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                            <li>
+                                <Link to="/profile" className="justify-between text-black">
+                                    Profile
+                                </Link>
+                            </li>
+                            <li><a className="text-black">Settings</a></li>
+<li><a className="text-black" onClick={logout}>Logout</a></li>                        </ul>
+                    </div>
+                ) : (
+                    <Link to="/login" className="btn btn-ghost normal-case text-md">
+                        Login
+                    </Link>
+                )}
         </div>
     </div>
     )
