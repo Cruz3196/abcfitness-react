@@ -633,3 +633,24 @@ export const viewTrainer = async (req, res) => {
         res.status(500).json({ message: "Error in the view trainer controller" });
     }
 };
+
+export const getOrderHistory = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Find all orders for this user and populate the product details
+        const orders = await Order.find({ user: userId })
+            .sort({ createdAt: -1 }) // Show the most recent orders first
+            .populate({
+                path: 'products.product', // The path within the products array
+                model: 'Product',
+                select: 'productName productImage' // Get the name and image for display
+            });
+
+        res.status(200).json(orders);
+
+    } catch (error) {
+        console.log("Error in getOrderHistory controller:", error);
+        res.status(500).json({ message: "An error occurred while fetching your order history." });
+    }
+};

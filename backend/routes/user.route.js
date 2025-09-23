@@ -24,7 +24,9 @@ router.put("/updateProfile", protectRoute ,editUserInfo);
 router.delete("/deleteAccount", protectRoute, deleteUserAccount)
 
 // User Booking class routes 
+router.get("/ourClasses", viewAllClasses)
 router.post("/bookings/:classId", protectRoute, bookClass);
+// once logged in user can view their booked classes
 router.get("/bookings/viewBookedclasses", protectRoute, viewBookedClasses)
 router.post("/cancelBooking/:bookingId", protectRoute, cancelBooking)
 
@@ -34,7 +36,6 @@ router.put("/updateFeedback/:reviewId", protectRoute, updateFeedback);
 router.delete("/deleteFeedback/:reviewId", protectRoute, deleteFeedback);
 
 // Trainer Management 
-router.get("/ourClasses", viewAllClasses)
 router.get("/ourTrainers", allTrainers)
 router.get("/viewTrainer/:trainerId", viewTrainer)
 
