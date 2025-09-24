@@ -39,12 +39,23 @@ const LoginForm = () => {
 
         try {
             const success = await login(formData.email, formData.password);
-            if (success) {
-                toast.success("Login successful!");
+        if (success) {
+            toast.success("Login successful!");
+            
+            // Get the current user from the store after login
+            const currentUser = userStore.getState().user;
+            
+            // Redirect based on user role
+            if (currentUser?.role === 'admin') {
+                navigate('/admin', { replace: true });
+            } else if (currentUser?.role === 'trainer') {
+                navigate('/trainer', { replace: true });
+            } else {
+                // For customers or any other role, use the original logic
                 const from = location.state?.from?.pathname || "/profile";
                 navigate(from, { replace: true });
             }
-            // Error handling is already done in the store
+        }
         } catch (error) {
             toast.error("Login failed. Please try again.");
         }

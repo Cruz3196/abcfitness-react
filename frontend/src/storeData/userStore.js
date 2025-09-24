@@ -7,6 +7,21 @@ export const userStore = create((set, get) => ({
     isCheckingAuth: true,
     isLoading: false,
 
+    isAdmin: () => {
+        const user = get().user;
+        return user && user.role === 'admin';
+    },
+
+    isTrainer: () => {
+        const user = get().user;
+        return user && user.role === 'trainer';
+    },
+
+    isCustomer: () => {
+        const user = get().user;
+        return user && user.role === 'customer';
+    },
+
     signup: async ({ username, email, password, confirmPassword }) => {
         set({ isLoading: true });
 
