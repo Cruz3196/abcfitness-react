@@ -1,71 +1,142 @@
-import { create } from 'zustand';
-
-// --- MOCK USER DATA ---
-// Change role to test different user types: 'customer', 'trainer', 'admin'
-const mockUser = {
-    _id: 'user1',
-    username: 'Bob Williams',
-    email: 'bob@example.com',
-    role: 'admin', // Change this to 'trainer' or 'customer' to test different views
-    profileImage: 'https://placehold.co/100x100/60a5fa/ffffff?text=B',
-};
+import { create } from "zustand";
+import axios from "../api/axios";
+import toast from "react-hot-toast";
 
 export const userStore = create((set, get) => ({
-    user: mockUser,
-    isCheckingAuth: false,
-    isUpdatingProfile: false,
-    isDeletingAccount: false,
+    user: null,
+    isCheckingAuth: true,
+    isLoading: false,
+
+    signup: async ({ username, email, password, confirmPassword }) => {
+        set({ isLoading: true });
+
+        try {
+            const res = await axios.post("/user/signup", { username, email, password });
+                set({ isLoading: false });
+            return true;
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "An error occurred");
+            return false;
+        }
+    },
+
+    login: async (email, password) => {
+        set({ isLoading: true });
+
+        try {
+            const res = await axios.post("/user/login", { email, password }, {
+                timeout: 5000, // 5 seconds timeout
+            });
+            set({ user: res.data, isLoading: false });
+            return true; // Return success
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "An error occurred");
+            return false; // Return failure
+        }
+    },
+
+    logout: async () => {
+        try {
+            await axios.post("/user/logout");
+            set({ user: null });
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "An error occurred during logout");
+            return false;
+        }
+    },
 
     checkAuthStatus: async () => {
-        set({ user: mockUser, isCheckingAuth: false });
-    },
-    
-    login: async (email, password) => {
-        set({ user: mockUser });
-        return true;
-    },
-    
-    logout: async () => {
-        set({ user: null });
-    },
-
-    updateProfile: async (profileData) => {
-        set({ isUpdatingProfile: true });
+        set({ isCheckingAuth: true });
         try {
-            const currentUser = get().user;
-            const updatedUser = { ...currentUser, ...profileData };
-            set({ user: updatedUser, isUpdatingProfile: false });
-            return { success: true, message: 'Profile updated successfully' };
+            const response = await axios.get("/user/profile");
+            set({ user: response.data, isCheckingAuth: false });
         } catch (error) {
-            set({ isUpdatingProfile: false });
-            return { success: false, message: 'Failed to update profile' };
+            console.log(error.message);
+            set({ isCheckingAuth: false, user: null });
         }
     },
 
-    deleteAccount: async () => {
-        set({ isDeletingAccount: true });
+    refreshToken: async () => {
+        // Prevent multiple simultaneous refresh attempts
+        if (get().isCheckingAuth) return;
+
+        set({ isCheckingAuth: true });
         try {
-            set({ user: null, isDeletingAccount: false });
-            return { success: true, message: 'Account deleted successfully' };
+            const response = await axios.post("/user/refresh-token");
+            set({ isCheckingAuth: false });
+            return response.data;
         } catch (error) {
-            set({ isDeletingAccount: false });
-            return { success: false, message: 'Failed to delete account' };
+            set({ user: null, isCheckingAuth: false });
+            throw error;
         }
     },
 
-    // Helper functions to check user roles
-    isAdmin: () => {
-        const { user } = get();
-        return user?.role === 'admin';
+    // Clear user data (useful for debugging)
+    clearUser: () => {
+        set({ user: null, isCheckingAuth: false, isLoading: false });
     },
-    
-    isTrainer: () => {
-        const { user } = get();
-        return user?.role === 'trainer';
+
+    forgotPassword: async (email) => {
+        set({ isLoading: true });
+        try {
+            const { data } = await axios.post("/user/forgotPassword", { email });
+            toast.success(data.message);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to send reset link.");
+            return false;
+        } finally {
+            set({ isLoading: false });
+        }
     },
-    
-    isCustomer: () => {
-        const { user } = get();
-        return user?.role === 'customer';
-    }
+
+    resetPassword: async (token, password) => {
+        set({ isLoading: true });
+        try {
+            const { data } = await axios.put(`/user/resetPassword/${token}`, { password });
+            toast.success(data.message);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to reset password.");
+            return false;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
 }));
+
+// --- Axios Interceptor for Token Refresh ---
+let refreshPromise = null;
+
+axios.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            originalRequest._retry = true;
+
+            try {
+                // If a refresh is already in progress, wait for it to complete
+                if (refreshPromise) {
+                    await refreshPromise;
+                    return axios(originalRequest);
+                }
+
+                // Start a new refresh process
+                refreshPromise = userStore.getState().refreshToken();
+                await refreshPromise;
+                refreshPromise = null;
+
+                return axios(originalRequest);
+            } catch (refreshError) {
+                // If refresh fails, redirect to login or handle as needed
+                userStore.getState().logout();
+                return Promise.reject(refreshError);
+            }
+        }
+        return Promise.reject(error);
+    }
+);

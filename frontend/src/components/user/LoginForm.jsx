@@ -1,34 +1,52 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { userStore } from '../../storeData/userStore';
+import toast from 'react-hot-toast'; // Add this import
 
 const LoginForm = () => {
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { login, isLoading, user } = userStore(); // Get actions and state from the store
+
+    const [formData, setFormData] = useState({ email: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+
+    //checking if user is authenticated(user exists)
+    const isAuthenticated = !!user;
+
+    // If the user is already logged in, redirect them away from the login page
+    useEffect(() => {
+        if (isAuthenticated) {
+            const from = location.state?.from?.pathname || "/profile";
+            navigate(from, { replace: true });
+        }
+    }, [isAuthenticated, navigate, location.state]);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         
+        // Basic validation
+        if (!formData.email || !formData.password) {
+            toast.error("Please fill in all fields");
+            return;
+        }
+
         try {
-            // API call to login endpoint
-            console.log('Logging in with:', formData);
+            const success = await login(formData.email, formData.password);
+            if (success) {
+                toast.success("Login successful!");
+                const from = location.state?.from?.pathname || "/profile";
+                navigate(from, { replace: true });
+            }
+            // Error handling is already done in the store
         } catch (error) {
-            console.error('Login error:', error);
-        } finally {
-            setIsLoading(false);
+            toast.error("Login failed. Please try again.");
         }
     };
 
@@ -80,15 +98,10 @@ const LoginForm = () => {
                 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Email Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text">Email</span>
-                        </label>
+                    <motion.div className="form-control" variants={itemVariants}>
+                        <label className="label"><span className="label-text">Email</span></label>
                         <div className="relative">
-                            <motion.input
+                            <input
                                 type="email"
                                 name="email"
                                 placeholder="Enter your email"
@@ -96,32 +109,17 @@ const LoginForm = () => {
                                 value={formData.email}
                                 onChange={handleChange}
                                 required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
+                                disabled={isLoading}
                             />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                            >
-                                <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
+                            <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
                         </div>
                     </motion.div>
 
                     {/* Password Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text">Password</span>
-                        </label>
+                    <motion.div className="form-control" variants={itemVariants}>
+                        <label className="label"><span className="label-text">Password</span></label>
                         <div className="relative">
-                            <motion.input
+                            <input
                                 type={showPassword ? 'text' : 'password'}
                                 name="password"
                                 placeholder="Enter your password"
@@ -129,97 +127,46 @@ const LoginForm = () => {
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
+                                disabled={isLoading}
                             />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.4 }}
-                            >
-                                <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                            <motion.button
+                            <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                            <button
                                 type="button"
                                 className="absolute right-4 top-4"
                                 onClick={() => setShowPassword(!showPassword)}
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                transition={{ duration: 0.1 }}
+                                disabled={isLoading}
                             >
-                                <motion.div
-                                    key={showPassword ? 'eye-off' : 'eye'}
-                                    initial={{ rotate: 180, opacity: 0 }}
-                                    animate={{ rotate: 0, opacity: 1 }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-5 w-5 text-gray-400" />
-                                    ) : (
-                                        <Eye className="h-5 w-5 text-gray-400" />
-                                    )}
-                                </motion.div>
-                            </motion.button>
+                                {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
+                            </button>
                         </div>
                         <label className="label">
-                            <motion.div
-                                whileHover={{ x: 2 }}
-                                transition={{ duration: 0.2 }}
-                            >
-                                <Link to="/forgot-password" className="label-text-alt link link-hover text-sm">
-                                    Forgot password?
-                                </Link>
-                            </motion.div>
+                            <Link to="/forgot-password" className="label-text-alt link link-hover text-sm">
+                                Forgot password?
+                            </Link>
                         </label>
                     </motion.div>
 
                     {/* Submit Button */}
-                    <motion.div 
-                        className="form-control mt-8"
-                        variants={itemVariants}
-                    >
+                    <motion.div className="form-control mt-8" variants={itemVariants}>
                         <motion.button 
                             type="submit" 
                             className={`btn btn-primary h-12 text-base ${isLoading ? 'loading' : ''}`}
                             disabled={isLoading}
                             variants={buttonVariants}
-                            whileHover="hover"
-                            whileTap="tap"
-                            animate={isLoading ? { scale: [1, 1.05, 1] } : {}}
-                            transition={isLoading ? { repeat: Infinity, duration: 1 } : {}}
+                            whileHover={!isLoading ? "hover" : {}}
+                            whileTap={!isLoading ? "tap" : {}}
                         >
                             {isLoading ? 'Signing in...' : 'Sign In'}
                         </motion.button>
                     </motion.div>
                 </form>
 
-                {/* Divider */}
-                <motion.div 
-                    className="divider"
-                    variants={itemVariants}
-                >
-                    OR
-                </motion.div>
+                <motion.div className="divider" variants={itemVariants}>OR</motion.div>
 
-                {/* Sign Up Link */}
-                <motion.div 
-                    className="text-center"
-                    variants={itemVariants}
-                >
+                <motion.div className="text-center" variants={itemVariants}>
                     <p className="text-sm">
                         Don't have an account?{' '}
-                        <motion.span
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ duration: 0.2 }}
-                            className="inline-block"
-                        >
-                            <Link to="/signup" className="link link-primary font-semibold">
-                                Sign up here
-                            </Link>
-                        </motion.span>
+                        <Link to="/signup" className="link link-primary font-semibold">Sign up here</Link>
                     </p>
                 </motion.div>
             </div>

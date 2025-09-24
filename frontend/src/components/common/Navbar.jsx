@@ -1,10 +1,16 @@
-import { Link } from "react-router-dom";
-import { useAuth } from "../../context/useAuth";
+import { Link, useNavigate } from "react-router-dom";
+import { userStore } from "../../storeData/userStore";
 
 // This is your Navbar component, ready to be used in your main layout.
 const Navbar = () => {
-    const {isAuthenticated, logout} = useAuth();
+    const { user, logout } = userStore();
+    const navigate = useNavigate();
 
+    const handleLogout = async () => {
+        await logout();
+        navigate("/"); //navigating to the home page after logout
+    };
+    
     return (
     <div className="navbar bg-black text-white px-6">
         <div className="flex-1 justify-start">
@@ -31,27 +37,19 @@ const Navbar = () => {
                 </div>
             </div>
             </div>
-                {isAuthenticated ? (
-                    <div className="dropdown dropdown-end">
-                        <label tabIndex={0} className="btn btn-ghost btn-circle avatar">
-                            <div className="w-10 rounded-full">
-                                <img src="https://placehold.co/100x100?text=User" alt="User Avatar" />
-                            </div>
-                        </label>
-                        <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                            <li>
-                                <Link to="/profile" className="justify-between text-black">
-                                    Profile
-                                </Link>
-                            </li>
-                            <li><a className="text-black">Settings</a></li>
-<li><a className="text-black" onClick={logout}>Logout</a></li>                        </ul>
+                {user ? (
+                <div className="dropdown dropdown-end">
+                    <label tabIndex={0} className="btn btn-ghost">
+                        {user.username}
+                    </label>
+                    <div tabIndex={0} className="dropdown-content menu bg-black p-2 shadow rounded-box w-52">
+                        <Link to="/profile" className="block px-4 py-2 text-white hover:text-gray-300">Profile</Link>
+                        <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-white hover:text-gray-300">Logout</button>
                     </div>
-                ) : (
-                    <Link to="/login" className="btn btn-ghost normal-case text-md">
-                        Login
-                    </Link>
-                )}
+                </div>
+            ) : (
+                <Link to="/login" className="btn btn-primary">Login</Link>
+            )}
         </div>
     </div>
     )

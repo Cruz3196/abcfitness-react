@@ -1,300 +1,158 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Mail, Lock, User, Phone } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { userStore } from "../../storeData/userStore";
+import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";
 
 const SignUpForm = () => {
+    const navigate = useNavigate();
+    const { signup, isLoading, user } = userStore(); // Use 'user' instead of 'isAuthenticated'
     const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        phone: ''
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: ""
     });
-    const [isLoading, setIsLoading] = useState(false);
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Redirect if user is already logged in
+    useEffect(() => {
+        if (user) {
+            navigate("/profile");
+        }
+    }, [user, navigate]);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleSubmit = async (e) => {
+    const handleSignUp = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         
-        // Add your signup logic here
-        try {
-            // API call to signup endpoint
-            console.log('Signing up with:', formData);
-        } catch (error) {
-            console.error('Signup error:', error);
-        } finally {
-            setIsLoading(false);
+        if (formData.password !== formData.confirmPassword) {
+            return toast.error("Passwords do not match");
         }
-    };
 
-    // Animation variants
-    const containerVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.5,
-                staggerChildren: 0.1
-            }
+        const success = await signup({
+            username: formData.username,
+            email: formData.email,
+            password: formData.password
+        });
+
+        if (success) {
+            // Navigate to login page so they can sign in with their new account
+            toast.success('Account created! Please log in.');
+            navigate("/login");
         }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 10 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.4 }
-        }
-    };
-
-    const buttonVariants = {
-        hover: { 
-            scale: 1.02,
-            transition: { duration: 0.2 }
-        },
-        tap: { scale: 0.98 }
     };
 
     return (
-        <motion.div 
-            className="card w-96 lg:w-[28rem] bg-base-100 shadow-xl"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            whileHover={{ y: -2, transition: { duration: 0.2 } }}
-        >
-            <div className="card-body p-8 lg:p-10">
-                <motion.h2 
-                    className="card-title justify-center mb-6 text-2xl lg:text-3xl"
-                    variants={itemVariants}
-                >
-                    Sign Up
-                </motion.h2>
+        <div className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+            <form onSubmit={handleSignUp} className="card-body">
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text">Username</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        name="username" 
+                        placeholder="username" 
+                        className="input input-bordered" 
+                        value={formData.username} 
+                        onChange={handleChange} 
+                        required 
+                    />
+                </div>
                 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Username Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text text-base">Username</span>
-                        </label>
-                        <div className="relative">
-                            <motion.input
-                                type="text"
-                                name="username"
-                                placeholder="Enter your username"
-                                className="input input-bordered w-full pl-12 h-12 text-base"
-                                value={formData.username}
-                                onChange={handleChange}
-                                required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                            >
-                                <User className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                        </div>
-                    </motion.div>
-
-                    {/* Email Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text text-base">Email</span>
-                        </label>
-                        <div className="relative">
-                            <motion.input
-                                type="email"
-                                name="email"
-                                placeholder="Enter your email"
-                                className="input input-bordered w-full pl-12 h-12 text-base"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.4 }}
-                            >
-                                <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                        </div>
-                    </motion.div>
-
-                    {/* Phone Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text text-base">Phone</span>
-                        </label>
-                        <div className="relative">
-                            <motion.input
-                                type="tel"
-                                name="phone"
-                                placeholder="Enter your phone number"
-                                className="input input-bordered w-full pl-12 h-12 text-base"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                            >
-                                <Phone className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                        </div>
-                    </motion.div>
-
-                    {/* Password Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text text-base">Password</span>
-                        </label>
-                        <div className="relative">
-                            <motion.input
-                                type="password"
-                                name="password"
-                                placeholder="Enter your password"
-                                className="input input-bordered w-full pl-12 h-12 text-base"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.6 }}
-                            >
-                                <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                        </div>
-                    </motion.div>
-
-                    {/* Confirm Password Input */}
-                    <motion.div 
-                        className="form-control"
-                        variants={itemVariants}
-                    >
-                        <label className="label">
-                            <span className="label-text text-base">Confirm Password</span>
-                        </label>
-                        <div className="relative">
-                            <motion.input
-                                type="password"
-                                name="confirmPassword"
-                                placeholder="Confirm your password"
-                                className="input input-bordered w-full pl-12 h-12 text-base"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                required
-                                whileFocus={{ 
-                                    scale: 1.01,
-                                    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.5)"
-                                }}
-                                transition={{ duration: 0.2 }}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.7 }}
-                            >
-                                <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
-                            </motion.div>
-                        </div>
-                    </motion.div>
-
-                    {/* Submit Button */}
-                    <motion.div 
-                        className="form-control mt-8"
-                        variants={itemVariants}
-                    >
-                        <motion.button 
-                            type="submit" 
-                            className={`btn btn-primary h-12 text-base ${isLoading ? 'loading' : ''}`}
-                            disabled={isLoading}
-                            variants={buttonVariants}
-                            whileHover="hover"
-                            whileTap="tap"
-                            animate={isLoading ? { scale: [1, 1.05, 1] } : {}}
-                            transition={isLoading ? { repeat: Infinity, duration: 1 } : {}}
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text">Email</span>
+                    </label>
+                    <input 
+                        type="email" 
+                        name="email" 
+                        placeholder="email" 
+                        className="input input-bordered" 
+                        value={formData.email} 
+                        onChange={handleChange} 
+                        required 
+                    />
+                </div>
+                
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text">Password</span>
+                    </label>
+                    <div className="relative">
+                        <input 
+                            type={showPassword ? "text" : "password"}
+                            name="password" 
+                            placeholder="password" 
+                            className="input input-bordered w-full pr-10" 
+                            value={formData.password} 
+                            onChange={handleChange} 
+                            required 
+                        />
+                        <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => setShowPassword(!showPassword)}
                         >
-                            {isLoading ? 'Creating Account...' : 'Sign Up'}
-                        </motion.button>
-                    </motion.div>
-                </form>
-
-                {/* Divider */}
-                <motion.div 
-                    className="divider"
-                    variants={itemVariants}
-                >
-                    OR
-                </motion.div>
-
-                {/* Login Link */}
-                <motion.div 
-                    className="text-center"
-                    variants={itemVariants}
-                >
-                    <p className="text-sm">
-                        Already have an account?{' '}
-                        <motion.div
-                            whileHover={{ x: 2 }}
-                            transition={{ duration: 0.2 }}
-                            className="inline"
+                            {showPassword ? (
+                                <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            ) : (
+                                <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            )}
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="form-control">
+                    <label className="label">
+                        <span className="label-text">Confirm Password</span>
+                    </label>
+                    <div className="relative">
+                        <input 
+                            type={showConfirmPassword ? "text" : "password"}
+                            name="confirmPassword" 
+                            placeholder="confirm password" 
+                            className="input input-bordered w-full pr-10" 
+                            value={formData.confirmPassword} 
+                            onChange={handleChange} 
+                            required 
+                        />
+                        <button
+                            type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
-                            <Link to="/login" className="link link-primary font-semibold">
-                                Login here
-                            </Link>
-                        </motion.div>
-                    </p>
-                </motion.div>
-            </div>
-        </motion.div>
+                            {showConfirmPassword ? (
+                                <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            ) : (
+                                <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                            )}
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="form-control mt-6">
+                    <button 
+                        className="btn btn-primary" 
+                        type="submit" 
+                        disabled={isLoading}
+                    >
+                        {isLoading ? <span className="loading loading-spinner"></span> : 'Sign Up'}
+                    </button>
+                </div>
+                
+                <p className="text-sm text-center mt-4">
+                    Already have an account? 
+                    <Link to="/login" className="link link-secondary ml-1">Login</Link>
+                </p>
+            </form>
+        </div>
     );
 };
 

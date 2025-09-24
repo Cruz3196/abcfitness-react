@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
-
-//context 
-import { AuthProvider } from "./context/useAuth";
+import { Toaster } from "react-hot-toast";
+import { userStore } from "./storeData/userStore";
+import { useEffect } from "react";
 
 //components
 import Navbar from "./components/common/Navbar"
@@ -12,6 +12,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import LogIn from "./pages/LogIn"
 import SignUp from "./pages/SignUp"
 import ForgotPassword from "./pages/ForgotPassword"
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 //Pages 
 import Home from "./pages/Home"
@@ -34,11 +35,24 @@ import BookingCancelPage from "./pages/BookingCancelPage";
 import Container from "./components/common/Container";
 
 function App() {
+  const { user, checkAuthStatus } = userStore();
+  
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
   return (
-    <AuthProvider>
+    <>
       <Container>
-        <Navbar />
+        <Navbar /> 
           <Routes>
+
+            {/* Authentication Routes */}
+            <Route path="/login" element={<LogIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+
           {/* Public Routes  */}
             <Route path="/" element={<Home />} />
             <Route path="/store" element={<Store />} />
@@ -47,7 +61,6 @@ function App() {
             <Route path="/classes/:id" element={<ClassDetail />} />
             <Route path="/trainers" element={<Trainers />} />
             <Route path="/trainers/:id" element={<TrainerDetail />} />
-            <Route path="/profile" element={<ProfilePage />} />
           
           {/* Cart Routes  */}
             <Route path="/cart" element={<CartSummary />} />
@@ -55,7 +68,6 @@ function App() {
             <Route path="/purchase-cancel" element={<PurchaseCancelPage />} />
             <Route path="/booking-success" element={<BookingSuccessPage />} />
             <Route path="/booking-cancel" element={<BookingCancelPage />} />
-
 
             {/* Protected Routes */}
             <Route 
@@ -75,14 +87,20 @@ function App() {
               } 
             />
 
-            {/* Authentication Routes */}
-            <Route path="/login" element={<LogIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+            {/* Protected Profile Route */}
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute allowedRoles={['customer']}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         <CTA />
       </Container>
-    </AuthProvider>
+      <Toaster position="top-center" reverseOrder={false} toastOptions={{duration: 4000,}}/> {/* Toast notifications */}
+    </>
   )
 }
 

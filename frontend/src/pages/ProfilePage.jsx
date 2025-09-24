@@ -18,6 +18,7 @@ import {
 import { userStore } from '../storeData/userStore';
 import { useOrderStore } from '../storeData/useOrderStore';  // Fix this import
 import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 
 const Profile = () => {
   const { user, logout } = userStore();
@@ -89,7 +90,7 @@ const Profile = () => {
           <div className="card-body text-center">
             <h2 className="card-title justify-center">Please log in to view your profile</h2>
             <div className="card-actions justify-center">
-              <button className="btn btn-primary">Log In</button>
+              <Link to="/login" className="btn btn-primary">Log In</Link>
             </div>
           </div>
         </div>
