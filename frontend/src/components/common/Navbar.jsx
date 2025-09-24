@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { userStore } from "../../storeData/userStore";
+import toast from "react-hot-toast";
 
 // This is your Navbar component, ready to be used in your main layout.
 const Navbar = () => {
@@ -8,6 +9,7 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         await logout();
+        toast.success("Logged out successfully");
         navigate("/"); //navigating to the home page after logout
     };
     
