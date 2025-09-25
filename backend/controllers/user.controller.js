@@ -35,13 +35,20 @@ export const getProfile = async (req, res) => {
             
             const fullProfile = {
                 ...user.toObject(),
+                hasTrainerProfile: !!trainerProfile, // Add this field
                 trainerProfile,
                 classes: trainerClasses
             };
             return res.status(200).json(fullProfile);
         }
         
-        res.status(200).json(user);
+        // For non-trainers, add hasTrainerProfile: false for consistency
+        const userProfile = {
+            ...user.toObject(),
+            hasTrainerProfile: false
+        };
+        
+        res.status(200).json(userProfile);
 
     } catch (error) {
         console.log("Error in getting profile", error.message);

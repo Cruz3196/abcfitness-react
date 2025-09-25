@@ -392,7 +392,7 @@ const AdminDashboard = () => {
                                         Refresh
                                     </button>
                                     <button 
-                                        className="btn btn-primary"
+                                        className="btn btn-primary btn-sm"
                                         onClick={() => setShowProductForm(true)}
                                     >
                                         Add Product

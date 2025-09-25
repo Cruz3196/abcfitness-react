@@ -22,6 +22,12 @@ export const userStore = create((set, get) => ({
         return user && user.role === 'customer';
     },
 
+    // Check if trainer needs profile setup
+    needsTrainerSetup: () => {
+        const user = get().user;
+        return user && user.role === 'trainer' && !user.hasTrainerProfile;
+    },
+
     signup: async ({ username, email, password, confirmPassword }) => {
         set({ isLoading: true });
 
@@ -44,7 +50,7 @@ export const userStore = create((set, get) => ({
                 timeout: 5000, // 5 seconds timeout
             });
             set({ user: res.data, isLoading: false });
-            return true; // Return success
+            return res.data; // Return user data for redirect logic
         } catch (error) {
             set({ isLoading: false });
             toast.error(error.response?.data?.message || "An error occurred");
@@ -78,6 +84,28 @@ export const userStore = create((set, get) => ({
             return false;
         }
     },
+
+    // Create trainer profile
+createTrainerProfile: async (trainerData) => {
+    set({ isLoading: true });
+    try {
+        const response = await axios.post("/trainer/creatingTrainerProfile", trainerData);
+        
+        // Update user state to reflect that trainer profile is now created
+        const currentUser = get().user;
+        set({ 
+            user: { ...currentUser, hasTrainerProfile: true }, 
+            isLoading: false 
+        });
+        
+        toast.success(response.data.message || "Trainer profile created successfully");
+        return true;
+    } catch (error) {
+        set({ isLoading: false });
+        toast.error(error.response?.data?.message || "Failed to create trainer profile");
+        return false;
+    }
+},
 
     deleteUserAccount: async () => {
         set({ isLoading: true });

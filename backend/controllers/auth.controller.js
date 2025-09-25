@@ -1,5 +1,6 @@
 // importing models 
 import User from "../models/user.model.js";
+import Trainer from "../models/trainer.model.js";
 
 // importing utilities
 import { redis } from "../lib/redis.js";
@@ -102,12 +103,21 @@ export const loginUser = async (req, res) => {
             await storageRefreshToken(user._id, refreshToken);
             // setting the cookies
             setCookies(res,accessToken, refreshToken);
+            
+            // Check if user is trainer and has completed profile setup
+            let hasTrainerProfile = false;
+            if (user.role === 'trainer') {
+                const trainerProfile = await Trainer.findOne({ user: user._id });
+                hasTrainerProfile = !!trainerProfile;
+            }
+
             // if the user exists and the password is correct then return the user
             res.json({
                 _id: user._id,
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                hasTrainerProfile // Add this field for trainers
             })
         } else {
             return res.status(401).json({message: "Invalid email or password"});

@@ -8,12 +8,12 @@ import toast from 'react-hot-toast'; // Add this import
 const LoginForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isLoading, user } = userStore(); // Get actions and state from the store
+    const { login, isLoading, user } = userStore();
 
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [showPassword, setShowPassword] = useState(false);
 
-    //checking if user is authenticated(user exists)
+    // checking if user is authenticated(user exists)
     const isAuthenticated = !!user;
 
     // If the user is already logged in, redirect them away from the login page
@@ -38,24 +38,27 @@ const LoginForm = () => {
         }
 
         try {
-            const success = await login(formData.email, formData.password);
-        if (success) {
-            toast.success("Login successful!");
+            const result = await login(formData.email, formData.password);
             
-            // Get the current user from the store after login
-            const currentUser = userStore.getState().user;
-            
-            // Redirect based on user role
-            if (currentUser?.role === 'admin') {
-                navigate('/admindashboard', { replace: true });
-            } else if (currentUser?.role === 'trainer') {
-                navigate('/trainerdashboard', { replace: true });
-            } else {
-                // For customers or any other role, use the original logic
-                const from = location.state?.from?.pathname || "/profile";
-                navigate(from, { replace: true });
+            if (result) {
+                toast.success("Login successful!");
+                
+                // Redirect based on user role and profile status
+                if (result.role === 'admin') {
+                    navigate('/admindashboard', { replace: true });
+                } else if (result.role === 'trainer') {
+                    // Check if trainer needs profile setup
+                    if (!result.hasTrainerProfile) {
+                        navigate('/trainer-setup', { replace: true });
+                    } else {
+                        navigate('/trainerdashboard', { replace: true });
+                    }
+                } else {
+                    // For customers or any other role
+                    const from = location.state?.from?.pathname || "/profile";
+                    navigate(from, { replace: true });
+                }
             }
-        }
         } catch (error) {
             toast.error("Login failed. Please try again.");
         }
@@ -90,7 +93,7 @@ const LoginForm = () => {
         },
         tap: { scale: 0.98 }
     };
-
+    
     return (
         <motion.div 
             className="card w-96 lg:w-[28rem] bg-base-100 shadow-xl"

@@ -26,6 +26,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CartSummary from "./pages/CartSummary";
 import AdminDashboard from "./pages/AdminDashboard";
 import TrainerDashboard from "./pages/TrainerDashboard";
+import TrainerProfileSetup from "./pages/TrainerProfileSetup";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 import BookingSuccessPage from "./pages/BookingSuccessPage";
@@ -83,6 +84,16 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['trainer']}>
                   <TrainerDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Trainer Profile Setup Route */}
+            <Route 
+              path="/trainer-setup" 
+              element={
+                <ProtectedRoute allowedRoles={['trainer']}>
+                  <TrainerProfileSetup />
                 </ProtectedRoute>
               } 
             />
