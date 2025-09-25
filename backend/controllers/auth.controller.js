@@ -63,7 +63,6 @@ export const createUser = async (req, res) => {
             const subject = "Welcome to ABC Fitness!";
             const text = `Hi ${username},\n\nThank you for signing up. We're excited to have you!`;
             await sendEmail(user.email, subject, text);
-            console.log(`Welcome email sent to ${user.email}`);
         } catch (emailError) {
             // Log the error but don't stop the signup process if the email fails.
             console.error("Failed to send welcome email:", emailError);

@@ -15,8 +15,8 @@ router.post("/refresh-token", refresh)
 router.post("/logout", logoutUser)
 
 //forgot password and reset password routes will be added later
-router.post("/forgotPassword", protectRoute, forgotPassword);
-router.post("/resetPassword/:token", protectRoute, resetPassword);
+router.post("/forgotPassword",forgotPassword);
+router.put("/resetPassword/:token", resetPassword);
 
 // Profile route for logged in users / profile management
 router.get("/profile",protectRoute, getProfile)
@@ -27,7 +27,7 @@ router.delete("/deleteAccount", protectRoute, deleteUserAccount)
 router.get("/ourClasses", viewAllClasses)
 router.post("/bookings/:classId", protectRoute, bookClass);
 // once logged in user can view their booked classes
-router.get("/bookings/viewBookedclasses", protectRoute, viewBookedClasses)
+router.get("/bookings", protectRoute, viewBookedClasses)
 router.post("/cancelBooking/:bookingId", protectRoute, cancelBooking)
 
 // Feedback routes 

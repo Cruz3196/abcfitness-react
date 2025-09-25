@@ -70,8 +70,8 @@ export const forgotPassword = async (req, res) => {
         user.passwordResetToken = passwordResetToken;
         user.passwordResetExpires = passwordResetExpires;
         await user.save();
-
-        const resetURL = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+        // sending the reset link to the user via email 
+        const resetURL = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
         const subject = "Your Password Reset Link (Valid for 10 Minutes)";
         const text = `Hi ${user.username},\n\nYou requested a password reset. Please click on the following link to reset your password:\n\n${resetURL}\n\nIf you did not request this, please ignore this email and your password will remain unchanged.`;
