@@ -3,6 +3,7 @@ import Trainer from "../models/trainer.model.js";
 import Class from "../models/class.model.js";
 import Booking from "../models/booking.model.js";
 import Review from "../models/review.model.js";
+import Order from "../models/order.model.js";
 // services
 import { sendEmail } from "../utils/emailService.js";
 import crypto from "crypto";
@@ -635,22 +636,18 @@ export const viewTrainer = async (req, res) => {
 };
 
 export const getOrderHistory = async (req, res) => {
-    try {
-        const userId = req.user._id;
-
-        // Find all orders for this user and populate the product details
-        const orders = await Order.find({ user: userId })
-            .sort({ createdAt: -1 }) // Show the most recent orders first
-            .populate({
-                path: 'products.product', // The path within the products array
-                model: 'Product',
-                select: 'productName productImage' // Get the name and image for display
-            });
-
-        res.status(200).json(orders);
-
-    } catch (error) {
-        console.log("Error in getOrderHistory controller:", error);
-        res.status(500).json({ message: "An error occurred while fetching your order history." });
-    }
+  try {
+    // Get the current user's ID from the request
+    const userId = req.user._id;
+    
+    // Find all orders for this user
+    const orders = await Order.find({ user: userId })
+      .sort({ createdAt: -1 })  // Sort by date, most recent first
+      .populate('items.product', 'name price image');  // Get product details
+      
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error in getOrderHistory controller:", error);
+    res.status(500).json({ message: "An error occurred while fetching order history" });
+  }
 };

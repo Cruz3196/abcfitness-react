@@ -4,7 +4,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 
 // importing controllers
 import { createUser, loginUser, logoutUser, refresh} from "../controllers/auth.controller.js";
-import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword} from "../controllers/user.controller.js";
+import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword, getOrderHistory} from "../controllers/user.controller.js";
 
 const router = express.Router();
 
@@ -22,6 +22,9 @@ router.put("/resetPassword/:token", resetPassword);
 router.get("/profile",protectRoute, getProfile)
 router.put("/updateProfile", protectRoute ,editUserInfo);
 router.delete("/deleteAccount", protectRoute, deleteUserAccount)
+
+// Account GetHistory Order 
+router.get("/orderHistory", protectRoute, getOrderHistory);
 
 // User Booking class routes 
 router.get("/ourClasses", viewAllClasses)
