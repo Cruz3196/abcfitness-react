@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 export const productStore = create((set, get) => ({
     products: [],
     categories: [],
-    recommendedProducts: [], // New state for recommendations
+    recommendedProducts: [],
     isLoading: true,
     error: null,
     
@@ -13,7 +13,7 @@ export const productStore = create((set, get) => ({
     fetchAllProducts: async () => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.get('/products/all');
+            const { data } = await axios.get('/products/all'); // ✅ Correct
             const products = data.products || data;
             const uniqueCategories = [...new Set(products.map(p => p.productCategory).filter(Boolean))];
             
@@ -39,7 +39,7 @@ export const productStore = create((set, get) => ({
     // Fetch recommended products
     fetchRecommendedProducts: async (currentProductId) => {
         try {
-            const { data } = await axios.get('/products/recommended');
+            const { data } = await axios.get('/products/recommended'); // ✅ Correct
             const filtered = data.filter(p => p._id !== currentProductId);
             set({ recommendedProducts: filtered });
             return filtered;
@@ -53,8 +53,7 @@ export const productStore = create((set, get) => ({
     createProduct: async (productData) => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.post('/products/create', productData);
-            // Update local state by appending the new product
+            const { data } = await axios.post('/products/create', productData); // ✅ Correct
             set(state => ({ 
                 products: [...state.products, data],
                 isLoading: false 
@@ -67,6 +66,64 @@ export const productStore = create((set, get) => ({
             set({ isLoading: false, error: error.message });
             return null;
         }
+    },
+
+    // Update product (admin only) - FIX THIS
+    updateProduct: async (productId, productData) => {
+        set({ isLoading: true });
+        try {
+            const { data } = await axios.put(`/products/${productId}`, productData); // ✅ FIXED: Changed from /product/ to /products/
+            set(state => ({ 
+                products: state.products.map(p => 
+                    p._id === productId ? data : p
+                ),
+                isLoading: false 
+            }));
+            toast.success('Product updated successfully');
+            return data;
+        } catch (error) {
+            console.error('Error updating product:', error);
+            console.error('Full error response:', error.response);
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to update product');
+            set({ isLoading: false, error: error.message });
+            return null;
+        }
+    },
+
+    // Delete product (admin only) - FIX THIS
+    deleteProduct: async (productId) => {
+        try {
+            await axios.delete(`/products/${productId}`); // ✅ FIXED: Changed from /product/ to /products/
+            set(state => ({ 
+                products: state.products.filter(p => p._id !== productId)
+            }));
+            toast.success('Product deleted successfully');
+            return true;
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            console.error('Full error response:', error.response);
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to delete product');
+            return false;
+        }
+    },
+
+    // Toggle featured status (admin only) - FIX THIS
+    toggleFeaturedProduct: async (productId) => {
+        try {
+            console.log('Toggling featured for product:', productId);
+            const { data } = await axios.put(`/products/${productId}/toggle-featured`); // ✅ FIXED: Changed from /product/ to /products/
+            set(state => ({ 
+                products: state.products.map(p => 
+                    p._id === productId ? { ...p, isFeatured: data.isFeatured } : p
+                )
+            }));
+            toast.success(`Product ${data.isFeatured ? 'featured' : 'unfeatured'} successfully`);
+            return data;
+        } catch (error) {
+            console.error('Error toggling featured status:', error);
+            console.error('Full error response:', error.response);
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to toggle featured status');
+            return null;
+        }
     }
 }));
-
