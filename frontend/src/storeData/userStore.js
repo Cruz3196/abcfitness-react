@@ -86,26 +86,26 @@ export const userStore = create((set, get) => ({
     },
 
     // Create trainer profile
-createTrainerProfile: async (trainerData) => {
-    set({ isLoading: true });
-    try {
-        const response = await axios.post("/trainer/creatingTrainerProfile", trainerData);
-        
-        // Update user state to reflect that trainer profile is now created
-        const currentUser = get().user;
-        set({ 
-            user: { ...currentUser, hasTrainerProfile: true }, 
-            isLoading: false 
-        });
-        
-        toast.success(response.data.message || "Trainer profile created successfully");
-        return true;
-    } catch (error) {
-        set({ isLoading: false });
-        toast.error(error.response?.data?.message || "Failed to create trainer profile");
-        return false;
-    }
-},
+    createTrainerProfile: async (trainerData) => {
+        set({ isLoading: true });
+        try {
+            await axios.post("/trainer/creatingTrainerProfile", trainerData);
+            
+            // ✅ IMPROVEMENT: Instead of manually updating the user object,
+            // just call checkAuthStatus again. This will refetch the
+            // complete, updated user profile from the server, which now includes
+            // the full trainerProfile object.
+            await get().checkAuthStatus(); 
+            
+            toast.success("Trainer profile created successfully");
+            set({ isLoading: false });
+            return true;
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "Failed to create trainer profile");
+            return false;
+        }
+    },
 
     deleteUserAccount: async () => {
         set({ isLoading: true });
