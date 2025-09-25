@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
     Calendar, 
@@ -16,9 +16,12 @@ import {
 } from 'lucide-react';
 import { userStore } from '../storeData/userStore';
 
+// import a component to display individual class cards
+import TrainerCard from "../components/trainer/TrainerCard";
+
 const TrainerDashboard = () => {
     // ✅ CHANGE: We now get the complete user object, which includes the trainer profile and classes.
-    const { user, updateTrainerProfile } = userStore();
+    const { user, updateTrainerProfile, createClass, fetchMyClasses } = userStore();
     const [activeTab, setActiveTab] = useState('profile');
 
     // ✅ ADDED: State management for the modals and form data
@@ -27,6 +30,7 @@ const TrainerDashboard = () => {
     const [editFormData, setEditFormData] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // FOR UPDATING TRAINER PROFILE============================================================
 
     // ✅ ADDED: Handler to open the modal and pre-fill it with current data
     const handleOpenEditModal = () => {
@@ -68,8 +72,84 @@ const TrainerDashboard = () => {
         }
     };
 
-    // ✅ CHANGE: This is a more robust guard clause. It ensures the user is logged in,
-    // is a trainer, and has completed the profile setup before rendering the dashboard.
+    // FOR CREATING NEW CLASSES ============================================================
+
+    const initialClassState = {
+        classTitle: '',
+        classDescription: '',
+        classType: 'Strength', // Default value
+        duration: 60,
+        timeSlot: {
+            day: '',
+            startTime: '',
+            endTime: ''
+        },
+        classPic: '',
+        capacity: 10,
+        price: 25
+    };
+    const [newClassData, setNewClassData] = useState(initialClassState);
+
+    const handleClassInputChange = (e) => {
+        const { name, value } = e.target;
+        
+        // ✅ FIX: Handle nested timeSlot object
+        if (name.startsWith('timeSlot.')) {
+            const timeSlotField = name.split('.')[1]; // Get 'day', 'startTime', or 'endTime'
+            setNewClassData(prev => ({
+                ...prev,
+                timeSlot: {
+                    ...prev.timeSlot,
+                    [timeSlotField]: value
+                }
+            }));
+        } else {
+            setNewClassData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    const handleClassFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setNewClassData(prev => ({ ...prev, classPic: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleCreateClassSubmit = async (e) => {
+            e.preventDefault();
+            setIsSubmitting(true);
+        const success = await createClass(newClassData);
+            setIsSubmitting(false);
+        if (success) {
+            setShowCreateClass(false);
+            setNewClassData(initialClassState); // Reset form
+        }
+    };
+
+    // FETCHING CREATING NEW CLASSES ============================================================
+    useEffect(() => {
+        // Ensure we only fetch if the user is a trainer and classes haven't been loaded
+        if (user?.isTrainer && user.classes === undefined) {
+            fetchMyClasses();
+        }
+    }, [user, fetchMyClasses]);
+
+    // Placeholder functions for the card actions
+    const handleEditClass = (classData) => {
+        // TODO: Implement this. For example, open a modal pre-filled with classData.
+        alert(`Editing: ${classData.classTitle}`);
+    };
+
+    const handleDeleteClass = (classId) => {
+        // TODO: Implement this. For example, show a confirmation modal before deleting.
+        alert(`Deleting class with ID: ${classId}`);
+    };
+
+    // if a trainer, and has completed the profile setup before rendering the dashboard.
         if (!user || !user.trainerProfile) {
             return (
                 <div className="min-h-screen bg-base-200 flex items-center justify-center">
@@ -124,24 +204,28 @@ const TrainerDashboard = () => {
                 {activeTab === 'classes' && (
                     <motion.div variants={itemVariants}>
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">My Classes</h2>
+                            <h2 className="text-2xl font-bold">My Classes ({user.classes?.length || 0})</h2>
                             <button className="btn btn-primary gap-2" onClick={() => setShowCreateClass(true)}>
                                 <Plus className="w-4 h-4" /> Create New Class
                             </button>
                         </div>
                         
+                        {/* ✅ UPDATED: Use the new TrainerClassCard */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {user.classes && user.classes.length > 0 ? (
                                 user.classes.map(classItem => (
-                                    <motion.div key={classItem._id} className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                                        <div className="card-body">
-                                            <h3 className="card-title">{classItem.classTitle}</h3>
-                                            {/* You would add more class details here */}
-                                        </div>
-                                    </motion.div>
+                                    <TrainerCard 
+                                        key={classItem._id} 
+                                        classItem={classItem}
+                                        onEdit={handleEditClass}
+                                        onDelete={handleDeleteClass}
+                                    />
                                 ))
                             ) : (
-                                <p>You have not created any classes yet.</p>
+                                <div className="col-span-full text-center py-12 bg-base-100 rounded-lg">
+                                    <h3 className="text-xl font-semibold">No Classes Found</h3>
+                                    <p className="text-base-content/70 mt-2">Click "Create New Class" to get started!</p>
+                                </div>
                             )}
                         </div>
                     </motion.div>
@@ -218,15 +302,87 @@ const TrainerDashboard = () => {
             {/* Create Class Modal */}
             {showCreateClass && (
                 <div className="modal modal-open">
-                    <div className="modal-box max-w-2xl">
+                    <div className="modal-box max-w-2xl relative">
+                        <button onClick={() => setShowCreateClass(false)} className="btn btn-sm btn-circle absolute right-2 top-2"><X size={20}/></button>
                         <h3 className="font-bold text-lg mb-4">Create New Class</h3>
-                        <form className="space-y-4">
-                            {/* Form fields for creating a new class */}
+                        
+                        <form onSubmit={handleCreateClassSubmit} className="space-y-4">
+                            <div>
+                                <label className="label"><span className="label-text">Class Title</span></label>
+                                <input type="text" name="classTitle" value={newClassData.classTitle} onChange={handleClassInputChange} required className="input input-bordered w-full" />
+                            </div>
+                            
+                            <div>
+                                <label className="label"><span className="label-text">Description</span></label>
+                                <textarea name="classDescription" value={newClassData.classDescription} onChange={handleClassInputChange} className="textarea textarea-bordered w-full" rows="3"></textarea>
+                            </div>
+                            
+                            <div>
+                                <label className="label"><span className="label-text">Class Type</span></label>
+                                <select name="classType" value={newClassData.classType} onChange={handleClassInputChange} className="select select-bordered w-full">
+                                    <option>Strength</option>
+                                    <option>Cardio</option>
+                                    <option>Yoga</option>
+                                    <option>CrossFit</option>
+                                    <option>Flexibility</option>
+                                </select>
+                            </div>
+
+                            {/* ✅ FIXED: Replace single datetime-local with separate day, start time, and end time inputs */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="label"><span className="label-text">Day</span></label>
+                                    <select name="timeSlot.day" value={newClassData.timeSlot.day} onChange={handleClassInputChange} required className="select select-bordered w-full">
+                                        <option value="">Select Day</option>
+                                        <option value="Monday">Monday</option>
+                                        <option value="Tuesday">Tuesday</option>
+                                        <option value="Wednesday">Wednesday</option>
+                                        <option value="Thursday">Thursday</option>
+                                        <option value="Friday">Friday</option>
+                                        <option value="Saturday">Saturday</option>
+                                        <option value="Sunday">Sunday</option>
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label className="label"><span className="label-text">Start Time</span></label>
+                                    <input type="time" name="timeSlot.startTime" value={newClassData.timeSlot.startTime} onChange={handleClassInputChange} required className="input input-bordered w-full" />
+                                </div>
+                                
+                                <div>
+                                    <label className="label"><span className="label-text">End Time</span></label>
+                                    <input type="time" name="timeSlot.endTime" value={newClassData.timeSlot.endTime} onChange={handleClassInputChange} required className="input input-bordered w-full" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label"><span className="label-text">Duration (minutes)</span></label>
+                                    <input type="number" name="duration" value={newClassData.duration} onChange={handleClassInputChange} className="input input-bordered w-full" />
+                                </div>
+                                <div>
+                                    <label className="label"><span className="label-text">Capacity</span></label>
+                                    <input type="number" name="capacity" value={newClassData.capacity} onChange={handleClassInputChange} className="input input-bordered w-full" />
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label className="label"><span className="label-text">Price ($)</span></label>
+                                <input type="number" name="price" value={newClassData.price} onChange={handleClassInputChange} className="input input-bordered w-full" />
+                            </div>
+                            
+                            <div>
+                                <label className="label"><span className="label-text">Class Picture</span></label>
+                                <input type="file" accept="image/*" onChange={handleClassFileChange} className="file-input file-input-bordered w-full" />
+                            </div>
+                            
+                            <div className="modal-action">
+                                <button type="button" onClick={() => setShowCreateClass(false)} className="btn">Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                                    {isSubmitting ? <span className="loading loading-spinner"></span> : "Create Class"}
+                                </button>
+                            </div>
                         </form>
-                        <div className="modal-action">
-                            <button className="btn" onClick={() => setShowCreateClass(false)}>Cancel</button>
-                            <button className="btn btn-primary">Create Class</button>
-                        </div>
                     </div>
                 </div>
             )}

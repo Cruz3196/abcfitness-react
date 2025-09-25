@@ -46,6 +46,10 @@ const classSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    classPicPublicId: {
+        type: String,
+        default: "",
+    },
 // how many people can be in the class
     capacity: {
         type: Number,

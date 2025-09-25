@@ -6,7 +6,9 @@ export const userStore = create((set, get) => ({
     user: null,
     isCheckingAuth: true,
     isLoading: false,
+    selectedClass: null, // New state for selected class
 
+    // ROLE CHECKERS =============================================================
     isAdmin: () => {
         const user = get().user;
         return user && user.role === 'admin';
@@ -28,6 +30,7 @@ export const userStore = create((set, get) => ({
         return user && user.role === 'trainer' && !user.hasTrainerProfile;
     },
 
+    // AUTHENTICATION ACTIONS=====================================================
     signup: async ({ username, email, password, confirmPassword }) => {
         set({ isLoading: true });
 
@@ -69,7 +72,80 @@ export const userStore = create((set, get) => ({
         }
     },
 
-    // updating the profile information
+    deleteUserAccount: async () => {
+        set({ isLoading: true });
+        try {
+            const response = await axios.delete("/user/deleteAccount");
+            set({ user: null, isLoading: false });
+            toast.success(response.data.message || "Account deleted successfully");
+            return true;
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "Failed to delete account");
+            return false;
+        }
+    },
+
+    checkAuthStatus: async () => {
+        set({ isCheckingAuth: true });
+        try {
+            const response = await axios.get("/user/profile");
+            set({ user: response.data, isCheckingAuth: false });
+        } catch (error) {
+            console.log(error.message);
+            set({ isCheckingAuth: false, user: null });
+        }
+    },
+
+    refreshToken: async () => {
+        // Prevent multiple simultaneous refresh attempts
+        if (get().isCheckingAuth) return;
+
+        set({ isCheckingAuth: true });
+        try {
+            const response = await axios.post("/user/refresh-token");
+            set({ isCheckingAuth: false });
+            return response.data;
+        } catch (error) {
+            set({ user: null, isCheckingAuth: false });
+            throw error;
+        }
+    },
+
+    clearUser: () => {
+        set({ user: null, isCheckingAuth: false, isLoading: false });
+    },
+
+    forgotPassword: async (email) => {
+        set({ isLoading: true });
+        try {
+            const { data } = await axios.post("/user/forgotPassword", { email });
+            toast.success(data.message);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to send reset link.");
+            return false;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    resetPassword: async (token, password) => {
+        set({ isLoading: true });
+        try {
+            const { data } = await axios.put(`/user/resetPassword/${token}`, { password });
+            toast.success(data.message);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to reset password.");
+            return false;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+
+    // TRAINERS ONLY FUNCTIONS =====================================================
     updateProfile: async (userData) => {
         set({ isLoading: true });
         try {
@@ -127,78 +203,128 @@ export const userStore = create((set, get) => ({
         }
     },
 
-    deleteUserAccount: async () => {
+    // once the trainer is logged can create classes 
+    createClass: async (classData) => {
         set({ isLoading: true });
         try {
-            const response = await axios.delete("/user/deleteAccount");
-            set({ user: null, isLoading: false });
-            toast.success(response.data.message || "Account deleted successfully");
+            
+            await axios.post("/trainer/createClass", classData);
+            
+            // ✅ CRITICAL CHANGE: Instead of checkAuthStatus, call our new function
+            // This ensures we get the fresh list of classes, including the new one.
+            await get().fetchMyClasses(); 
+            
+            toast.success("Class created successfully!");
+            // No need to set isLoading to false here, fetchMyClasses will do it.
             return true;
         } catch (error) {
-            set({ isLoading: false });
-            toast.error(error.response?.data?.message || "Failed to delete account");
+            console.error("Create class error:", error);
+            set({ isLoading: false }); // Set loading false on error
+            
+            if (error.response?.data?.details) {
+                const validationErrors = error.response.data.details;
+                const errorMessages = validationErrors.map(err => `${err.field}: ${err.message}`).join(', ');
+                toast.error(`Validation Error: ${errorMessages}`);
+            } else {
+                toast.error(error.response?.data?.message || error.response?.data?.error || "Failed to create class");
+            }
             return false;
         }
     },
 
-    checkAuthStatus: async () => {
-        set({ isCheckingAuth: true });
-        try {
-            const response = await axios.get("/user/profile");
-            set({ user: response.data, isCheckingAuth: false });
-        } catch (error) {
-            console.log(error.message);
-            set({ isCheckingAuth: false, user: null });
-        }
-    },
-
-    refreshToken: async () => {
-        // Prevent multiple simultaneous refresh attempts
-        if (get().isCheckingAuth) return;
-
-        set({ isCheckingAuth: true });
-        try {
-            const response = await axios.post("/user/refresh-token");
-            set({ isCheckingAuth: false });
-            return response.data;
-        } catch (error) {
-            set({ user: null, isCheckingAuth: false });
-            throw error;
-        }
-    },
-
-    // Clear user data (useful for debugging)
-    clearUser: () => {
-        set({ user: null, isCheckingAuth: false, isLoading: false });
-    },
-
-    forgotPassword: async (email) => {
+    // fethcing all the classes created by the trainer
+    fetchMyClasses: async () => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.post("/user/forgotPassword", { email });
-            toast.success(data.message);
-            return true;
+            // This endpoint is from your router: router.get("/viewMyClasses", ...)
+            const response = await axios.get("/trainer/viewMyClasses");
+            
+            // Update the 'user' object in the store with the fetched classes
+            set(state => ({
+                user: { ...state.user, classes: response.data },
+                isLoading: false
+            }));
+            
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to send reset link.");
-            return false;
-        } finally {
+            console.error("Fetch my classes error:", error);
+            toast.error("Could not load your classes.");
             set({ isLoading: false });
         }
     },
 
-    resetPassword: async (token, password) => {
-        set({ isLoading: true });
+    // selecting a class from a trainer classes tab 
+    fetchClassById: async (classId) => {
+        set({ isLoading: true, selectedClass: null }); // Reset on new fetch
         try {
-            const { data } = await axios.put(`/user/resetPassword/${token}`, { password });
-            toast.success(data.message);
-            return true;
+            // Note: The public route for viewing a class might be different, e.g., /api/classes/:classId
+            // Adjust the URL to match your backend router setup.
+            const response = await axios.get(`/trainer/viewClass/${classId}`); 
+            set({
+                selectedClass: response.data,
+                isLoading: false
+            });
         } catch (error) {
-            toast.error(error.response?.data?.message || "Failed to reset password.");
-            return false;
-        } finally {
+            console.error("Fetch class by ID error:", error);
+            toast.error(error.response?.data?.message || "Could not load class details.");
             set({ isLoading: false });
         }
     },
+
+    // updating a class by the trainer
+    updateClass: async (classId, classData) => {
+        set({ isLoading: true });
+        try {
+            const response = await axios.put(`/trainer/updatingClass/${classId}`, classData);
+            
+            // Update the selectedClass if it's the one being edited
+            const currentSelectedClass = get().selectedClass;
+            if (currentSelectedClass && currentSelectedClass._id === classId) {
+                set({ selectedClass: response.data.class });
+            }
+            
+            toast.success(response.data.message || "Class updated successfully!");
+            set({ isLoading: false });
+            return true;
+        } catch (error) {
+            console.error("Update class error:", error);
+            set({ isLoading: false });
+            
+            if (error.response?.data?.details) {
+                toast.error(`Error: ${error.response.data.details}`);
+            } else {
+                toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to update class");
+            }
+            return false;
+        }
+    },
+
+    // deleting a class by the trainer
+    deleteClass: async (classId) => {
+        set({ isLoading: true });
+        try {
+            const response = await axios.delete(`/trainer/deletingClass/${classId}`);
+            
+            // Clear selectedClass if it's the one being deleted
+            const currentSelectedClass = get().selectedClass;
+            if (currentSelectedClass && currentSelectedClass._id === classId) {
+                set({ selectedClass: null });
+            }
+            
+            toast.success(response.data.message || "Class deleted successfully!");
+            set({ isLoading: false });
+            return true;
+        } catch (error) {
+            console.error("Delete class error:", error);
+            set({ isLoading: false });
+            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to delete class");
+            return false;
+        }
+    },
+
+    // Optional: Action to clear the selected class when leaving the page
+    clearSelectedClass: () => {
+        set({ selectedClass: null });
+    }
 }));
 
 // --- Axios Interceptor for Token Refresh ---

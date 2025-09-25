@@ -1,39 +1,52 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { Edit, Trash2, Users, DollarSign, Clock, Calendar } from 'lucide-react';
 
-const TrainerCard = ({ trainer }) => {
+const TrainerCard = ({ classItem, onEdit, onDelete }) => {
+    // A simple function to format time
+    const formatTime = (time) => {
+        if (!time) return 'N/A';
+        const [hours, minutes] = time.split(':');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12; // convert to 12-hour format
+        return `${formattedHours}:${minutes} ${ampm}`;
+    };
+
     return (
-        <div className="card w-full bg-base-100 shadow-xl transition-transform duration-300 hover:scale-105">
-            {/* ✅ WRAPPED THE IMAGE IN A LINK */}
-            <Link to={`/trainers/${trainer._id}`}>
-                <figure className="px-10 pt-10">
+        <div className="card bg-base-100 shadow-lg transition-all duration-300 hover:shadow-2xl flex flex-col">
+            {/* ✅ Link now wraps the image and main content */}
+            <Link to={`/trainer/my-classes/${classItem._id}`} className="flex-grow">
+                <figure className="relative">
                     <img
-                    src={trainer.trainerProfilePic || 'https://placehold.co/150x150?text=Trainer'}
-                    alt={trainer.user.username}
-                    className="w-32 h-32 object-cover rounded-full ring ring-primary ring-offset-base-100 ring-offset-2"
+                        src={classItem.classPic || 'https://placehold.co/400x225?text=Class'}
+                        alt={classItem.classTitle}
+                        className="h-48 w-full object-cover"
                     />
+                    <div className="absolute top-2 right-2 badge badge-secondary font-bold">{classItem.classType}</div>
                 </figure>
-            </Link>
-        <div className="card-body items-center text-center">
-                {/* ✅ WRAPPED THE TITLE IN A LINK */}
-                <h2 className="card-title">
-                    <Link to={`/trainers/${trainer._id}`} className="hover:text-primary">
-                        {trainer.user.username}
-                    </Link>
-                </h2>
-                <p className="text-primary">{trainer.specialization}</p>
-                <p className="text-sm text-base-content/70">{trainer.bio.substring(0, 80)}...</p>
-                <div className="card-actions mt-4">
-                <Link
-                    to={`/trainers/${trainer._id}`}
-                    className="btn btn-secondary btn-outline"
-                >
-                    View Profile
-                </Link>
+                <div className="card-body p-4">
+                    <h2 className="card-title truncate">{classItem.classTitle}</h2>
+                    <p className="text-base-content/70 text-sm mb-2 line-clamp-2">{classItem.classDescription}</p>
+
+                    <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2"><Calendar size={16} className="text-primary"/> <span>{classItem.timeSlot.day} at ...</span></div>
+                        <div className="flex items-center gap-2"><Users size={16} className="text-primary"/> <span>{classItem.attendees?.length || 0} / {classItem.capacity} registered</span></div>
+                    </div>
                 </div>
-            </div>
+            </Link>
+            
+            {/* OPTIONAL Action buttons are outside the Link for separate functionality */}
+            
+            {/* <div className="card-actions justify-end p-4 pt-0">
+                <button className="btn btn-outline btn-sm gap-2" onClick={(e) => { e.stopPropagation(); onEdit(classItem); }}>
+                    <Edit size={14} /> Edit
+                </button>
+                <button className="btn btn-outline btn-error btn-sm gap-2" onClick={(e) => { e.stopPropagation(); onDelete(classItem._id); }}>
+                    <Trash2 size={14} /> Delete
+                </button>
+            </div> */}
         </div>
     );
 };
 
 export default TrainerCard;
-

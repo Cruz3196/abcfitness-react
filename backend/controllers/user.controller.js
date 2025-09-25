@@ -285,19 +285,22 @@ export const deleteUserAccount = async (req, res) => {
 //viewing classes on the customer facing 
 export const viewAllClasses = async (req, res) => {
     try{
-    // getting the classes that show available from the database, along with presenting the trainers profile that is hosting the class
-        const classes = await Class.find({ status: "available" }).populate({
-            path: 'trainer',
-            populate:{
-                path:'user',
-                select: 'username'
-            }
-        });
+        // getting the classes that show available from the database, along with presenting the trainers profile that is hosting the class
+        const classes = await Class.find({ status: "available" })
+            .populate({
+                path: 'trainer',
+                populate:{
+                    path:'user',
+                    select: 'username'
+                }
+            })
+            .populate('attendees', 'username email'); 
+        
         // if no classes are found return this 
         if (classes.length === 0){
             return res.status(404).json({message: "No classes found"});
         }
-    // if classes were found then return all the classes 
+        // if classes were found then return all the classes 
         res.status(200).json({message: "Classes Found", classes})
     }catch (error){
         console.log("Error in viewing all the classes", error.message);

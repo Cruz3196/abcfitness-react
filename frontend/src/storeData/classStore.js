@@ -1,48 +1,133 @@
 import { create } from 'zustand';
-
-// --- MOCK DATA ---
-const mockClasses = [
-    { _id: 'class1', classTitle: 'Vinyasa Flow Yoga', classDescription: 'A dynamic practice that links breath with movement. Suitable for all levels, this class will build strength, flexibility, and inner peace.', classPic: 'https://placehold.co/600x400/6D28D9/FFFFFF?text=Yoga', trainer: { _id: 't1', user: { username: 'Jane Doe' } }, timeSlot: { day: 'Tuesday', startTime: '18:00' }, capacity: 15, price: 20 },
-    { _id: 'class2', classTitle: 'Advanced CrossFit', classDescription: 'Push your limits with high-intensity functional movements. This class is designed for experienced athletes looking to improve their performance.', classPic: 'https://placehold.co/600x400/BE123C/FFFFFF?text=CrossFit', trainer: { _id: 't2', user: { username: 'John Smith' } }, timeSlot: { day: 'Wednesday', startTime: '17:30' }, capacity: 12, price: 30 },
-    { _id: 'class3', classTitle: 'HIIT Cardio Blast', classDescription: 'A 45-minute high-intensity interval training session to maximize calorie burn and boost your metabolism. Get ready to sweat!', classPic: 'https://placehold.co/600x400/047857/FFFFFF?text=HIIT', trainer: { _id: 't3', user: { username: 'Emily White' } }, timeSlot: { day: 'Friday', startTime: '07:00' }, capacity: 20, price: 25 },
-];
-// ---
+import axios from '../api/axios';
+import toast from 'react-hot-toast';
 
 export const classStore = create((set, get) => ({
     classes: [],
+    selectedClass: null,
     availableSessions: [],
     isLoading: true,
+    error: null,
+    isBooking: false,
 
-    // Fetches all classes (currently mock)
-    fetchAllClasses: () => {
-        set({ isLoading: true });
-        setTimeout(() => {
-        set({ classes: mockClasses, isLoading: false });
-        }, 500);
+    // Fetches all available classes from the backend
+    fetchAllClasses: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.get('/user/ourClasses');
+            set({ 
+                classes: response.data.classes, 
+                isLoading: false 
+            });
+        } catch (error) {
+            console.error("Error fetching classes:", error);
+            set({ 
+                isLoading: false, 
+                error: error.response?.data?.message || "Failed to fetch classes",
+                classes: []
+            });
+            
+            if (error.response?.status !== 404) {
+                toast.error(error.response?.data?.message || "Failed to fetch classes");
+            }
+        }
     },
 
-    // Gets a single class by its ID from the existing state
-    getClassById: (id) => {
-        const classInfo = get().classes.find(c => c._id === id);
-        return classInfo;
-    },
+    // Gets a single class by its ID from the existing state or fetches all if needed
+    fetchClassById: async (classId) => {
+        set({ isLoading: true, selectedClass: null, error: null });
+        try {
+            // First check if we already have it in our classes array
+            const existingClass = get().classes.find(c => c._id === classId);
+            
+            if (existingClass) {
+                set({ selectedClass: existingClass, isLoading: false });
+                get().generateAvailableSessions(existingClass);
+                return;
+            }
 
-    // ✅ NEW: Generates a list of bookable sessions for a class
-    fetchAvailableSessions: (classId) => {
-        // In a real app, this would be an API call. Here, we simulate it.
-        const classInfo = get().getClassById(classId);
-        if (!classInfo) return;
-
-        const sessions = [];
-        for (let i = 0; i < 4; i++) { // Generate for the next 4 available days
-            const date = new Date();
-            date.setDate(date.getDate() + (i * 7)); // Simple weekly logic for now
-            sessions.push({
-                date: date.toISOString().split('T')[0], // "YYYY-MM-DD"
-                spotsLeft: classInfo.capacity - Math.floor(Math.random() * 5), // Random spots
+            // If classes array is empty, fetch all classes first
+            if (get().classes.length === 0) {
+                await get().fetchAllClasses();
+                const classAfterFetch = get().classes.find(c => c._id === classId);
+                if (classAfterFetch) {
+                    set({ selectedClass: classAfterFetch, isLoading: false });
+                    get().generateAvailableSessions(classAfterFetch);
+                } else {
+                    set({ 
+                        isLoading: false, 
+                        error: "Class not found" 
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching class by ID:", error);
+            set({ 
+                isLoading: false, 
+                error: error.response?.data?.message || "Failed to fetch class details" 
             });
         }
+    },
+
+    // Generates available sessions for a class based on its schedule
+    generateAvailableSessions: (classInfo) => {
+        const sessions = [];
+        const today = new Date();
+        
+        // Generate sessions for the next 4 weeks
+        for (let i = 0; i < 4; i++) {
+            const sessionDate = new Date(today);
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const targetDay = dayNames.indexOf(classInfo.timeSlot?.day);
+            
+            if (targetDay !== -1) {
+                // Calculate days until the target day
+                let daysUntilTarget = (targetDay - today.getDay() + 7) % 7;
+                if (daysUntilTarget === 0 && today.getHours() >= parseInt(classInfo.timeSlot?.startTime?.split(':')[0])) {
+                    daysUntilTarget = 7; // If today is the target day but time has passed, go to next week
+                }
+                
+                sessionDate.setDate(today.getDate() + daysUntilTarget + (i * 7));
+                
+                sessions.push({
+                    date: sessionDate.toISOString().split('T')[0], // "YYYY-MM-DD"
+                    spotsLeft: classInfo.capacity - (classInfo.attendees?.length || 0),
+                    dayName: classInfo.timeSlot?.day,
+                    startTime: classInfo.timeSlot?.startTime,
+                    endTime: classInfo.timeSlot?.endTime
+                });
+            }
+        }
         set({ availableSessions: sessions });
+    },
+
+    // Book a class session
+    bookClass: async (classId, date) => {
+        set({ isBooking: true });
+        try {
+            const response = await axios.post(`/user/bookings/${classId}`, { date });
+            toast.success(response.data.message || 'Successfully booked your class!');
+            
+            // Refresh the class data to update attendee count
+            await get().fetchClassById(classId);
+            
+            set({ isBooking: false });
+            return true;
+        } catch (error) {
+            console.error("Error booking class:", error);
+            toast.error(error.response?.data?.message || 'Failed to book class');
+            set({ isBooking: false });
+            return false;
+        }
+    },
+
+    // Clear selected class
+    clearSelectedClass: () => {
+        set({ selectedClass: null, availableSessions: [] });
+    },
+
+    // Clear error
+    clearError: () => {
+        set({ error: null });
     }
 }));
-
