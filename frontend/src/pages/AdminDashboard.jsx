@@ -3,59 +3,91 @@ import { motion } from 'framer-motion';
 import { 
     Users, 
     Package, 
-    Calendar, 
     DollarSign, 
     TrendingUp, 
     Settings,
     UserCheck,
     ShoppingBag,
     FileText,
-    Eye
+    Eye,
+    Trash2,
+    UserPlus,
+    Dumbbell,
+    Calendar,
+    Star,
+    MapPin
 } from 'lucide-react';
 import { userStore } from '../storeData/userStore';
 import { productStore } from '../storeData/productStore';
+import { adminStore } from '../storeData/adminStore';
 import ProductForm from '../components/admin/ProductForm';
+
 
 const AdminDashboard = () => {
     const { user, isAdmin } = userStore();
     const [activeTab, setActiveTab] = useState('overview');
-    const { products, categories, isLoading: isLoadingProducts, fetchAllProducts } = productStore();
+    const { products, categories, isLoading: isLoadingProducts, fetchAllProducts,  } = productStore();
+    const { 
+        users, 
+        trainers,
+        dashboardStats, 
+        pendingTrainers,
+        isLoading: isLoadingAdmin, 
+        fetchAllUsers, 
+        fetchDashboardStats,
+        fetchPendingTrainers,
+        deleteUser,
+        changeUserStatus,
+        fetchAllTrainers
+    } = adminStore();
     const [showProductForm, setShowProductForm] = useState(false);
 
-
-    // Add debugging at the very beginning
-    console.log('AdminDashboard render - user:', user);
-    console.log('AdminDashboard render - isAdmin function result:', isAdmin());
-    console.log('AdminDashboard render - user.role:', user?.role);
-
-    // Fetch products when Products tab is activated
+    // Fetch data based on active tab
     useEffect(() => {
-        if (activeTab === 'products') {
-            fetchAllProducts();
+        switch (activeTab) {
+            case 'overview':
+                fetchDashboardStats();
+                fetchPendingTrainers();
+                break;
+            case 'users':
+                fetchAllUsers();
+                break;
+            case 'products':
+                fetchAllProducts();
+                break;
+            case 'trainers':
+                fetchAllTrainers();
+                break;
+            default:
+                break;
         }
-    }, [activeTab, fetchAllProducts]);
-        
+    }, [activeTab, fetchAllUsers, fetchDashboardStats, fetchPendingTrainers, fetchAllProducts, fetchAllTrainers]);
 
-    // Mock data for admin dashboard
-    const stats = {
-        totalUsers: 1247,
-        totalTrainers: 23,
-        totalProducts: 156,
-        totalOrders: 89,
-        monthlyRevenue: 45670,
-        activeClasses: 12
+
+    // Handle user deletion with confirmation
+    const handleDeleteUser = async (userId, username) => {
+        if (window.confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+            await deleteUser(userId);
+        }
     };
 
-    const recentOrders = [
-        { id: '001', customer: 'John Doe', amount: 129.99, status: 'completed', date: '2024-01-15' },
-        { id: '002', customer: 'Jane Smith', amount: 89.50, status: 'pending', date: '2024-01-14' },
-        { id: '003', customer: 'Mike Johnson', amount: 199.99, status: 'completed', date: '2024-01-14' },
-    ];
+    // Handle promote user to trainer
+    const handlePromoteUser = async (userId, username) => {
+        if (window.confirm(`Promote "${username}" to trainer role?`)) {
+            await changeUserStatus(userId);
+        }
+    };
 
-    const pendingTrainers = [
-        { id: '1', name: 'Sarah Wilson', email: 'sarah@example.com', specialty: 'Yoga', status: 'pending' },
-        { id: '2', name: 'Tom Brown', email: 'tom@example.com', specialty: 'CrossFit', status: 'pending' },
-    ];
+    // Get user role badge color
+    const getRoleBadgeClass = (role) => {
+        switch (role) {
+            case 'admin': return 'badge-error';
+            case 'trainer': return 'badge-warning';
+            case 'customer': return 'badge-info';
+            default: return 'badge-ghost';
+        }
+    };
+
 
     if (!isAdmin()) {
         return (
@@ -79,6 +111,7 @@ const AdminDashboard = () => {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0 }
     };
+    
 
     return (
         <motion.div 
@@ -138,83 +171,70 @@ const AdminDashboard = () => {
                                     <Users className="w-8 h-8" />
                                 </div>
                                 <div className="stat-title">Total Users</div>
-                                <div className="stat-value text-primary">{stats.totalUsers}</div>
-                                <div className="stat-desc">↗︎ 400 (22%) this month</div>
+                                <div className="stat-value text-primary">
+                                    {dashboardStats?.users?.totalUsers || 0}
+                                </div>
+                                <div className="stat-desc">
+                                    {dashboardStats?.users?.newUsersThisMonth || 0} new this month
+                                </div>
                             </motion.div>
 
                             <motion.div className="stat bg-base-100 shadow-lg rounded-lg" variants={itemVariants}>
                                 <div className="stat-figure text-secondary">
-                                    <Package className="w-8 h-8" />
+                                    <UserCheck className="w-8 h-8" />
                                 </div>
-                                <div className="stat-title">Products</div>
-                                <div className="stat-value text-secondary">{stats.totalProducts}</div>
-                                <div className="stat-desc">↗︎ 12 new this month</div>
+                                <div className="stat-title">Trainers</div>
+                                <div className="stat-value text-secondary">
+                                    {dashboardStats?.users?.totalTrainers || 0}
+                                </div>
+                                <div className="stat-desc">Active trainers</div>
                             </motion.div>
 
                             <motion.div className="stat bg-base-100 shadow-lg rounded-lg" variants={itemVariants}>
                                 <div className="stat-figure text-accent">
                                     <DollarSign className="w-8 h-8" />
                                 </div>
-                                <div className="stat-title">Monthly Revenue</div>
-                                <div className="stat-value text-accent">${stats.monthlyRevenue.toLocaleString()}</div>
-                                <div className="stat-desc">↗︎ 18% increase</div>
+                                <div className="stat-title">Total Revenue</div>
+                                <div className="stat-value text-accent">
+                                    ${((dashboardStats?.financials?.totalProductRevenue || 0) + 
+                                       (dashboardStats?.financials?.totalClassRevenue || 0)).toLocaleString()}
+                                </div>
+                                <div className="stat-desc">Products + Classes</div>
                             </motion.div>
                         </div>
 
-                        {/* Recent Activity */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                                <div className="card-body">
-                                    <h2 className="card-title">Recent Orders</h2>
-                                    <div className="overflow-x-auto">
-                                        <table className="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Order ID</th>
-                                                    <th>Customer</th>
-                                                    <th>Amount</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {recentOrders.map(order => (
-                                                    <tr key={order.id}>
-                                                        <td>#{order.id}</td>
-                                                        <td>{order.customer}</td>
-                                                        <td>${order.amount}</td>
-                                                        <td>
-                                                            <div className={`badge ${order.status === 'completed' ? 'badge-success' : 'badge-warning'}`}>
-                                                                {order.status}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                        {/* Pending Trainer Approvals */}
+                        <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
+                            <div className="card-body">
+                                <h2 className="card-title">Pending Trainer Profiles</h2>
+                                {isLoadingAdmin ? (
+                                    <div className="flex justify-center py-4">
+                                        <span className="loading loading-spinner loading-md"></span>
                                     </div>
-                                </div>
-                            </motion.div>
-
-                            <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                                <div className="card-body">
-                                    <h2 className="card-title">Pending Trainer Approvals</h2>
+                                ) : pendingTrainers.length === 0 ? (
+                                    <p className="text-base-content/70">No pending trainer profiles</p>
+                                ) : (
                                     <div className="space-y-3">
                                         {pendingTrainers.map(trainer => (
-                                            <div key={trainer.id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
+                                            <div key={trainer._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
                                                 <div>
-                                                    <h3 className="font-semibold">{trainer.name}</h3>
-                                                    <p className="text-sm text-base-content/70">{trainer.specialty}</p>
+                                                        <h3 className="font-bold text-lg">
+                                                            {trainer.username || 'Unknown Trainer'}
+                                                        </h3>
+                                                        <p className="text-sm text-base-content/70">
+                                                            {trainer.email}
+                                                        </p>
+                                                    <p className="text-xs text-base-content/50">
+                                                        Joined: {new Date(trainer.createdAt).toLocaleDateString()}
+                                                    </p>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button className="btn btn-sm btn-success">Approve</button>
-                                                    <button className="btn btn-sm btn-error">Reject</button>
-                                                </div>
+                                                <div className="badge badge-warning">Needs Profile Setup</div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            </motion.div>
-                        </div>
+                                )}
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
 
@@ -224,50 +244,100 @@ const AdminDashboard = () => {
                         <div className="card-body">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="card-title">User Management</h2>
-                                <button className="btn btn-primary">Add User</button>
+                                <div className="flex gap-2">
+                                    <button 
+                                        className="btn btn-outline btn-sm"
+                                        onClick={fetchAllUsers}
+                                        disabled={isLoadingAdmin}
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="table">
-                                    <thead>
-                                        <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Role</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>
-                                                <div className="flex items-center gap-3">
-                                                    <div className="avatar">
-                                                        <div className="mask mask-squircle w-12 h-12">
-                                                            <img src="https://placehold.co/48x48" alt="User" />
+                            
+                            {isLoadingAdmin ? (
+                                <div className="flex justify-center py-8">
+                                    <span className="loading loading-spinner loading-lg"></span>
+                                </div>
+                            ) : users.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <Users className="mx-auto w-16 h-16 text-base-300 mb-2" />
+                                    <p className="text-base-content/70">No users found</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>User</th>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>Joined</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {users.map(userData => (
+                                                <tr key={userData._id}>
+                                                    <td>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="avatar">
+                                                                <div className="mask mask-squircle w-12 h-12">
+                                                                    <img 
+                                                                        src={userData.profileImage || "https://placehold.co/48x48?text=" + userData.username.charAt(0)} 
+                                                                        alt={userData.username} 
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold">{userData.username}</div>
+                                                                <div className="text-sm opacity-50">
+                                                                    ID: {userData._id.slice(-6)}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="font-bold">John Doe</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td>john@example.com</td>
-                                            <td><div className="badge badge-primary">Customer</div></td>
-                                            <td><div className="badge badge-success">Active</div></td>
-                                            <td>
-                                                <div className="flex gap-2">
-                                                    <button className="btn btn-sm btn-ghost">
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
-                                                    <button className="btn btn-sm btn-ghost">
-                                                        <Settings className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                                                    </td>
+                                                    <td>{userData.email}</td>
+                                                    <td>
+                                                        <div className={`badge ${getRoleBadgeClass(userData.role)}`}>
+                                                            {userData.role}
+                                                        </div>
+                                                    </td>
+                                                    <td>{new Date(userData.createdAt).toLocaleDateString()}</td>
+                                                    <td>
+                                                        <div className="flex gap-2">
+                                                            {userData.role === 'customer' && (
+                                                                <button 
+                                                                    className="btn btn-sm btn-warning"
+                                                                    onClick={() => handlePromoteUser(userData._id, userData.username)}
+                                                                    title="Promote to Trainer"
+                                                                >
+                                                                    <UserPlus className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                className="btn btn-sm btn-ghost"
+                                                                title="View Details"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                            {userData.role !== 'admin' && (
+                                                                <button 
+                                                                    className="btn btn-sm btn-error"
+                                                                    onClick={() => handleDeleteUser(userData._id, userData.username)}
+                                                                    title="Delete User"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -375,14 +445,121 @@ const AdminDashboard = () => {
                 )}
 
                 {/* Trainers Tab */}
-                {activeTab === 'trainers' && (
-                    <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">Trainer Management</h2>
-                            <p className="text-base-content/70">Trainer management interface coming soon...</p>
-                        </div>
-                    </motion.div>
-                )}
+                    {activeTab === 'trainers' && (
+                        <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
+                            <div className="card-body">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="card-title">Trainer Management</h2>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            className="btn btn-outline btn-sm"
+                                            onClick={fetchAllTrainers}
+                                            disabled={isLoadingAdmin}
+                                        >
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {isLoadingAdmin ? (
+                                    <div className="flex justify-center py-8">
+                                        <span className="loading loading-spinner loading-lg"></span>
+                                    </div>
+                                ) : trainers.length === 0 ? (
+                                    <div className="text-center py-8">
+                                        <Dumbbell className="mx-auto w-16 h-16 text-base-300 mb-2" />
+                                        <p className="text-base-content/70 mb-4">No trainers found</p>
+                                        <p className="text-sm text-base-content/50">
+                                            Promote users to trainers from the Users tab
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {trainers.map(trainer => (
+                                            <motion.div 
+                                                key={trainer._id} 
+                                                className="card bg-base-200 shadow-md"
+                                                variants={itemVariants}
+                                            >
+                                                <div className="card-body">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="avatar">
+                                                            <div className="w-12 h-12 rounded-full">
+                                                                <img 
+                                                                    src={trainer.profileImage || `https://placehold.co/48x48?text=${trainer.username?.charAt(0) || 'T'}`} 
+                                                                    alt={trainer.username || 'Trainer'} 
+                                                                    className="object-cover"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-lg">
+                                                                {trainer.username || 'Unknown Trainer'}
+                                                            </h3>
+                                                            <p className="text-sm text-base-content/70">
+                                                                {trainer.email || 'No email'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2 mb-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Dumbbell className="w-4 h-4 text-primary" />
+                                                            <span className="text-sm">
+                                                                {trainer.specialization || 'No specialization set'}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-2">
+                                                            <Star className="w-4 h-4 text-warning" />
+                                                            <span className="text-sm">
+                                                                {trainer.experience ? `${trainer.experience} years experience` : 'Experience not set'}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-2">
+                                                            <MapPin className="w-4 h-4 text-accent" />
+                                                            <span className="text-sm">
+                                                                {trainer.location || 'Location not set'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {trainer.goals && (
+                                                        <div className="mb-4">
+                                                            <p className="text-xs text-base-content/70 line-clamp-3">
+                                                                {trainer.goals}
+                                                            </p>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="badge badge-success">
+                                                            Role: {trainer.role}
+                                                        </div>
+                                                        <div className="text-xs text-base-content/50">
+                                                            Joined: {new Date(trainer.createdAt).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="card-actions justify-end">
+                                                        <button className="btn btn-sm btn-ghost">
+                                                            <Eye className="w-4 h-4" />
+                                                            View Details
+                                                        </button>
+                                                        <button className="btn btn-sm btn-primary">
+                                                            <Settings className="w-4 h-4" />
+                                                            Manage
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
             </div>
 
             {/* Product Form Modal */}
