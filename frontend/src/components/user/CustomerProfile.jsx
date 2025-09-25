@@ -18,55 +18,102 @@ import {
 import  { userStore }  from '../../storeData/userStore';
 import { useOrderStore } from '../../storeData/useOrderStore';  // Fix this import
 import { toast } from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { bookingStore } from '../../storeData/bookingStore';
+import { Link, useNavigate } from 'react-router-dom';
 
 const CustomerProfile = () => {
-  const { user, logout } = userStore();
+  const navigate = useNavigate();
+  const { user, logout, updateProfile, deleteUserAccount, isLoading: isUserLoading } = userStore();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { orders, isLoading: isLoadingOrders, fetchOrderHistory } = useOrderStore();  // Use the store
+  const { upcomingBookings, fetchMyBookings, isLoading: isLoadingBookings, bookingHistory } = bookingStore();
   const [activeTab, setActiveTab] = useState('view');
   const [message, setMessage] = useState('');
 
-  // Mock booking data - replace with actual data from your booking store
-  const mockBookings = [
-    {
-      _id: '1',
-      className: 'Morning Yoga',
-      date: '2025-09-25',
-      time: '08:00',
-      trainer: 'Sarah Johnson',
-      status: 'confirmed'
-    },
-    {
-      _id: '2',
-      className: 'HIIT Training',
-      date: '2025-09-20',
-      time: '18:00',
-      trainer: 'Mike Chen',
-      status: 'completed'
-    },
-    {
-      _id: '3',
-      className: 'Pilates Core',
-      date: '2025-09-28',
-      time: '10:00',
-      trainer: 'Emma Wilson',
-      status: 'confirmed'
-    }
-  ];
 
-  // Filter bookings for upcoming vs history
-  const upcomingBookings = mockBookings.filter(booking => 
-    new Date(booking.date) > new Date() || booking.status === 'confirmed'
-  );
+  // Form state for profile editing
+  const [profileForm, setProfileForm] = useState({
+    username: user?.username || '',
+    email:user?.email || '',
+  });
 
-  // Load user orders when orders tab is active
+  // reset form data when user changes 
   useEffect(() => {
-    if (activeTab === 'orders') {
-      fetchOrderHistory();  // Use the store function
+    if(user) {
+      setProfileForm({
+        username: user.username || '',
+        email: user.email || '',
+      });
     }
-  }, [activeTab, fetchOrderHistory]);
+  }, [user]);
 
-  const containerVariants = {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+    // Handle profile update form submission
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    if (!profileForm.username || !profileForm.email) {
+      toast.error('Username and email are required');
+      return;
+    }
+    
+    const success = await updateProfile(profileForm);
+    if (success) {
+      setActiveTab('view'); // Switch back to view tab after successful update
+    }
+  };
+
+  // Handle for account deletion 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("Are you sure you want to delete your account?");
+    if (confirmed) {
+      const success = await deleteUserAccount();
+      if (success) {
+        toast.success("Account deleted successfully");
+        navigate("/");  // Redirect to home or login page
+      }
+    } else {
+      toast.error("Failed to delete account");
+    }
+  };
+
+  // This is for the product orders 
+  useEffect(() => {
+      if (activeTab === 'orders') {
+        fetchOrderHistory();  // Use the store function
+      }
+    }, [activeTab, fetchOrderHistory]);
+
+  // This is for the class bookings
+  useEffect(() => {
+      if (activeTab === 'bookings') {
+        fetchMyBookings();  // Use the store function
+      }
+    }, [activeTab, fetchMyBookings]);
+
+
+  // formatting date and time
+  const formatDateTime = (dateTimeStr) => {
+    if (!dateTimeStr) return '';
+    const dateTime = new Date(dateTimeStr);
+    return dateTime.toLocaleDateString() + ' at ' + 
+        dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Animation Variants 
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+    const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
@@ -76,11 +123,6 @@ const CustomerProfile = () => {
         staggerChildren: 0.1
       }
     }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
   };
 
   if (!user) {
@@ -195,7 +237,7 @@ const CustomerProfile = () => {
                 <div className="stats stats-vertical shadow">
                   <div className="stat">
                     <div className="stat-title">Total Bookings</div>
-                    <div className="stat-value text-primary">{mockBookings.length}</div>
+                    <div className="stat-value text-primary">{fetchMyBookings.length}</div>
                     <div className="stat-desc">Class enrollments</div>
                   </div>
                   <div className="stat">
@@ -324,42 +366,84 @@ const CustomerProfile = () => {
               <div className="card bg-base-100 shadow-lg">
                 <div className="card-body">
                   <h3 className="card-title text-lg mb-4">Upcoming Classes</h3>
-                  <div className="space-y-3">
-                    {upcomingBookings.length === 0 ? (
-                      <p className="text-base-content/70 text-center py-4">No upcoming bookings</p>
-                    ) : (
-                      upcomingBookings.map(booking => (
-                        <div key={booking._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
-                          <div>
-                            <h4 className="font-semibold">{booking.className}</h4>
-                            <p className="text-sm text-base-content/70">
-                              {booking.date} at {booking.time} • {booking.trainer}
-                            </p>
-                          </div>
-                          <div className="badge badge-success">{booking.status}</div>
+                  {isLoadingBookings ? (
+                    <div className="text-center py-6">
+                      <span className="loading loading-spinner loading-md"></span>
+                      <p className="mt-2">Loading bookings...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {upcomingBookings.length === 0 ? (
+                        <div className="text-center py-6">
+                          <Calendar className="w-12 h-12 mx-auto text-base-300 mb-2" />
+                          <p className="text-base-content/70">No upcoming bookings</p>
+                          <Link to="/classes" className="btn btn-primary btn-sm mt-4">
+                            Browse Classes
+                          </Link>
                         </div>
-                      ))
-                    )}
-                  </div>
+                      ) : (
+                        upcomingBookings.map(booking => (
+                          <div key={booking._id} className="flex flex-col p-3 border border-base-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold">{booking.class?.classTitle || 'Class'}</h4>
+                              <div className="badge badge-success">Upcoming</div>
+                            </div>
+                            <div className="text-sm text-base-content/70 mb-1">
+                              <Clock className="inline-block w-4 h-4 mr-1" />
+                              {formatDateTime(booking.startTime)}
+                            </div>
+                            {booking.class?.trainer?.user?.username && (
+                              <div className="text-sm text-base-content/70 mb-2">
+                                <UserCheck className="inline-block w-4 h-4 mr-1" />
+                                Trainer: {booking.class.trainer.user.username}
+                              </div>
+                            )}
+                            <div className="card-actions justify-end mt-2">
+                              <button 
+                                className="btn btn-sm btn-error"
+                                onClick={() => cancelBooking(booking._id)}
+                                disabled={isLoadingBookings}
+                              >
+                                Cancel Booking
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="card bg-base-100 shadow-lg">
                 <div className="card-body">
                   <h3 className="card-title text-lg mb-4">Class History</h3>
-                  <div className="space-y-3">
-                    {mockBookings.filter(booking => booking.status === 'completed').map(booking => (
-                      <div key={booking._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
-                        <div>
-                          <h4 className="font-semibold">{booking.className}</h4>
-                          <p className="text-sm text-base-content/70">
-                            {booking.date} at {booking.time} • {booking.trainer}
-                          </p>
-                        </div>
-                        <div className="badge badge-outline">{booking.status}</div>
-                      </div>
-                    ))}
-                  </div>
+                  {isLoadingBookings ? (
+                    <div className="text-center py-6">
+                      <span className="loading loading-spinner loading-md"></span>
+                      <p className="mt-2">Loading history...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {bookingHistory.length === 0 ? (
+                        <p className="text-base-content/70 text-center py-4">No booking history</p>
+                      ) : (
+                        bookingHistory.map(booking => (
+                          <div key={booking._id} className="flex flex-col p-3 border border-base-300 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-semibold">{booking.class?.classTitle || 'Class'}</h4>
+                              <div className={`badge ${booking.status === 'cancelled' ? 'badge-error' : 'badge-ghost'}`}>
+                                {booking.status}
+                              </div>
+                            </div>
+                            <div className="text-sm text-base-content/70">
+                              {formatDateTime(booking.startTime)}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -371,15 +455,17 @@ const CustomerProfile = () => {
           <motion.div className="card bg-base-100 shadow-lg max-w-2xl mx-auto" variants={itemVariants}>
             <div className="card-body">
               <h2 className="card-title mb-6">Edit Profile</h2>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleUpdateProfile}>
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text">Username</span>
                   </label>
                   <input 
                     type="text" 
+                    name="username"
                     className="input input-bordered" 
-                    defaultValue={user.username}
+                    value={profileForm.username}
+                    onChange={handleInputChange}
                   />
                 </div>
                 
@@ -389,8 +475,10 @@ const CustomerProfile = () => {
                   </label>
                   <input 
                     type="email" 
+                    name="email"
                     className="input input-bordered" 
-                    defaultValue={user.email}
+                    value={profileForm.email}
+                    onChange={handleInputChange}
                   />
                 </div>
                 
@@ -399,19 +487,75 @@ const CustomerProfile = () => {
                     type="button"
                     className="btn btn-ghost"
                     onClick={() => setActiveTab('view')}
+                    disabled={isUserLoading}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary gap-2">
-                    <Save className="w-4 h-4" />
-                    Save Changes
+                  <button 
+                    type="submit" 
+                    className={`btn btn-primary gap-2 ${isUserLoading ? 'loading' : ''}`}
+                    disabled={isUserLoading}
+                  >
+                    {!isUserLoading && <Save className="w-4 h-4" />}
+                    {isUserLoading ? 'Saving...' : 'Save Changes'}
                   </button>
-                  </div>
+                </div>
               </form>
+              {/* Danger Zone for account deletion */}
+              <div className="divider mt-8 mb-6">Woah are you sure? </div>
+                <div className="bg-error/10 p-4 rounded-lg">
+                  <h3 className="font-semibold text-error mb-2">Delete Account</h3>
+                  <p className="text-sm mb-4">
+                    Once you delete your account, there is no going back. Please be certain.
+                  </p>
+                  <button 
+                    type="button" 
+                    className="btn btn-error btn-sm"
+                    onClick={() => setShowDeleteModal(true)}
+                  >
+                    Delete Account
+                  </button>
+              </div>
             </div>
           </motion.div>
         )}
       </div>
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+        <motion.div 
+          className="modal-box relative bg-base-100 rounded-lg shadow-xl max-w-md mx-auto"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+        >
+          <h3 className="font-bold text-lg mb-4 text-error">Delete Account</h3>
+          <p className="mb-6">
+            Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, including:
+          </p>
+          <ul className="list-disc ml-6 mb-6 space-y-2">
+            <li>Personal profile information</li>
+            <li>Booking history</li>
+            <li>Order history</li>
+            <li>Reviews and feedback</li>
+          </ul>
+          <div className="modal-action flex justify-end">
+            <button 
+              className="btn btn-ghost" 
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-error" 
+              onClick={handleDeleteAccount}
+              disabled={isUserLoading}
+            >
+              {isUserLoading ? 'Deleting...' : 'Delete Account'}
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    )}
     </motion.div>
   );
 };

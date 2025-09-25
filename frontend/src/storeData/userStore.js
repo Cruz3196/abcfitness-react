@@ -63,6 +63,36 @@ export const userStore = create((set, get) => ({
         }
     },
 
+    // updating the profile information
+    updateProfile: async (userData) => {
+        set({ isLoading: true });
+        try {
+            const response = await axios.put("/user/updateProfile", userData);
+            // Fix: Set the user state with response.data.user instead of response.data
+            set({ user: response.data.user, isLoading: false });
+            toast.success(response.data.message || "Profile updated successfully");
+            return true;
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "Failed to update profile");
+            return false;
+        }
+    },
+
+    deleteUserAccount: async () => {
+        set({ isLoading: true });
+        try {
+            const response = await axios.delete("/user/deleteAccount");
+            set({ user: null, isLoading: false });
+            toast.success(response.data.message || "Account deleted successfully");
+            return true;
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "Failed to delete account");
+            return false;
+        }
+    },
+
     checkAuthStatus: async () => {
         set({ isCheckingAuth: true });
         try {
