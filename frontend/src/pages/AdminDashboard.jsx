@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
     Users, 
@@ -13,10 +13,28 @@ import {
     Eye
 } from 'lucide-react';
 import { userStore } from '../storeData/userStore';
+import { productStore } from '../storeData/productStore';
+import ProductForm from '../components/admin/ProductForm';
 
 const AdminDashboard = () => {
     const { user, isAdmin } = userStore();
     const [activeTab, setActiveTab] = useState('overview');
+    const { products, categories, isLoading: isLoadingProducts, fetchAllProducts } = productStore();
+    const [showProductForm, setShowProductForm] = useState(false);
+
+
+    // Add debugging at the very beginning
+    console.log('AdminDashboard render - user:', user);
+    console.log('AdminDashboard render - isAdmin function result:', isAdmin());
+    console.log('AdminDashboard render - user.role:', user?.role);
+
+    // Fetch products when Products tab is activated
+    useEffect(() => {
+        if (activeTab === 'products') {
+            fetchAllProducts();
+        }
+    }, [activeTab, fetchAllProducts]);
+        
 
     // Mock data for admin dashboard
     const stats = {
@@ -255,17 +273,96 @@ const AdminDashboard = () => {
                 )}
 
                 {/* Products Tab */}
-                {activeTab === 'products' && (
-                    <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                        <div className="card-body">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="card-title">Product Management</h2>
-                                <button className="btn btn-primary">Add Product</button>
-                            </div>
-                            <p className="text-base-content/70">Product management interface coming soon...</p>
+            {activeTab === 'products' && (
+                <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
+                    <div className="card-body">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="card-title">Product Management</h2>
+                            <button 
+                                className="btn btn-primary"
+                                onClick={() => setShowProductForm(true)}
+                            >
+                                Add Product
+                            </button>
                         </div>
-                    </motion.div>
-                )}
+                        
+                        {isLoadingProducts ? (
+                            <div className="flex justify-center py-8">
+                                <span className="loading loading-spinner loading-lg"></span>
+                            </div>
+                        ) : products.length === 0 ? (
+                            <div className="text-center py-8">
+                                <Package className="mx-auto w-16 h-16 text-base-300 mb-2" />
+                                <p className="text-base-content/70 mb-4">No products found</p>
+                                <button 
+                                    className="btn btn-primary"
+                                    onClick={() => setShowProductForm(true)}
+                                >
+                                    Add Your First Product
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Price</th>
+                                            <th>Category</th>
+                                            <th>Featured</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {products.map(product => (
+                                            <tr key={product._id}>
+                                                <td>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="avatar">
+                                                            <div className="mask mask-squircle w-12 h-12">
+                                                                <img 
+                                                                    src={product.productImage || "https://placehold.co/48x48?text=No+Image"} 
+                                                                    alt={product.productName} 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold">{product.productName}</div>
+                                                            <div className="text-xs opacity-50 truncate w-48">
+                                                                {product.productDescription?.substring(0, 50)}
+                                                                {product.productDescription?.length > 50 ? '...' : ''}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>${product.productPrice?.toFixed(2)}</td>
+                                                <td>{product.productCategory}</td>
+                                                <td>
+                                                    {product.isFeatured ? (
+                                                        <div className="badge badge-success">Featured</div>
+                                                    ) : (
+                                                        <div className="badge badge-ghost">Not Featured</div>
+                                                    )}
+                                                </td>
+                                                <td>
+                                                    <div className="flex gap-2">
+                                                        <button className="btn btn-sm btn-ghost">
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
+                                                        <button className="btn btn-sm btn-ghost">
+                                                            <Settings className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+            )}
 
                 {/* Orders Tab */}
                 {activeTab === 'orders' && (
@@ -287,6 +384,14 @@ const AdminDashboard = () => {
                     </motion.div>
                 )}
             </div>
+
+            {/* Product Form Modal */}
+            {showProductForm && (
+                <ProductForm 
+                    onClose={() => setShowProductForm(false)} 
+                    categories={categories}
+                />
+            )}
         </motion.div>
     );
 };

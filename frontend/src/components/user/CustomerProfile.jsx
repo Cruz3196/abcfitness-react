@@ -237,7 +237,12 @@ const CustomerProfile = () => {
                 <div className="stats stats-vertical shadow">
                   <div className="stat">
                     <div className="stat-title">Total Bookings</div>
-                    <div className="stat-value text-primary">{fetchMyBookings.length}</div>
+                      <div className="stat-value text-primary">
+                        {isLoadingBookings ? 
+                          <span className="loading loading-spinner loading-sm"></span> : 
+                          (upcomingBookings.length + (bookingHistory?.length || 0))
+                        }
+                      </div>
                     <div className="stat-desc">Class enrollments</div>
                   </div>
                   <div className="stat">
@@ -284,7 +289,9 @@ const CustomerProfile = () => {
                   <ShoppingBag className="w-16 h-16 text-base-300 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
                   <p className="text-base-content/70 mb-4">Start shopping to see your order history here</p>
-                  <button className="btn btn-primary">Shop Now</button>
+                    <Link to="/store" className="btn btn-primary">
+                      Shop Now 
+                    </Link>
                 </div>
               </div>
             ) : (

@@ -47,9 +47,9 @@ const LoginForm = () => {
             
             // Redirect based on user role
             if (currentUser?.role === 'admin') {
-                navigate('/admin', { replace: true });
+                navigate('/admindashboard', { replace: true });
             } else if (currentUser?.role === 'trainer') {
-                navigate('/trainer', { replace: true });
+                navigate('/trainerdashboard', { replace: true });
             } else {
                 // For customers or any other role, use the original logic
                 const from = location.state?.from?.pathname || "/profile";

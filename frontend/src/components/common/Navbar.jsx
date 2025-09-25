@@ -4,13 +4,31 @@ import toast from "react-hot-toast";
 
 // This is your Navbar component, ready to be used in your main layout.
 const Navbar = () => {
-    const { user, logout } = userStore();
+    const { user, logout, isAdmin, isTrainer } = userStore();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
         await logout();
         toast.success("Logged out successfully");
         navigate("/"); //navigating to the home page after logout
+    };
+
+    // Function to get the correct profile link based on user role
+    const getProfileLink = () => {
+        if (!user) return "/profile";
+        
+        if (isAdmin()) return "/admindashboard";
+        if (isTrainer()) return "/trainerdashboard";
+        return "/profile";
+    };
+
+    // Function to get the correct profile text based on user role
+    const getProfileText = () => {
+        if (!user) return "Profile";
+        
+        if (isAdmin()) return "Admin Dashboard";
+        if (isTrainer()) return "Trainer Dashboard";
+        return "Profile";
     };
     
     return (
@@ -43,9 +61,17 @@ const Navbar = () => {
                 <div className="dropdown dropdown-end">
                     <label tabIndex={0} className="btn btn-ghost">
                         {user.username}
+                        {/* Add role badge for admins */}
+                        {isAdmin() && <span className="badge badge-secondary badge-sm ml-2">Admin</span>}
+                        {isTrainer() && <span className="badge badge-primary badge-sm ml-2">Trainer</span>}
                     </label>
                     <div tabIndex={0} className="dropdown-content menu bg-black p-2 shadow rounded-box w-52">
-                        <Link to="/profile" className="block px-4 py-2 text-white hover:text-gray-300">Profile</Link>
+                        <Link 
+                            to={getProfileLink()} 
+                            className="block px-4 py-2 text-white hover:text-gray-300"
+                        >
+                            {getProfileText()}
+                        </Link>
                         <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-white hover:text-gray-300">Logout</button>
                     </div>
                 </div>

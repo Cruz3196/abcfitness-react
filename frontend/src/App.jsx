@@ -71,7 +71,7 @@ function App() {
 
             {/* Protected Routes */}
             <Route 
-              path="/admin" 
+              path="/admindashboard" 
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
@@ -79,7 +79,7 @@ function App() {
               } 
             />
             <Route 
-              path="/trainer" 
+              path="/trainerdashboard" 
               element={
                 <ProtectedRoute allowedRoles={['trainer']}>
                   <TrainerDashboard />

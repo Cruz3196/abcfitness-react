@@ -2,7 +2,7 @@ import React from 'react';
 import { userStore } from '../storeData/userStore';
 import AdminDashboard from './AdminDashboard';
 import TrainerDashboard from './TrainerDashboard';
-import CustomerProfile from '../components/user/CustomerProfile';
+import  CustomerProfile from '../components/user/CustomerProfile';
 
 const ProfilePage = () => {
     const { user, isAdmin, isTrainer } = userStore();
