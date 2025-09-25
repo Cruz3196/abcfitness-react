@@ -12,6 +12,10 @@ const trainerSchema = new mongoose.Schema({
         type: String,
         default: "",
     },
+    trainerProfilePublicId: {
+        type: String,
+        default: ""
+    },
     bio: {
         type: String,
     },

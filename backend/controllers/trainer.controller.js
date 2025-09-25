@@ -14,13 +14,17 @@ export const createTrainerProfile = async (req, res) => {
 
         const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
         
+        // ✅ FIX: Initialize both variables to be safe.
         let imageUrl = "";
+        let imagePublicId = "";
+
         if (trainerProfilePic) {
-            // Upload the new image to a 'trainer_profiles' folder in Cloudinary
             const uploadedImage = await cloudinary.uploader.upload(trainerProfilePic, {
                 folder: "trainer_profiles",
             });
             imageUrl = uploadedImage.secure_url;
+            // ✅ FIX: Get the public_id from the response and use the correct property name.
+            imagePublicId = uploadedImage.public_id; 
         }
 
         const newProfile = await Trainer.create({
@@ -29,7 +33,8 @@ export const createTrainerProfile = async (req, res) => {
             bio,
             certifications,
             experience,
-            trainerProfilePic: imageUrl
+            trainerProfilePic: imageUrl,
+            trainerProfilePublicId: imagePublicId // This will be an empty string if no image was uploaded
         });
 
         res.status(201).json({ message: "Trainer profile created successfully", trainer: newProfile });
@@ -43,48 +48,96 @@ export const createTrainerProfile = async (req, res) => {
 // updating the trainer profile 
 export const updateTrainerProfile = async (req, res) => {
     try {
+
         const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
         
-        // 1. Find the full trainer document to access its properties.
         const trainer = await Trainer.findOne({ user: req.user._id });
+        
         if (!trainer) {
+            console.log("❌ Trainer profile not found for user:", req.user._id);
             return res.status(404).json({ message: "Trainer profile not found." });
         }
 
-        // 2. --- TRAINER PROFILE PICTURE UPLOAD LOGIC ---
-        if (trainerProfilePic) {
-            // If the trainer already has a profile picture, delete the old one from Cloudinary.
-            if (trainer.trainerProfilePic) {
-                try {
-                    // Extract the unique public_id from the full Cloudinary URL
-                    const publicId = trainer.trainerProfilePic.split('/').pop().split('.')[0];
-                    await cloudinary.uploader.destroy(`trainer_profiles/${publicId}`);
-                } catch (cloudinaryError) {
-                    console.error("Failed to delete old trainer profile pic from Cloudinary:", cloudinaryError);
-                    // Don't block the update if deletion fails, just log the error.
+        // --- TRAINER PROFILE PICTURE UPLOAD LOGIC ---
+        // ✅ FIX: Only upload if trainerProfilePic is a base64 string (new image)
+        // If it's already a Cloudinary URL, don't try to upload it again
+        if (trainerProfilePic && trainerProfilePic !== trainer.trainerProfilePic) {
+            
+            // Check if it's a base64 string (new image) or existing URL
+            const isBase64 = trainerProfilePic.startsWith('data:image/');
+            const isNewCloudinaryUrl = trainerProfilePic.startsWith('https://res.cloudinary.com/') && trainerProfilePic !== trainer.trainerProfilePic;
+            
+            if (isBase64) {
+                
+                // Delete old image if it exists
+                if (trainer.trainerProfilePublicId) {
+                    try {
+                        console.log("🗑️ Deleting old image with public_id:", trainer.trainerProfilePublicId);
+                        await cloudinary.uploader.destroy(trainer.trainerProfilePublicId);
+                        console.log("✅ Old image deleted successfully");
+                    } catch (cloudinaryError) {
+                        console.error("❌ Failed to delete old trainer profile pic:", cloudinaryError);
+                    }
                 }
+
+                // Upload new image
+                try {
+                    const uploadedImage = await cloudinary.uploader.upload(trainerProfilePic, {
+                        folder: "trainer_profiles",
+                    });
+
+                    trainer.trainerProfilePic = uploadedImage.secure_url;
+                    trainer.trainerProfilePublicId = uploadedImage.public_id;
+                    console.log("✅ New image uploaded:", uploadedImage.secure_url);
+                } catch (uploadError) {
+                    console.error("❌ Failed to upload new image:", uploadError);
+                    return res.status(500).json({ error: "Failed to upload profile picture", details: uploadError.message });
+                }
+            } else if (isNewCloudinaryUrl) {
+                console.log("🔄 Using existing Cloudinary URL");
+                // If it's a different Cloudinary URL, just update the reference
+                trainer.trainerProfilePic = trainerProfilePic;
+                // Note: We can't get the public_id from just the URL, so we'll leave it as is
+            } else {
+                console.log("ℹ️ No profile picture change needed");
             }
-            // Upload the new image to a 'trainer_profiles' folder.
-            const uploadedImage = await cloudinary.uploader.upload(trainerProfilePic, {
-                folder: "trainer_profiles",
-            });
-            trainer.trainerProfilePic = uploadedImage.secure_url; // Save the new image URL
         }
+        
+        // Convert experience to number if it's a string
+        const experienceValue = experience ? Number(experience) : trainer.experience;
+        
+        // Only update fields that are provided and not empty
+        if (specialization !== undefined && specialization !== '') trainer.specialization = specialization;
+        if (bio !== undefined) trainer.bio = bio; // Allow empty bio
+        if (certifications !== undefined) trainer.certifications = certifications; // Allow empty certifications
+        if (experienceValue !== undefined && !isNaN(experienceValue)) trainer.experience = experienceValue;
 
-        // 3. --- SECURE FIELD UPDATES ---
-        // This pattern prevents mass assignment vulnerabilities.
-        trainer.specialization = specialization || trainer.specialization;
-        trainer.bio = bio || trainer.bio;
-        trainer.certifications = certifications || trainer.certifications;
-        trainer.experience = experience || trainer.experience;
-
-        // 4. Save all the changes to the database.
         const savedTrainer = await trainer.save();
-        res.status(200).json({ message: "Trainer profile updated successfully", trainer: savedTrainer });
+
+        res.status(200).json({ 
+            message: "Trainer profile updated successfully", 
+            trainer: savedTrainer 
+        });
 
     } catch (error) {
-        console.log("Error in updating trainer profile:", error.message);
-        res.status(500).json({ error: "Error updating trainer profile" });
+        
+        // Check if it's a validation error
+        if (error.name === 'ValidationError') {
+            console.error("Validation errors:", error.errors);
+            return res.status(400).json({ 
+                error: "Validation error",
+                details: Object.keys(error.errors).map(field => ({
+                    field,
+                    message: error.errors[field].message
+                }))
+            });
+        }
+        
+        res.status(500).json({ 
+            error: "Error updating trainer profile",
+            details: error.message,
+            type: error.name
+        });
     }
 };
 

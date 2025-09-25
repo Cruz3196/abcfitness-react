@@ -11,18 +11,62 @@ import {
     MapPin,
     DollarSign,
     Award,
-    Info
+    Info,
+    X
 } from 'lucide-react';
 import { userStore } from '../storeData/userStore';
 
 const TrainerDashboard = () => {
     // ✅ CHANGE: We now get the complete user object, which includes the trainer profile and classes.
-    const { user } = userStore();
+    const { user, updateTrainerProfile } = userStore();
     const [activeTab, setActiveTab] = useState('profile');
-    const [showCreateClass, setShowCreateClass] = useState(false);
 
-    // ✅ REMOVED: useEffect and local isLoading state are no longer needed.
-    // The userStore's `checkAuthStatus` handles loading the data globally when the app starts.
+    // ✅ ADDED: State management for the modals and form data
+    const [showCreateClass, setShowCreateClass] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editFormData, setEditFormData] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+    // ✅ ADDED: Handler to open the modal and pre-fill it with current data
+    const handleOpenEditModal = () => {
+        setEditFormData({
+            specialization: user.trainerProfile.specialization || '',
+            bio: user.trainerProfile.bio || '',
+            certifications: user.trainerProfile.certifications || '',
+            experience: user.trainerProfile.experience || 0,
+            trainerProfilePic: user.trainerProfile.trainerProfilePic || ''
+        });
+        setIsEditModalOpen(true);
+    };
+
+    // ✅ ADDED: State and handlers for editing the trainer profile
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setEditFormData(prev => ({ ...prev, trainerProfilePic: reader.result }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // ✅ ADDED: Handler for submitting the updated profile
+    const handleSubmitUpdate = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        const success = await updateTrainerProfile(editFormData);
+        setIsSubmitting(false);
+        if (success) {
+            setIsEditModalOpen(false);
+        }
+    };
 
     // ✅ CHANGE: This is a more robust guard clause. It ensures the user is logged in,
     // is a trainer, and has completed the profile setup before rendering the dashboard.
@@ -117,7 +161,7 @@ const TrainerDashboard = () => {
                 {activeTab === 'profile' && (
                     <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
                         <div className="card-body">
-                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                                 <div className="avatar">
                                     <div className="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
                                         <img src={user?.trainerProfile?.trainerProfilePic || 'https://placehold.co/150'} alt="Trainer Profile"/>
@@ -125,23 +169,16 @@ const TrainerDashboard = () => {
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
                                     <h2 className="card-title text-3xl mb-2">{user.username}</h2>
+                                    {/* ✅ UPDATED: Consistent use of optional chaining for safety */}
                                     <p className="font-semibold text-primary text-lg">{user?.trainerProfile?.specialization}</p>
                                     <div className="mt-4 space-y-3 text-base-content/90">
-                                        <div className="flex items-center justify-center sm:justify-start gap-3">
-                                            <Info className="w-5 h-5 text-base-content/70 flex-shrink-0" />
-                                            <p>{user.trainerProfile.bio || "No bio provided."}</p>
-                                        </div>
-                                        <div className="flex items-center justify-center sm:justify-start gap-3">
-                                            <Award className="w-5 h-5 text-base-content/70 flex-shrink-0" />
-                                            <p>{user.trainerProfile.certifications || "No certifications listed."}</p>
-                                        </div>
-                                        <div className="flex items-center justify-center sm:justify-start gap-3">
-                                            <Clock className="w-5 h-5 text-base-content/70 flex-shrink-0" />
-                                            <p>{user.trainerProfile.experience} years of experience</p>
-                                        </div>
+                                        <div className="flex items-center gap-3"><Info className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.bio || "No bio provided."}</p></div>
+                                        <div className="flex items-center gap-3"><Award className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.certifications || "No certifications listed."}</p></div>
+                                        <div className="flex items-center gap-3"><Clock className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.experience} years of experience</p></div>
                                     </div>
                                     <div className="card-actions justify-center sm:justify-end mt-6">
-                                        <button className="btn btn-primary gap-2">
+                                        {/* ✅ UPDATED: Edit button is now functional */}
+                                        <button className="btn btn-primary gap-2" onClick={handleOpenEditModal}>
                                             <Edit className="w-4 h-4"/>
                                             Edit Profile
                                         </button>
@@ -152,6 +189,31 @@ const TrainerDashboard = () => {
                     </motion.div>
                 )}
             </div>
+
+            {/* ✅ ADDED: Edit Profile Modal */}
+            {isEditModalOpen && (
+                <div className="modal modal-open">
+                    <div className="modal-box max-w-2xl relative">
+                        <button onClick={() => setIsEditModalOpen(false)} className="btn btn-sm btn-circle absolute right-2 top-2"><X size={20} /></button>
+                        <h3 className="font-bold text-lg mb-4">Edit Your Profile</h3>
+                        <form onSubmit={handleSubmitUpdate} className="space-y-4">
+                            <div><label className="label"><span className="label-text">Specialization</span></label><input type="text" name="specialization" value={editFormData.specialization} onChange={handleInputChange} className="input input-bordered w-full" /></div>
+                            <div><label className="label"><span className="label-text">Bio</span></label><textarea name="bio" value={editFormData.bio} onChange={handleInputChange} className="textarea textarea-bordered w-full" rows="3"></textarea></div>
+                            <div><label className="label"><span className="label-text">Certifications</span></label><input type="text" name="certifications" value={editFormData.certifications} onChange={handleInputChange} className="input input-bordered w-full" /></div>
+                            <div><label className="label"><span className="label-text">Years of Experience</span></label><input type="number" name="experience" value={editFormData.experience} onChange={handleInputChange} className="input input-bordered w-full" /></div>
+                            <div><label className="label"><span className="label-text">Profile Picture</span></label><input type="file" accept="image/*" onChange={handleFileChange} className="file-input file-input-bordered w-full" />
+                                {editFormData.trainerProfilePic && (
+                                    <div className="avatar mt-4"><div className="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2"><img src={editFormData.trainerProfilePic} alt="Profile preview"/></div></div>
+                                )}
+                            </div>
+                            <div className="modal-action">
+                                <button type="button" onClick={() => setIsEditModalOpen(false)} className="btn">Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>{isSubmitting ? <span className="loading loading-spinner"></span> : "Save Changes"}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Create Class Modal */}
             {showCreateClass && (

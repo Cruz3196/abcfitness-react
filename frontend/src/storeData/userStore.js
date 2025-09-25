@@ -107,6 +107,26 @@ export const userStore = create((set, get) => ({
         }
     },
 
+    // updating the trainers profile information 
+    updateTrainerProfile: async (updatedData) => {
+        set({ isLoading: true });
+        try {
+            // 1. Make the PUT request to your backend endpoint
+            const response = await axios.put("/trainer/updatingTrainerProfile", updatedData);
+            
+            // 2. Refresh the user's entire profile to ensure state is in sync
+            await get().checkAuthStatus(); 
+            
+            toast.success(response.data.message || "Profile updated successfully!");
+            set({ isLoading: false });
+            return true; // Return true on success
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error(error.response?.data?.message || "Failed to update profile");
+            return false; // Return false on failure
+        }
+    },
+
     deleteUserAccount: async () => {
         set({ isLoading: true });
         try {
