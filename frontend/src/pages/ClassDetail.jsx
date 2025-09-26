@@ -8,10 +8,15 @@ import Breadcrumbs from '../components/common/Breadcrumbs';
 import { classStore } from '../storeData/classStore';
 import { userStore } from '../storeData/userStore';
 import toast from 'react-hot-toast';
+import BookingCard from '../components/user/BookingCard';
 
 const ClassDetail = () => {
     const { id } = useParams();
     const { user } = userStore();
+    // for the booking confirmation
+    const [latestBooking, setLatestBooking] = useState(null);
+    // ✅ FIXED: Changed from bookedSession to bookedSessions (plural)
+    const [bookedSessions, setBookedSessions] = useState(new Set());
     const { 
         selectedClass, 
         availableSessions, 
@@ -39,25 +44,120 @@ const ClassDetail = () => {
         },
     ]);
 
+    const getStorageKey = () => {
+        if (user && id) {
+            return `booked_${user._id}_${id}`;
+        }
+        return null;
+    };
+
     useEffect(() => {
         if (id) {
             fetchClassById(id);
         }
-
         return () => {
             clearSelectedClass();
+            setBookedSessions(new Set());
         };
     }, [id, fetchClassById, clearSelectedClass]);
 
-    const handleBookClass = async (date) => {
+    // ✅ UPDATED: Check user's existing bookings when user or selectedClass changes
+    useEffect(() => {
+        const storageKey = getStorageKey();
+        if (storageKey) {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+                try {
+                    const bookedDates = JSON.parse(stored);
+                    setBookedSessions(new Set(bookedDates));
+                } catch (error) {
+                    console.error('Error parsing stored bookings:', error);
+                    localStorage.removeItem(storageKey);
+                }
+            }
+        }
+    }, [id, user]); // Run when user logs in/out
+
+    // ✅ UPDATED: useEffect to use the user's bookings as the source of truth
+    useEffect(() => {
+        if (user && selectedClass && user.upcomingBookings) {
+            const userBookedDatesForThisClass = new Set(
+                user.upcomingBookings
+                    .filter(booking => booking.class?._id === selectedClass._id)
+                    .map(booking => new Date(booking.sessionDate).toISOString().split('T')[0]) // Normalize date format
+            );
+            
+            setBookedSessions(userBookedDatesForThisClass);
+
+            // ✨ IMPROVEMENT: Sync localStorage with the true state from the server
+            const storageKey = getStorageKey();
+            if (storageKey) {
+                localStorage.setItem(storageKey, JSON.stringify([...userBookedDatesForThisClass]));
+            }
+        }
+    }, [user, selectedClass]); // This is the primary effect for setting state
+
+    const handleBookClass = async (session) => {
         if (!user) {
             toast.error('Please log in to book a class');
             return;
         }
         
-        const success = await bookClass(id, date);
+        // The bookClass function from your store
+        const success = await bookClass(id, session.date);
+
         if (success) {
-            // Optionally redirect or show success message
+            // ✅ Add the session to booked sessions
+            const newBookedSessions = new Set([...bookedSessions, session.date]);
+            setBookedSessions(newBookedSessions);
+            
+            // ✅ NEW: Persist to localStorage
+            localStorage.setItem(`booked_${id}`, JSON.stringify([...newBookedSessions]));
+            
+            // If booking was successful, create a booking object for the modal
+            const newBooking = {
+                _id: `temp-${Date.now()}`, // Use a temporary unique key
+                class: selectedClass, // The class data we already have
+                sessionDate: session.date,
+                status: 'upcoming'
+            };
+            setLatestBooking(newBooking); // This will trigger the modal to open
+        }
+    };
+
+    // ✅ Function to determine button state
+    const getButtonState = (session) => {
+        const isBooked = bookedSessions.has(session.date);
+        const isFull = session.spotsLeft === 0;
+        
+        if (isBooked) {
+            return {
+                text: 'Booked!',
+                disabled: true,
+                className: 'btn btn-success',
+                icon: '✓'
+            };
+        } else if (isFull) {
+            return {
+                text: 'Full',
+                disabled: true,
+                className: 'btn btn-disabled',
+                icon: null
+            };
+        } else if (isBooking) {
+            return {
+                text: 'Booking...',
+                disabled: true,
+                className: 'btn btn-primary',
+                icon: null
+            };
+        } else {
+            return {
+                text: `Book for $${selectedClass.price}`,
+                disabled: false,
+                className: 'btn btn-primary',
+                icon: null
+            };
         }
     };
 
@@ -162,38 +262,43 @@ const ClassDetail = () => {
                     <h2 className="card-title text-2xl mb-4">Book Your Spot</h2>
                     {availableSessions.length > 0 ? (
                         <div className="space-y-3">
-                            {availableSessions.map(session => (
-                                <div key={session.date} className="flex justify-between items-center bg-base-200 p-4 rounded-lg">
-                                    <div>
-                                        <p className="font-semibold">
-                                            {new Date(session.date).toLocaleDateString(undefined, { 
-                                                weekday: 'long', 
-                                                month: 'long', 
-                                                day: 'numeric' 
-                                            })}
-                                        </p>
-                                        <p className="text-sm text-base-content/70">
-                                            {session.startTime} - {session.endTime} ({session.duration} mins) • {session.spotsLeft} spots left
-                                        </p>
+                            {availableSessions.map(session => {
+                                const buttonState = getButtonState(session);
+                                
+                                return (
+                                    <div key={session.date} className="flex justify-between items-center bg-base-200 p-4 rounded-lg">
+                                        <div>
+                                            <p className="font-semibold">
+                                                {new Date(session.date).toLocaleDateString(undefined, { 
+                                                    weekday: 'long', 
+                                                    month: 'long', 
+                                                    day: 'numeric' 
+                                                })}
+                                            </p>
+                                            <p className="text-sm text-base-content/70">
+                                                {session.startTime} - {session.endTime} ({session.duration} mins) • {session.spotsLeft} spots left
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleBookClass(session)}
+                                            className={buttonState.className}
+                                            disabled={buttonState.disabled}
+                                        >
+                                            {isBooking ? (
+                                                <>
+                                                    <span className="loading loading-spinner loading-sm"></span>
+                                                    {buttonState.text}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {buttonState.icon && <span className="mr-1">{buttonState.icon}</span>}
+                                                    {buttonState.text}
+                                                </>
+                                            )}
+                                        </button>
                                     </div>
-                                    <button 
-                                        onClick={() => handleBookClass(session.date)} 
-                                        className="btn btn-primary" 
-                                        disabled={isBooking || session.spotsLeft === 0}
-                                    >
-                                        {isBooking ? (
-                                            <>
-                                                <span className="loading loading-spinner loading-sm"></span>
-                                                Booking...
-                                            </>
-                                        ) : session.spotsLeft === 0 ? (
-                                            'Full'
-                                        ) : (
-                                            `Book for $${selectedClass.price}`
-                                        )}
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <p className="text-base-content/70">No upcoming sessions available for this class.</p>
@@ -226,6 +331,28 @@ const ClassDetail = () => {
                     )}
                 </div>
             </div>
+
+            {/* Booking Confirmation Modal */}
+            {latestBooking && (
+                <div className="modal modal-open">
+                    <div className="modal-box">
+                        <h3 className="font-bold text-2xl text-success mb-4">Booking Confirmed! 🎉</h3>
+                        <p className="pb-4">You're all set. Here are the details for your class:</p>
+                        
+                        {/* We reuse your BookingCard here! */}
+                        <BookingCard booking={latestBooking} isHistory={true} />
+                        
+                        <div className="modal-action">
+                            <button
+                                onClick={() => setLatestBooking(null)}
+                                className="btn btn-primary"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

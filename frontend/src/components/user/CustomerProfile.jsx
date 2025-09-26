@@ -15,29 +15,35 @@ import {
     Eye,
     ShoppingBag
 } from 'lucide-react';
-import  { userStore }  from '../../storeData/userStore';
-import { useOrderStore } from '../../storeData/useOrderStore';  // Fix this import
+import { userStore } from '../../storeData/userStore';
+import { useOrderStore } from '../../storeData/useOrderStore';
 import { toast } from 'react-hot-toast';
-import { bookingStore } from '../../storeData/bookingStore';
+import BookingCard from './BookingCard'; // ✅ Import your BookingCard component
 import { Link, useNavigate } from 'react-router-dom';
 
 const CustomerProfile = () => {
   const navigate = useNavigate();
-  const { user, logout, updateProfile, deleteUserAccount, isLoading: isUserLoading } = userStore();
+  const { 
+    user, 
+    logout, 
+    updateProfile, 
+    deleteUserAccount, 
+    fetchMyBookings, 
+    cancelBooking,
+    isLoading: isUserLoading 
+  } = userStore(); // ✅ Use userStore for bookings
+  
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const { orders, isLoading: isLoadingOrders, fetchOrderHistory } = useOrderStore();  // Use the store
-  const { upcomingBookings, fetchMyBookings, isLoading: isLoadingBookings, bookingHistory } = bookingStore();
+  const { orders, isLoading: isLoadingOrders, fetchOrderHistory } = useOrderStore();
   const [activeTab, setActiveTab] = useState('view');
-  const [message, setMessage] = useState('');
-
 
   // Form state for profile editing
   const [profileForm, setProfileForm] = useState({
     username: user?.username || '',
-    email:user?.email || '',
+    email: user?.email || '',
   });
 
-  // reset form data when user changes 
+  // Reset form data when user changes 
   useEffect(() => {
     if(user) {
       setProfileForm({
@@ -54,11 +60,11 @@ const CustomerProfile = () => {
       [name]: value
     }));
   };
-    // Handle profile update form submission
+
+  // Handle profile update form submission
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     
-    // Validate form
     if (!profileForm.username || !profileForm.email) {
       toast.error('Username and email are required');
       return;
@@ -66,7 +72,7 @@ const CustomerProfile = () => {
     
     const success = await updateProfile(profileForm);
     if (success) {
-      setActiveTab('view'); // Switch back to view tab after successful update
+      setActiveTab('view');
     }
   };
 
@@ -77,7 +83,7 @@ const CustomerProfile = () => {
       const success = await deleteUserAccount();
       if (success) {
         toast.success("Account deleted successfully");
-        navigate("/");  // Redirect to home or login page
+        navigate("/");
       }
     } else {
       toast.error("Failed to delete account");
@@ -86,20 +92,24 @@ const CustomerProfile = () => {
 
   // This is for the product orders 
   useEffect(() => {
-      if (activeTab === 'orders') {
-        fetchOrderHistory();  // Use the store function
-      }
-    }, [activeTab, fetchOrderHistory]);
+    if (activeTab === 'orders') {
+      fetchOrderHistory();
+    }
+  }, [activeTab, fetchOrderHistory]);
 
-  // This is for the class bookings
+  // ✅ This is for the class bookings - use userStore
   useEffect(() => {
-      if (activeTab === 'bookings') {
-        fetchMyBookings();  // Use the store function
-      }
-    }, [activeTab, fetchMyBookings]);
+    if (activeTab === 'bookings') {
+      fetchMyBookings();
+    }
+  }, [activeTab, fetchMyBookings]);
 
+  useEffect(() => {
+    // This will cause a re-render when user.upcomingBookings or user.bookingHistory changes
+    // which happens after a successful cancellation
+  }, [user?.upcomingBookings, user?.bookingHistory]);
 
-  // formatting date and time
+  // Formatting date and time
   const formatDateTime = (dateTimeStr) => {
     if (!dateTimeStr) return '';
     const dateTime = new Date(dateTimeStr);
@@ -113,7 +123,7 @@ const CustomerProfile = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-    const containerVariants = {
+  const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
@@ -139,6 +149,10 @@ const CustomerProfile = () => {
       </div>
     );
   }
+
+  // ✅ Get booking data from userStore
+  const upcomingBookings = user?.upcomingBookings || [];
+  const bookingHistory = user?.bookingHistory || [];
 
   return (
     <motion.div 
@@ -190,6 +204,7 @@ const CustomerProfile = () => {
         {/* Profile View Tab */}
         {activeTab === 'view' && (
           <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6" variants={containerVariants}>
+            {/* Personal Information Card */}
             <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
               <div className="card-body">
                 <h2 className="card-title">Personal Information</h2>
@@ -211,14 +226,13 @@ const CustomerProfile = () => {
                   </div>
                 </div>
                 
-                {/* Quick Actions */}
                 <div className="card-actions justify-end mt-6">
                   <button 
                     className="btn btn-outline btn-sm gap-2"
                     onClick={() => setActiveTab('orders')}
                   >
                     <Package className="w-4 h-4" />
-                    View Order History
+                    View Orders
                   </button>
                   <button 
                     className="btn btn-primary btn-sm gap-2"
@@ -231,18 +245,20 @@ const CustomerProfile = () => {
               </div>
             </motion.div>
 
+            {/* Quick Stats Card */}
             <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
               <div className="card-body">
                 <h2 className="card-title">Quick Stats</h2>
                 <div className="stats stats-vertical shadow">
                   <div className="stat">
                     <div className="stat-title">Total Bookings</div>
-                      <div className="stat-value text-primary">
-                        {isLoadingBookings ? 
-                          <span className="loading loading-spinner loading-sm"></span> : 
-                          (upcomingBookings.length + (bookingHistory?.length || 0))
-                        }
-                      </div>
+                    <div className="stat-value text-primary">
+                      {isUserLoading ? (
+                        <span className="loading loading-spinner loading-sm"></span>
+                      ) : (
+                        upcomingBookings.length + bookingHistory.length
+                      )}
+                    </div>
                     <div className="stat-desc">Class enrollments</div>
                   </div>
                   <div className="stat">
@@ -267,7 +283,100 @@ const CustomerProfile = () => {
           </motion.div>
         )}
 
-        {/* Order History Tab */}
+        {/* ✅ UPDATED Bookings Tab - Using BookingCard components */}
+        {activeTab === 'bookings' && (
+          <motion.div variants={itemVariants}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">My Class Bookings</h2>
+              <div className="flex items-center gap-4">
+                <div className="stats bg-base-100 shadow">
+                  <div className="stat">
+                    <div className="stat-title">Total Bookings</div>
+                    <div className="stat-value text-sm">
+                      {upcomingBookings.length + bookingHistory.length}
+                    </div>
+                  </div>
+                </div>
+                <Link to="/classes" className="btn btn-primary btn-sm">
+                  Browse Classes
+                </Link>
+              </div>
+            </div>
+            
+            {isUserLoading ? (
+              <div className="text-center py-12">
+                <span className="loading loading-spinner loading-lg"></span>
+                <p className="mt-4">Loading your bookings...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Upcoming Bookings */}
+                <div className="card bg-base-100 shadow-lg">
+                  <div className="card-body">
+                    <h3 className="card-title text-lg mb-4 flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      Upcoming Classes ({upcomingBookings.length})
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {upcomingBookings.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Calendar className="w-16 h-16 mx-auto text-base-300 mb-4" />
+                          <h4 className="text-lg font-semibold mb-2">No upcoming bookings</h4>
+                          <p className="text-base-content/60 mb-4">Ready to start your fitness journey?</p>
+                          <Link to="/classes" className="btn btn-primary">
+                            Browse Classes
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="max-h-96 overflow-y-auto space-y-3">
+                          {upcomingBookings.map(booking => (
+                            <BookingCard 
+                              key={booking._id} 
+                              booking={booking} 
+                              isHistory={false} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Booking History */}
+                <div className="card bg-base-100 shadow-lg">
+                  <div className="card-body">
+                    <h3 className="card-title text-lg mb-4 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-secondary" />
+                      Class History ({bookingHistory.length})
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {bookingHistory.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Clock className="w-16 h-16 mx-auto text-base-300 mb-4" />
+                          <p className="text-base-content/60">No booking history yet</p>
+                        </div>
+                      ) : (
+                        <div className="max-h-96 overflow-y-auto space-y-3">
+                          {bookingHistory.map(booking => (
+                            <BookingCard 
+                              key={booking._id} 
+                              booking={booking} 
+                              isHistory={true} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Order History Tab - Keep existing implementation */}
         {activeTab === 'orders' && (
           <motion.div variants={itemVariants}>
             <div className="flex justify-between items-center mb-6">
@@ -289,9 +398,9 @@ const CustomerProfile = () => {
                   <ShoppingBag className="w-16 h-16 text-base-300 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No orders yet</h3>
                   <p className="text-base-content/70 mb-4">Start shopping to see your order history here</p>
-                    <Link to="/store" className="btn btn-primary">
-                      Shop Now 
-                    </Link>
+                  <Link to="/store" className="btn btn-primary">
+                    Shop Now 
+                  </Link>
                 </div>
               </div>
             ) : (
@@ -363,101 +472,7 @@ const CustomerProfile = () => {
           </motion.div>
         )}
 
-        {/* Rest of your tabs remain the same... */}
-        {/* Bookings Tab */}
-        {activeTab === 'bookings' && (
-          <motion.div variants={itemVariants}>
-            <h2 className="text-2xl font-bold mb-6">Class Bookings</h2>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="card bg-base-100 shadow-lg">
-                <div className="card-body">
-                  <h3 className="card-title text-lg mb-4">Upcoming Classes</h3>
-                  {isLoadingBookings ? (
-                    <div className="text-center py-6">
-                      <span className="loading loading-spinner loading-md"></span>
-                      <p className="mt-2">Loading bookings...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {upcomingBookings.length === 0 ? (
-                        <div className="text-center py-6">
-                          <Calendar className="w-12 h-12 mx-auto text-base-300 mb-2" />
-                          <p className="text-base-content/70">No upcoming bookings</p>
-                          <Link to="/classes" className="btn btn-primary btn-sm mt-4">
-                            Browse Classes
-                          </Link>
-                        </div>
-                      ) : (
-                        upcomingBookings.map(booking => (
-                          <div key={booking._id} className="flex flex-col p-3 border border-base-300 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold">{booking.class?.classTitle || 'Class'}</h4>
-                              <div className="badge badge-success">Upcoming</div>
-                            </div>
-                            <div className="text-sm text-base-content/70 mb-1">
-                              <Clock className="inline-block w-4 h-4 mr-1" />
-                              {formatDateTime(booking.startTime)}
-                            </div>
-                            {booking.class?.trainer?.user?.username && (
-                              <div className="text-sm text-base-content/70 mb-2">
-                                <UserCheck className="inline-block w-4 h-4 mr-1" />
-                                Trainer: {booking.class.trainer.user.username}
-                              </div>
-                            )}
-                            <div className="card-actions justify-end mt-2">
-                              <button 
-                                className="btn btn-sm btn-error"
-                                onClick={() => cancelBooking(booking._id)}
-                                disabled={isLoadingBookings}
-                              >
-                                Cancel Booking
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="card bg-base-100 shadow-lg">
-                <div className="card-body">
-                  <h3 className="card-title text-lg mb-4">Class History</h3>
-                  {isLoadingBookings ? (
-                    <div className="text-center py-6">
-                      <span className="loading loading-spinner loading-md"></span>
-                      <p className="mt-2">Loading history...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {bookingHistory.length === 0 ? (
-                        <p className="text-base-content/70 text-center py-4">No booking history</p>
-                      ) : (
-                        bookingHistory.map(booking => (
-                          <div key={booking._id} className="flex flex-col p-3 border border-base-300 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold">{booking.class?.classTitle || 'Class'}</h4>
-                              <div className={`badge ${booking.status === 'cancelled' ? 'badge-error' : 'badge-ghost'}`}>
-                                {booking.status}
-                              </div>
-                            </div>
-                            <div className="text-sm text-base-content/70">
-                              {formatDateTime(booking.startTime)}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Edit Profile Tab */}
+        {/* Edit Profile Tab - Keep existing implementation */}
         {activeTab === 'edit' && (
           <motion.div className="card bg-base-100 shadow-lg max-w-2xl mx-auto" variants={itemVariants}>
             <div className="card-body">
@@ -508,61 +523,63 @@ const CustomerProfile = () => {
                   </button>
                 </div>
               </form>
-              {/* Danger Zone for account deletion */}
-              <div className="divider mt-8 mb-6">Woah are you sure? </div>
-                <div className="bg-error/10 p-4 rounded-lg">
-                  <h3 className="font-semibold text-error mb-2">Delete Account</h3>
-                  <p className="text-sm mb-4">
-                    Once you delete your account, there is no going back. Please be certain.
-                  </p>
-                  <button 
-                    type="button" 
-                    className="btn btn-error btn-sm"
-                    onClick={() => setShowDeleteModal(true)}
-                  >
-                    Delete Account
-                  </button>
+              
+              {/* Danger Zone */}
+              <div className="divider mt-8 mb-6">Danger Zone</div>
+              <div className="bg-error/10 p-4 rounded-lg">
+                <h3 className="font-semibold text-error mb-2">Delete Account</h3>
+                <p className="text-sm mb-4">
+                  Once you delete your account, there is no going back. Please be certain.
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-error btn-sm"
+                  onClick={() => setShowDeleteModal(true)}
+                >
+                  Delete Account
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </div>
-      {/* Delete Account Modal */}
+      
+      {/* Delete Account Modal - Keep existing implementation */}
       {showDeleteModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-        <motion.div 
-          className="modal-box relative bg-base-100 rounded-lg shadow-xl max-w-md mx-auto"
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-        >
-          <h3 className="font-bold text-lg mb-4 text-error">Delete Account</h3>
-          <p className="mb-6">
-            Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, including:
-          </p>
-          <ul className="list-disc ml-6 mb-6 space-y-2">
-            <li>Personal profile information</li>
-            <li>Booking history</li>
-            <li>Order history</li>
-            <li>Reviews and feedback</li>
-          </ul>
-          <div className="modal-action flex justify-end">
-            <button 
-              className="btn btn-ghost" 
-              onClick={() => setShowDeleteModal(false)}
-            >
-              Cancel
-            </button>
-            <button 
-              className="btn btn-error" 
-              onClick={handleDeleteAccount}
-              disabled={isUserLoading}
-            >
-              {isUserLoading ? 'Deleting...' : 'Delete Account'}
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    )}
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
+          <motion.div 
+            className="modal-box relative bg-base-100 rounded-lg shadow-xl max-w-md mx-auto"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+          >
+            <h3 className="font-bold text-lg mb-4 text-error">Delete Account</h3>
+            <p className="mb-6">
+              Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data, including:
+            </p>
+            <ul className="list-disc ml-6 mb-6 space-y-2">
+              <li>Personal profile information</li>
+              <li>Booking history</li>
+              <li>Order history</li>
+              <li>Reviews and feedback</li>
+            </ul>
+            <div className="modal-action flex justify-end">
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-error" 
+                onClick={handleDeleteAccount}
+                disabled={isUserLoading}
+              >
+                {isUserLoading ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 };

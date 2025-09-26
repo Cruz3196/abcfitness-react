@@ -4,9 +4,11 @@ import toast from "react-hot-toast";
 
 export const userStore = create((set, get) => ({
     user: null,
+    bookings: [],
     isCheckingAuth: true,
     isLoading: false,
     selectedClass: null, // New state for selected class
+    error: null,
 
     // ROLE CHECKERS =============================================================
     isAdmin: () => {
@@ -317,6 +319,86 @@ export const userStore = create((set, get) => ({
             console.error("Delete class error:", error);
             set({ isLoading: false });
             toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to delete class");
+            return false;
+        }
+    },
+
+    // BOOKINGS ACTIONS=====================================================
+
+    // Book a class
+    bookClass: async (classId, sessionDate) => {
+        set({ isLoading: true });
+        try {
+            // ✅ FIX: Changed from '/users/bookings/' to '/user/bookings/'
+            // This matches your other user endpoints pattern
+            await axios.post(`/user/bookings/${classId}`, { date: sessionDate }); 
+
+            toast.success('Class booked successfully!');
+            get().fetchMyBookings(); 
+            set({ isLoading: false });
+            return true;
+        } catch (error) {
+            console.error("Book class error:", error);
+            toast.error(error.response?.data?.message || 'Failed to book class');
+            set({ isLoading: false });
+            return false;
+        }
+    },
+
+    // View user's bookings
+    fetchMyBookings: async () => {
+        set({ isLoading: true });
+        try {
+            // ✅ FIX: Changed from '/users/bookings' to '/user/bookings'
+            const response = await axios.get("/user/bookings");
+            
+            // Update user object with bookings data
+            set(state => ({
+                user: { 
+                    ...state.user, 
+                    bookings: response.data,
+                    upcomingBookings: response.data.upcoming || [],
+                    bookingHistory: response.data.history || []
+                },
+                isLoading: false
+            }));
+            
+            return response.data;
+        } catch (error) {
+            console.error("Fetch bookings error:", error);
+            set({ isLoading: false });
+            toast.error("Failed to fetch bookings");
+            return null;
+        }
+    },
+
+    // Cancel a booking
+    cancelBooking: async (bookingId) => {
+        set({ isLoading: true });
+        try {
+            // console.log('Attempting to cancel booking with ID:', bookingId); // Debug log
+            
+            const response = await axios.post(`/user/cancelBooking/${bookingId}`);
+            
+            console.log('Cancel booking response:', response.data); // Debug log
+            
+            await get().fetchMyBookings();
+            
+            toast.success("Booking cancelled successfully!");
+            set({ isLoading: false });
+            return true;
+        } catch (error) {
+            console.error("Cancel booking error:", error);
+            console.log('Full error response:', error.response); 
+            
+            set({ isLoading: false });
+            
+            // ✅ Better error handling
+            if (error.response?.status === 404) {
+                toast.error("Cancel booking endpoint not found. Please contact support.");
+            } else {
+                toast.error(error.response?.data?.message || "Failed to cancel booking");
+            }
             return false;
         }
     },
