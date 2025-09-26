@@ -3,6 +3,17 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, Users, DollarSign, Clock, Calendar } from 'lucide-react';
 
 const TrainerCard = ({ classItem, onEdit, onDelete }) => {
+    // ✅ Safety check: Return early if classItem is not provided
+    if (!classItem) {
+        return (
+            <div className="card bg-base-100 shadow-lg p-4">
+                <div className="text-center text-base-content/60">
+                    <p>No class data available</p>
+                </div>
+            </div>
+        );
+    }
+
     // A simple function to format time
     const formatTime = (time) => {
         if (!time) return 'N/A';
@@ -19,18 +30,32 @@ const TrainerCard = ({ classItem, onEdit, onDelete }) => {
                 <figure className="relative">
                     <img
                         src={classItem.classPic || 'https://placehold.co/400x225?text=Class'}
-                        alt={classItem.classTitle}
+                        alt={classItem.classTitle || 'Class'}
                         className="h-48 w-full object-cover"
                     />
-                    <div className="absolute top-2 right-2 badge badge-secondary font-bold">{classItem.classType}</div>
+                    <div className="absolute top-2 right-2 badge badge-secondary font-bold">
+                        {classItem.classType || 'Class'}
+                    </div>
                 </figure>
                 <div className="card-body p-4">
-                    <h2 className="card-title truncate">{classItem.classTitle}</h2>
-                    <p className="text-base-content/70 text-sm mb-2 line-clamp-2">{classItem.classDescription}</p>
+                    <h2 className="card-title truncate">{classItem.classTitle || 'Untitled Class'}</h2>
+                    <p className="text-base-content/70 text-sm mb-2 line-clamp-2">
+                        {classItem.classDescription || 'No description available'}
+                    </p>
 
                     <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2"><Calendar size={16} className="text-primary"/> <span>{classItem.timeSlot.day} at ...</span></div>
-                        <div className="flex items-center gap-2"><Users size={16} className="text-primary"/> <span>{classItem.attendees?.length || 0} / {classItem.capacity} registered</span></div>
+                        <div className="flex items-center gap-2">
+                            <Calendar size={16} className="text-primary"/> 
+                            <span>
+                                {classItem.timeSlot?.day || 'N/A'} at {formatTime(classItem.timeSlot?.startTime)}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Users size={16} className="text-primary"/> 
+                            <span>
+                                {classItem.attendees?.length || 0} / {classItem.capacity || 0} registered
+                            </span>
+                        </div>
                     </div>
                 </div>
             </Link>

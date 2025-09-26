@@ -9,7 +9,7 @@ import { classStore } from '../storeData/classStore';
 import { userStore } from '../storeData/userStore';
 import toast from 'react-hot-toast';
 
-const ClassDetailPage = () => {
+const ClassDetail = () => {
     const { id } = useParams();
     const { user } = userStore();
     const { 
@@ -98,6 +98,10 @@ const ClassDetailPage = () => {
         { name: selectedClass.classTitle, link: `/classes/${id}` }
     ];
 
+    // ✅ Safety check for trainer data
+    const trainerName = selectedClass.trainer?.user?.username || 'Unknown Trainer';
+    const trainerId = selectedClass.trainer?._id;
+
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="mb-6">
@@ -117,12 +121,16 @@ const ClassDetailPage = () => {
                     <h1 className="card-title text-4xl font-bold">{selectedClass.classTitle}</h1>
                     <p className="mt-2">
                         Led by{' '}
-                        <Link 
-                            to={`/trainers/${selectedClass.trainer._id}`} 
-                            className="link link-hover text-secondary font-semibold"
-                        >
-                            {selectedClass.trainer.user.username}
-                        </Link>
+                        {trainerId ? (
+                            <Link 
+                                to={`/trainers/${trainerId}`} 
+                                className="link link-hover text-secondary font-semibold"
+                            >
+                                {trainerName}
+                            </Link>
+                        ) : (
+                            <span className="text-secondary font-semibold">{trainerName}</span>
+                        )}
                     </p>
                     <p className="text-base-content/80 my-4">{selectedClass.classDescription}</p>
                     
@@ -165,7 +173,7 @@ const ClassDetailPage = () => {
                                             })}
                                         </p>
                                         <p className="text-sm text-base-content/70">
-                                            {session.startTime} - {session.spotsLeft} spots left
+                                            {session.startTime} - {session.endTime} ({session.duration} mins) • {session.spotsLeft} spots left
                                         </p>
                                     </div>
                                     <button 
@@ -222,4 +230,4 @@ const ClassDetailPage = () => {
     );
 };
 
-export default ClassDetailPage;
+export default ClassDetail;

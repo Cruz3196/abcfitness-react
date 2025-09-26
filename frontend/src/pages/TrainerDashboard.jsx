@@ -86,7 +86,6 @@ const TrainerDashboard = () => {
         },
         classPic: '',
         capacity: 10,
-        price: 25
     };
     const [newClassData, setNewClassData] = useState(initialClassState);
 
@@ -132,11 +131,11 @@ const TrainerDashboard = () => {
 
     // FETCHING CREATING NEW CLASSES ============================================================
     useEffect(() => {
-        // Ensure we only fetch if the user is a trainer and classes haven't been loaded
-        if (user?.isTrainer && user.classes === undefined) {
+
+        if (user?.isTrainer) {
             fetchMyClasses();
         }
-    }, [user, fetchMyClasses]);
+    }, [user?.isTrainer, fetchMyClasses]);
 
     // Placeholder functions for the card actions
     const handleEditClass = (classData) => {
@@ -210,21 +209,27 @@ const TrainerDashboard = () => {
                             </button>
                         </div>
                         
-                        {/* ✅ UPDATED: Use the new TrainerClassCard */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {user.classes && user.classes.length > 0 ? (
+                        {/* ✅ FIXED: Access user.classes instead of user.trainerProfile.classes */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {user?.classes?.length > 0 ? (
                                 user.classes.map(classItem => (
                                     <TrainerCard 
                                         key={classItem._id} 
-                                        classItem={classItem}
-                                        onEdit={handleEditClass}
-                                        onDelete={handleDeleteClass}
+                                        classItem={classItem} 
+                                        onEdit={handleEditClass}        // ✅ Fixed: use correct handler
+                                        onDelete={handleDeleteClass} 
                                     />
                                 ))
                             ) : (
-                                <div className="col-span-full text-center py-12 bg-base-100 rounded-lg">
-                                    <h3 className="text-xl font-semibold">No Classes Found</h3>
-                                    <p className="text-base-content/70 mt-2">Click "Create New Class" to get started!</p>
+                                <div className="col-span-full text-center py-12">
+                                    <h3 className="text-xl font-semibold mb-4">No Classes Yet</h3>
+                                    <p className="text-base-content/60 mb-6">You haven't created any classes yet.</p>
+                                    <button 
+                                        onClick={() => setShowCreateClass(true)}
+                                        className="btn btn-primary"
+                                    >
+                                        Create Your First Class
+                                    </button>
                                 </div>
                             )}
                         </div>

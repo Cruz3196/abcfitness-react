@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { userStore } from '../storeData/userStore';
-import { ArrowLeft, Calendar, Clock, Users, DollarSign, Edit, Trash2, Mail, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Users, DollarSign, Edit, Trash2, Mail, X, Upload } from 'lucide-react';
 
 const TrainerClassDetail = () => {
     const { classId } = useParams();
@@ -11,6 +11,7 @@ const TrainerClassDetail = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [editFormData, setEditFormData] = useState({});
+    const [imagePreview, setImagePreview] = useState('');
 
     // Fetch class details when component mounts or classId changes ==========================================================
     useEffect(() => {
@@ -25,7 +26,7 @@ const TrainerClassDetail = () => {
     }, [classId, fetchClassById, clearSelectedClass]);
 
     // handler for deletion and updating a class ==========================================================
-        useEffect(() => {
+    useEffect(() => {
         if (selectedClass) {
             setEditFormData({
                 classTitle: selectedClass.classTitle || '',
@@ -34,9 +35,10 @@ const TrainerClassDetail = () => {
                 duration: selectedClass.duration || '',
                 timeSlot: selectedClass.timeSlot || { day: '', startTime: '' },
                 capacity: selectedClass.capacity || '',
-                price: selectedClass.price || '',
                 classPic: selectedClass.classPic || ''
             });
+            // Set image preview to current class picture
+            setImagePreview(selectedClass.classPic || '');
         }
     }, [selectedClass]);
 
@@ -45,6 +47,7 @@ const TrainerClassDetail = () => {
         const success = await updateClass(classId, editFormData);
         if (success) {
             setShowEditModal(false);
+            setImagePreview('');
         }
     };
 
@@ -75,6 +78,52 @@ const TrainerClassDetail = () => {
         }
     };
 
+    // Handle file change for class picture
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result;
+                setImagePreview(base64String);
+                setEditFormData(prev => ({
+                    ...prev,
+                    classPic: base64String
+                }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Reset image to original
+    const handleResetImage = () => {
+        setImagePreview(selectedClass.classPic || '');
+        setEditFormData(prev => ({
+            ...prev,
+            classPic: selectedClass.classPic || ''
+        }));
+    };
+
+    // Remove image
+    const handleRemoveImage = () => {
+        setImagePreview('');
+        setEditFormData(prev => ({
+            ...prev,
+            classPic: ''
+        }));
+    };
 
     // if loading then show a spinner
     if (isLoading) {
@@ -114,7 +163,7 @@ const TrainerClassDetail = () => {
                 <div className="lg:col-span-2">
                     <div className="card bg-base-100 shadow-xl">
                         <figure>
-                            <img src={selectedClass.classPic} alt={selectedClass.classTitle} className="h-64 w-full object-cover" />
+                            <img src={selectedClass.classPic || 'https://placehold.co/600x300?text=Class+Image'} alt={selectedClass.classTitle} className="h-64 w-full object-cover" />
                         </figure>
                         <div className="card-body">
                             <h1 className="card-title text-3xl font-bold">{selectedClass.classTitle}</h1>
@@ -199,7 +248,7 @@ const TrainerClassDetail = () => {
             {/* Edit Modal */}
             {showEditModal && (
                 <div className="modal modal-open">
-                    <div className="modal-box max-w-2xl">
+                    <div className="modal-box max-w-4xl">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg">Edit Class</h3>
                             <button 
@@ -211,6 +260,66 @@ const TrainerClassDetail = () => {
                         </div>
                         
                         <form onSubmit={handleEditSubmit} className="space-y-4">
+                            {/* Class Picture Section */}
+                            <div className="form-control">
+                                <label className="label">
+                                    <span className="label-text font-semibold">Class Picture</span>
+                                </label>
+                                <div className="flex flex-col gap-4">
+                                    {/* Current/Preview Image */}
+                                    <div className="flex justify-center">
+                                        <div className="relative">
+                                            <img 
+                                                src={imagePreview || 'https://placehold.co/400x200?text=No+Image'} 
+                                                alt="Class preview" 
+                                                className="w-full max-w-md h-48 object-cover rounded-lg border"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Image Controls */}
+                                    <div className="flex flex-wrap gap-2 justify-center">
+                                        <label className="btn btn-outline btn-sm gap-2">
+                                            <Upload size={16} />
+                                            Upload New Image
+                                            <input 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        
+                                        {imagePreview !== selectedClass.classPic && (
+                                            <button 
+                                                type="button"
+                                                onClick={handleResetImage}
+                                                className="btn btn-ghost btn-sm"
+                                            >
+                                                Reset to Original
+                                            </button>
+                                        )}
+                                        
+                                        {imagePreview && (
+                                            <button 
+                                                type="button"
+                                                onClick={handleRemoveImage}
+                                                className="btn btn-error btn-outline btn-sm"
+                                            >
+                                                Remove Image
+                                            </button>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="text-xs text-base-content/60 text-center">
+                                        Supported formats: JPG, PNG, GIF. Max size: 5MB
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="divider"></div>
+
+                            {/* Form Fields */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="form-control">
                                     <label className="label">Class Title</label>
@@ -266,13 +375,13 @@ const TrainerClassDetail = () => {
                                         required
                                     />
                                 </div>
-                                
+
                                 <div className="form-control">
                                     <label className="label">Price ($)</label>
                                     <input
                                         type="number"
                                         name="price"
-                                        value={editFormData.price}
+                                        value={editFormData.price || ''}
                                         onChange={handleInputChange}
                                         className="input input-bordered"
                                         step="0.01"
@@ -325,7 +434,14 @@ const TrainerClassDetail = () => {
                             </div>
                             
                             <div className="modal-action">
-                                <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-ghost">
+                                <button 
+                                    type="button" 
+                                    onClick={() => {
+                                        setShowEditModal(false);
+                                        setImagePreview('');
+                                    }} 
+                                    className="btn btn-ghost"
+                                >
                                     Cancel
                                 </button>
                                 <button type="submit" className="btn btn-primary" disabled={isLoading}>

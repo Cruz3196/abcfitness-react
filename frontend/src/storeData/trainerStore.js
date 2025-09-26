@@ -1,42 +1,99 @@
 import { create } from 'zustand';
-
-// --- MOCK DATA ---
-const mockTrainers = [
-    { _id: 't1', user: { username: 'Alice Johnson' }, trainerProfilePic: 'https://placehold.co/150x150/f87171/ffffff?text=Alice', specialization: 'Yoga & Flexibility', bio: 'Passionate about helping you find balance and peace through yoga.' },
-    { _id: 't2', user: { username: 'Bob Williams' }, trainerProfilePic: 'https://placehold.co/150x150/60a5fa/ffffff?text=Bob', specialization: 'Strength Training', bio: 'Certified strength and conditioning specialist focused on building power.' },
-    { _id: 't3', user: { username: 'Charlie Brown' }, trainerProfilePic: 'https://placehold.co/150x150/fbbf24/ffffff?text=Charlie', specialization: 'HIIT & Cardio', bio: 'High-energy coach to push your cardiovascular limits.' },
-    { _id: 't4', user: { username: 'Diana Prince' }, trainerProfilePic: 'https://placehold.co/150x150/c084fc/ffffff?text=Diana', specialization: 'CrossFit', bio: 'Functional fitness expert ready to help you achieve peak performance.' },
-];
-// This would eventually come from your classStore or a shared data source
-const mockClasses = [
-    { _id: 'class1', classTitle: 'Vinyasa Flow Yoga', classPic: 'https://placehold.co/400x225/6D28D9/FFFFFF?text=Yoga', trainer: { _id: 't1', user: { username: 'Alice Johnson' } } },
-    { _id: 'class2', classTitle: 'Advanced CrossFit', classPic: 'https://placehold.co/400x225/BE123C/FFFFFF?text=CrossFit', trainer: { _id: 't4', user: { username: 'Diana Prince' } } },
-    { _id: 'class3', classTitle: 'HIIT Cardio Blast', classPic: 'https://placehold.co/400x225/047857/FFFFFF?text=HIIT', trainer: { _id: 't3', user: { username: 'Charlie Brown' } } },
-    { _id: 'class4', classTitle: 'Sunrise Yoga', classPic: 'https://placehold.co/400x225/6D28D9/FFFFFF?text=Yoga', trainer: { _id: 't1', user: { username: 'Alice Johnson' } } },
-];
-// ---
+import axios from '../api/axios';
+import toast from 'react-hot-toast';
 
 export const trainerStore = create((set, get) => ({
     trainers: [],
+    selectedTrainer: null,
+    trainerClasses: [],
     isLoading: true,
+    error: null,
 
-    // Fetches all public-facing trainer profiles (currently from mock data)
-    fetchAllTrainers: () => {
-        set({ isLoading: true });
-        setTimeout(() => {
-            set({ trainers: mockTrainers, isLoading: false });
-        }, 500);
+    // Fetches all public-facing trainer profiles from the backend
+    fetchAllTrainers: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.get('/user/ourTrainers');
+            set({ 
+                trainers: response.data, 
+                isLoading: false 
+            });
+        } catch (error) {
+            console.error("Error fetching trainers:", error);
+            set({ 
+                isLoading: false, 
+                error: error.response?.data?.message || "Failed to fetch trainers",
+                trainers: []
+            });
+            
+            // Only show toast for non-404 errors
+            if (error.response?.status !== 404) {
+                toast.error(error.response?.data?.message || "Failed to fetch trainers");
+            }
+        }
     },
 
-    // ✅ NEW: Gets a single trainer by their ID from the existing state
-    getTrainerById: (id) => {
-        return get().trainers.find(t => t._id === id);
+    // Gets a single trainer by their ID
+    fetchTrainerById: async (trainerId) => {
+        set({ isLoading: true, selectedTrainer: null, error: null });
+        try {
+            // First check if we already have the trainer in our array
+            const existingTrainer = get().trainers.find(t => t._id === trainerId);
+            
+            if (existingTrainer) {
+                set({ selectedTrainer: existingTrainer, isLoading: false });
+                return;
+            }
+
+            // If not found, fetch from API
+            const response = await axios.get(`/user/viewTrainer/${trainerId}`);
+            set({ 
+                selectedTrainer: response.data, 
+                trainerClasses: response.data.classes || [], // ✅ Also set the classes
+                isLoading: false 
+            });
+        } catch (error) {
+            console.error("Error fetching trainer by ID:", error);
+            set({ 
+                isLoading: false, 
+                error: error.response?.data?.message || "Failed to fetch trainer details" 
+            });
+        }
     },
 
-    // ✅ NEW: Gets all classes taught by a specific trainer
-    fetchClassesByTrainer: (trainerId) => {
-        // This simulates finding classes for a specific trainer
-        return mockClasses.filter(c => c.trainer._id === trainerId);
-    }
+    // ✅ Add alias for backward compatibility
+    getTrainerById: async (trainerId) => {
+        return get().fetchTrainerById(trainerId);
+    },
+
+    // Gets all classes taught by a specific trainer
+    fetchClassesByTrainer: async (trainerId) => {
+        try {
+            // If we already have classes from fetchTrainerById, return them
+            const currentClasses = get().trainerClasses;
+            if (currentClasses && currentClasses.length > 0) {
+                return currentClasses;
+            }
+
+            // Otherwise, fetch from all classes endpoint
+            const response = await axios.get('/user/ourClasses');
+            const allClasses = response.data.classes || [];
+            
+            const trainerClasses = allClasses.filter(classItem => 
+                classItem.trainer?._id === trainerId
+            );
+            
+            set({ trainerClasses });
+            return trainerClasses;
+        } catch (error) {
+            console.error("Error fetching trainer classes:", error);
+            set({ trainerClasses: [] });
+            return [];
+        }
+    },
+
+    // Clears the selected trainer data from the store
+    clearSelectedTrainer: () => {
+        set({ selectedTrainer: null, trainerClasses: [], error: null });
+    },
 }));
-
