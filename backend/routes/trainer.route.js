@@ -13,7 +13,7 @@ router.put("/updatingTrainerProfile", protectRoute, trainerRoute, updateTrainerP
 // class routes that a trainer can control classes
 router.post("/createClass", protectRoute, trainerRoute, createClass); // creating a class
 router.get("/viewMyClasses", protectRoute, trainerRoute, getMyClasses); // posted classes
-router.get("/viewClass/:classId", protectRoute, trainerRoute, viewClassById); // viewing a class by id
+router.get("/viewClass/:classId", viewClassById); // viewing a class by id
 router.put("/updatingClass/:classId", protectRoute, trainerRoute, updatingClass); // updating a class
 router.delete("/deletingClass/:classId", protectRoute, trainerRoute, deleteClass); // deleting a class
 
