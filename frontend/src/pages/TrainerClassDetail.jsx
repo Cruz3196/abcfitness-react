@@ -54,6 +54,10 @@ const TrainerClassDetail = () => {
     const handleDeleteConfirm = async () => {
         const success = await deleteClass(classId);
         if (success) {
+            // ✅ FIX: Refresh the classes list before navigating
+            const { fetchMyClasses } = userStore.getState();
+            await fetchMyClasses();
+            
             navigate('/trainerdashboard');
         }
     };
@@ -138,9 +142,11 @@ const TrainerClassDetail = () => {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-base-200">
                 <h2 className="text-2xl font-bold mb-4">Class Not Found</h2>
-                <Link to="/trainer/dashboard" className="btn btn-primary">
+                <button 
+                    onClick={() => navigate("/trainerdashboard")} 
+                    className="btn btn-primary">
                     <ArrowLeft size={16} /> Back to Dashboard
-                </Link>
+                </button>
             </div>
         );
     }
