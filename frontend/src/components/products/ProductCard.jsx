@@ -1,25 +1,25 @@
 import { Link } from 'react-router-dom';
-// import { useCartStore } from '../../store/cartStore'; // Ready for cart integration
+// import { useCartStore } from '../../store/cartStore';
 
-// This component is a reusable card for displaying a single product.
 const ProductCard = ({ product }) => {
     // const addToCart = useCartStore((state) => state.addToCart);
 
     return (
         <div className="card card-compact w-full bg-base-100 shadow-xl transition-transform duration-300 hover:scale-105">
-            {/* ✅ WRAPPED THE IMAGE IN A LINK */}
             <Link to={`/product/${product._id}`}>
                 <figure>
                     <img
-                    src={product.productImage || 'https://placehold.co/400x225?text=No+Image'}
-                    alt={product.productName}
-                    className="h-48 w-full object-cover"
+                        src={product.productImage || 'https://placehold.co/400x225?text=No+Image'}
+                        alt={product.productName}
+                        className="h-48 w-full object-cover"
+                        loading="lazy" // ✅ ADD THIS LINE
+                        width="400" // Optional: Add dimensions to prevent layout shift
+                        height="225" // Optional: Add dimensions to prevent layout shift
                     />
                 </figure>
             </Link>
 
             <div className="card-body">
-                {/* ✅ WRAPPED THE TITLE IN A LINK */}
                 <h2 className="card-title truncate" title={product.productName}>
                     <Link to={`/product/${product._id}`} className="hover:text-primary">
                         {product.productName}
@@ -27,12 +27,12 @@ const ProductCard = ({ product }) => {
                 </h2>
                 <p className="text-lg font-semibold">${product.productPrice.toFixed(2)}</p>
                 <div className="card-actions justify-end">
-                <button
-                    // onClick={() => addToCart(product._id)}
-                    className="btn btn-primary"
-                >
-                    Add to Cart
-                </button>
+                    <button
+                        // onClick={() => addToCart(product._id)}
+                        className="btn btn-primary"
+                    >
+                        Add to Cart
+                    </button>
                 </div>
             </div>
         </div>
@@ -40,4 +40,3 @@ const ProductCard = ({ product }) => {
 };
 
 export default ProductCard;
-
