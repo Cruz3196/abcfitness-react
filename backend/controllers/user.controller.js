@@ -597,16 +597,14 @@ export const allTrainers = async(req, res) => {
 
 // viewing a specific trainer by their profile id
 export const viewTrainer = async (req, res) => {
-    //! testing to see if the server is receiving the request and the trainerId
     const { trainerId } = req.params;
-    // debug statement
-    //console.log("Server received request for trainerId:", req.params.trainerId);
+    
     try {
         // searching for the trainer, if he does exist return his profile with user info, username and email
         const trainer = await Trainer.findById(trainerId)
             .populate({
-                path: 'user', // In the Trainer model, populate the 'user' field.
-                select: 'username email' // Only get the username and email from the User model.
+                path: 'user',
+                select: 'username email'
             });
 
         // user does not exist return a status of not found
@@ -614,27 +612,27 @@ export const viewTrainer = async (req, res) => {
             return res.status(404).json({ message: "Trainer not found" });
         }
 
-        //Find all classes where the 'trainer' field matches the Trainer's PROFILE ID.
-        // This is the corrected query. also added class data to be shown on the trainer profile
-        const classes = await Class.find({ trainer: trainerId, status: 'available' }).select(
-        "classType className duration timeSlot  price bookedCount classId classPic"
-    );
-;
+        // Find all classes where the 'trainer' field matches the Trainer's PROFILE ID.
+        const classes = await Class.find({ 
+            trainer: trainerId, 
+            status: 'available' 
+        }).select('classTitle classType duration timeSlot price classPic capacity attendees');
 
-        //Combine the data into a clean response object.
+        // ✅ Return the trainer data in a consistent format
         const response = {
-            trainer: {
-                _id: trainer._id,
-                username: trainer.user.username, // Get username from the populated user object
-                email: trainer.user.email,       // Get email from the populated user object
-                specialization: trainer.specialization,
-                bio: trainer.bio,
-                experience: trainer.experience,
-                certifications: trainer.certifications,
-                rating: trainer.rating,
-                availability: trainer.availability
+            _id: trainer._id,
+            user: {
+                username: trainer.user.username,
+                email: trainer.user.email
             },
-            classes: classes // The array of classes taught by this trainer
+            specialization: trainer.specialization,
+            bio: trainer.bio,
+            yearsOfExperience: trainer.yearsOfExperience, // ✅ Fixed field name
+            certifications: trainer.certifications,
+            trainerProfilePic: trainer.trainerProfilePic,
+            rating: trainer.rating,
+            availability: trainer.availability,
+            classes: classes
         };
 
         res.status(200).json(response);

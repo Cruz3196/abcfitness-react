@@ -210,23 +210,28 @@ export const getMyClasses = async (req, res) => {
 // viewing a class by id
 export const viewClassById = async (req, res) => {
     try {
-        const trainer = await Trainer.findOne({ user: req.user._id });
-        if (!trainer) {
-            return res.status(404).json({ error: "Trainer profile not found" });
-        }
-
-        const classData = await Class.findOne({
-            _id: req.params.classId,
-            trainer: trainer._id
-        }).populate('attendees', 'username email'); 
+        const classData = await Class.findById(req.params.classId)
+            .populate({
+                path: 'trainer',
+                populate: {
+                    path: 'user',
+                    select: 'username'
+                }
+            })
+            .populate('attendees', 'username email');
 
         if (!classData) {
-            return res.status(404).json({ error: "Class not found or you don't have permission to view it" });
+            return res.status(404).json({ error: "Class not found" });
+        }
+
+        // Only return available classes to customers
+        if (classData.status !== 'available') {
+            return res.status(404).json({ error: "Class not available" });
         }
 
         res.status(200).json(classData);
     } catch (error) {
-        console.log("Error in viewing class by ID:", error);
+        console.log("Error in getting class by ID:", error);
         res.status(500).json({ error: "Error fetching class details" });
     }
 };
