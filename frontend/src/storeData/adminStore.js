@@ -7,6 +7,7 @@ export const adminStore = create((set, get) => ({
   users: [],
   trainers: [],
   pendingTrainers: [],
+  viewClasses: [],
   dashboardStats: null,
   isLoading: false,
   error: null,
@@ -36,6 +37,21 @@ export const adminStore = create((set, get) => ({
     } catch (error) {
       console.error('Error fetching trainers:', error);
       toast.error('Failed to fetch trainers');
+      set({ isLoading: false, error: error.message });
+      return [];
+    }
+  },
+
+  // Fetch class insights
+  fetchClassInsights: async () => {
+      set({ isLoading: true });
+      try{
+      const { data } = await axios.get('/admin/classes');
+      set({ viewClasses: data, isLoading: false });
+      return data;
+    }catch (error){
+      console.error('Error fetching class insights:', error);
+      toast.error('Failed to fetch class insights');
       set({ isLoading: false, error: error.message });
       return [];
     }
