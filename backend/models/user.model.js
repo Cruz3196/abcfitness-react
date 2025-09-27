@@ -7,7 +7,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-
+		hasTrainerProfile: { // ✅ Add this field
+        type: Boolean,
+        default: false
+    }	,
         email: {
             type: String,
             required: [true, "Email is required"],

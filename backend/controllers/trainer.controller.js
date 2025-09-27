@@ -9,12 +9,16 @@ export const createTrainerProfile = async (req, res) => {
     try {
         const existingProfile = await Trainer.findOne({ user: req.user._id });
         if (existingProfile) {
-            return res.status(400).json({ message: "Trainer profile already exists for this user." });
+            return res.status(400).json({ message: "Trainer profile already exists." });
         }
 
         const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
-        
-        // ✅ FIX: Initialize both variables to be safe.
+
+        // ✅ 2. Add basic validation for required fields
+        if (!specialization || !bio) {
+            return res.status(400).json({ message: "Please provide all required fields, including specialization and bio." });
+        }
+
         let imageUrl = "";
         let imagePublicId = "";
 
@@ -23,7 +27,6 @@ export const createTrainerProfile = async (req, res) => {
                 folder: "trainer_profiles",
             });
             imageUrl = uploadedImage.secure_url;
-            // ✅ FIX: Get the public_id from the response and use the correct property name.
             imagePublicId = uploadedImage.public_id; 
         }
 
@@ -34,8 +37,11 @@ export const createTrainerProfile = async (req, res) => {
             certifications,
             experience,
             trainerProfilePic: imageUrl,
-            trainerProfilePublicId: imagePublicId // This will be an empty string if no image was uploaded
+            trainerProfilePublicId: imagePublicId
         });
+
+        // ✅ 3. Update the user model to complete the setup flow
+        await User.findByIdAndUpdate(req.user._id, { hasTrainerProfile: true });
 
         res.status(201).json({ message: "Trainer profile created successfully", trainer: newProfile });
 

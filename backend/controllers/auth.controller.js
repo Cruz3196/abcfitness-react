@@ -117,8 +117,8 @@ export const loginUser = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 role: user.role,
-                hasTrainerProfile // Add this field for trainers
-            })
+                hasTrainerProfile: user.hasTrainerProfile // Directly from the user object
+            });
         } else {
             return res.status(401).json({message: "Invalid email or password"});
         }
