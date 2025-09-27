@@ -31,7 +31,7 @@ router.get("/ourClasses", viewAllClasses)
 router.post("/bookings/:classId", protectRoute, bookClass);
 // once logged in user can view their booked classes
 router.get("/bookings", protectRoute, viewBookedClasses)
-router.post("/cancelBooking/:bookingId", protectRoute, cancelBooking)
+router.delete("/bookings/:bookingId", protectRoute, cancelBooking)
 
 // Feedback routes 
 router.post("/submitFeedback/:classId", protectRoute, submitFeedback);

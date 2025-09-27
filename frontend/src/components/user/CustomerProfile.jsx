@@ -285,24 +285,7 @@ const CustomerProfile = () => {
 
         {/* ✅ UPDATED Bookings Tab - Using BookingCard components */}
         {activeTab === 'bookings' && (
-          <motion.div variants={itemVariants}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">My Class Bookings</h2>
-              <div className="flex items-center gap-4">
-                <div className="stats bg-base-100 shadow">
-                  <div className="stat">
-                    <div className="stat-title">Total Bookings</div>
-                    <div className="stat-value text-sm">
-                      {upcomingBookings.length + bookingHistory.length}
-                    </div>
-                  </div>
-                </div>
-                <Link to="/classes" className="btn btn-primary btn-sm">
-                  Browse Classes
-                </Link>
-              </div>
-            </div>
-            
+          <motion.div variants={itemVariants}>            
             {isUserLoading ? (
               <div className="text-center py-12">
                 <span className="loading loading-spinner loading-lg"></span>

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import axios from '../api/axios';
 import toast from 'react-hot-toast';
-import { userStore } from './userStore'; // ✅ Import userStore
 
 export const classStore = create((set, get) => ({
     classes: [],
@@ -42,9 +41,17 @@ export const classStore = create((set, get) => ({
                 return;
             }
 
-            const response = await axios.get(`/trainer/ViewClass/${classId}`);
-            const classData = response.data;
+            // Try the public route first, then fallback to trainer route
+            let response;
+            try {
+                response = await axios.get(`/trainer/viewClass/${classId}`);
+            } catch (error) {
+                console.error("Error fetching class from trainer route:", error);
+                set({ isLoading: false, error: "Failed to fetch class details" });
+                return;
+            }
             
+            const classData = response.data;
             set({ selectedClass: classData, isLoading: false });
             get().generateAvailableSessions(classData);
             
@@ -57,24 +64,32 @@ export const classStore = create((set, get) => ({
         }
     },
 
-    // ✅ Book a class using userStore
+    // ✅ ADD: Book a class function
     bookClass: async (classId, sessionDate) => {
-            set({ isBooking: true });
-            try {
-                const success = await userStore.getState().bookClass(classId, sessionDate);
-                if (success) {
-                    await get().fetchClassById(classId);
-                }
-                set({ isBooking: false });
-                return success;
-            } catch (error) {
-                console.error("Booking error:", error);
-                set({ isBooking: false });
-                return false;
-            }
-        },
+        set({ isBooking: true });
+        try {
+            const response = await axios.post(`/user/bookings/${classId}`, { 
+                date: sessionDate 
+            });
+            
+            toast.success('Class booked successfully!');
+            set({ isBooking: false });
+            
+            // Return the booking data for the modal
+            return {
+                success: true,
+                booking: response.data.booking,
+                sessionDate: response.data.sessionDate
+            };
+        } catch (error) {
+            console.error("Book class error:", error);
+            toast.error(error.response?.data?.message || 'Failed to book class');
+            set({ isBooking: false });
+            return { success: false };
+        }
+    },
 
-    // Generate available sessions for the next 7 days
+    // Generate available sessions for the next 4 weeks
     generateAvailableSessions: (classData) => {
         if (!classData || !classData.timeSlot) {
             set({ availableSessions: [] });
@@ -107,7 +122,7 @@ export const classStore = create((set, get) => ({
         set({ availableSessions: sessions });
     },
 
-    // Clear selected class
+    // Clear error
     clearError: () => {
         set({ error: null });
     },

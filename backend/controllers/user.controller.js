@@ -312,7 +312,7 @@ export const viewAllClasses = async (req, res) => {
 export const bookClass = async (req, res) => {
     try {
         const { classId } = req.params;
-        const { date } = req.body;
+        const { date } = req.body; // This should match what frontend sends
 
         if (!date) {
             return res.status(400).json({ message: "A specific date must be provided to book a class." });
@@ -333,13 +333,12 @@ export const bookClass = async (req, res) => {
         }
 
         // Check capacity for this specific session
-        // Note: This relies on the Booking collection, which is a good practice.
         const confirmedBookingsCount = await Booking.countDocuments({ class: classId, startTime, status: "upcoming" });
         if (confirmedBookingsCount >= selectedClass.capacity) {
             return res.status(400).json({ message: "Sorry, this class session is full." });
         }
 
-        // 1. Create the booking document (the primary source of truth).
+        // 1. Create the booking document
         const newBooking = await Booking.create({
             user: req.user._id,
             class: classId,
@@ -350,13 +349,29 @@ export const bookClass = async (req, res) => {
             paymentStatus: "pending",
         });
 
-        // 2. Add the user's ID to the class's attendees array.
+        // 2. Populate the booking with class and trainer details for response
+        const populatedBooking = await Booking.findById(newBooking._id)
+            .populate({
+                path: 'class',
+                select: 'classTitle timeSlot classPic price duration',
+                populate: {
+                    path: 'trainer',
+                    select: 'specialization',
+                    populate: { path: 'user', select: 'username' }
+                }
+            });
+
+        // 3. Add the user's ID to the class's attendees array
         await Class.updateOne({ _id: classId }, { $push: { attendees: req.user._id } });
 
-        // 3. Add the new booking's ID to the user's bookings array.
+        // 4. Add the new booking's ID to the user's bookings array
         await User.updateOne({ _id: req.user._id }, { $push: { bookings: newBooking._id } });
 
-        res.status(201).json({ message: "Class booked successfully", booking: newBooking });
+        res.status(201).json({ 
+            message: "Class booked successfully", 
+            booking: populatedBooking,
+            sessionDate: date // Include the session date for frontend
+        });
     } catch (error) {
         console.log("Error in bookClass controller:", error);
         res.status(500).json({ message: "An error occurred while booking the class." });

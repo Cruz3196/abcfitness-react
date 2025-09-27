@@ -329,12 +329,13 @@ export const userStore = create((set, get) => ({
     bookClass: async (classId, sessionDate) => {
         set({ isLoading: true });
         try {
-            // ✅ FIX: Changed from '/users/bookings/' to '/user/bookings/'
-            // This matches your other user endpoints pattern
             await axios.post(`/user/bookings/${classId}`, { date: sessionDate }); 
 
             toast.success('Class booked successfully!');
+            
+            // ✅ Crucial Step: Refreshes the user's booking list after success.
             get().fetchMyBookings(); 
+            
             set({ isLoading: false });
             return true;
         } catch (error) {
@@ -345,20 +346,32 @@ export const userStore = create((set, get) => ({
         }
     },
 
+
     // View user's bookings
     fetchMyBookings: async () => {
         set({ isLoading: true });
         try {
-            // ✅ FIX: Changed from '/users/bookings' to '/user/bookings'
             const response = await axios.get("/user/bookings");
+            
+            // Transform the booking data to include sessionDate
+            const transformedBookings = {
+                upcoming: response.data.upcoming?.map(booking => ({
+                    ...booking,
+                    sessionDate: booking.startTime // Use startTime as sessionDate for consistency
+                })) || [],
+                history: response.data.history?.map(booking => ({
+                    ...booking,
+                    sessionDate: booking.startTime
+                })) || []
+            };
             
             // Update user object with bookings data
             set(state => ({
                 user: { 
                     ...state.user, 
                     bookings: response.data,
-                    upcomingBookings: response.data.upcoming || [],
-                    bookingHistory: response.data.history || []
+                    upcomingBookings: transformedBookings.upcoming,
+                    bookingHistory: transformedBookings.history
                 },
                 isLoading: false
             }));
@@ -376,29 +389,18 @@ export const userStore = create((set, get) => ({
     cancelBooking: async (bookingId) => {
         set({ isLoading: true });
         try {
-            // console.log('Attempting to cancel booking with ID:', bookingId); // Debug log
+            const response = await axios.delete(`/user/bookings/${bookingId}`);
             
-            const response = await axios.post(`/user/cancelBooking/${bookingId}`);
-            
-            console.log('Cancel booking response:', response.data); // Debug log
-            
+            // Refresh bookings after successful cancellation
             await get().fetchMyBookings();
             
-            toast.success("Booking cancelled successfully!");
+            toast.success(response.data.message || "Booking cancelled successfully");
             set({ isLoading: false });
             return true;
         } catch (error) {
             console.error("Cancel booking error:", error);
-            console.log('Full error response:', error.response); 
-            
+            toast.error(error.response?.data?.message || "Failed to cancel booking");
             set({ isLoading: false });
-            
-            // ✅ Better error handling
-            if (error.response?.status === 404) {
-                toast.error("Cancel booking endpoint not found. Please contact support.");
-            } else {
-                toast.error(error.response?.data?.message || "Failed to cancel booking");
-            }
             return false;
         }
     },
