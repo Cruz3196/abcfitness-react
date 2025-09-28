@@ -27,6 +27,7 @@ const CartItem = ({ item }) => {
                 await removeFromCart(item._id);
             } catch (error) {
                 console.error('Error removing item:', error);
+            } finally {
                 setIsUpdating(false);
             }
         }
@@ -57,7 +58,6 @@ const CartItem = ({ item }) => {
                                 alt={itemName}
                                 className="object-cover w-full h-full"
                                 onError={(e) => {
-                                    console.log('Image failed to load:', itemImage);
                                     e.target.src = "https://via.placeholder.com/80x80?text=No+Image";
                                 }}
                             />
@@ -82,21 +82,21 @@ const CartItem = ({ item }) => {
                         <span className="text-sm text-base-content/70">Quantity</span>
                         <div className="join">
                             <button 
-                                className="btn btn-xs join-item"
+                                className={`btn btn-xs join-item ${isUpdating ? 'loading' : ''}`}
                                 onClick={() => handleQuantityChange(itemQuantity - 1)}
                                 disabled={itemQuantity <= 1 || isUpdating}
                             >
-                                <Minus className="w-3 h-3" />
+                                {!isUpdating && <Minus className="w-3 h-3" />}
                             </button>
                             <span className="btn btn-xs join-item no-animation cursor-default">
                                 {itemQuantity}
                             </span>
                             <button 
-                                className="btn btn-xs join-item"
+                                className={`btn btn-xs join-item ${isUpdating ? 'loading' : ''}`}
                                 onClick={() => handleQuantityChange(itemQuantity + 1)}
                                 disabled={isUpdating}
                             >
-                                <Plus className="w-3 h-3" />
+                                {!isUpdating && <Plus className="w-3 h-3" />}
                             </button>
                         </div>
                     </div>
@@ -111,12 +111,12 @@ const CartItem = ({ item }) => {
                         </div>
                         <motion.button 
                             onClick={handleRemove}
-                            className="btn btn-ghost btn-sm text-error"
+                            className={`btn btn-ghost btn-sm text-error ${isUpdating ? 'loading' : ''}`}
                             disabled={isUpdating}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            <Trash2 className="w-4 h-4" />
+                            {!isUpdating && <Trash2 className="w-4 h-4" />}
                         </motion.button>
                     </div>
                 </div>

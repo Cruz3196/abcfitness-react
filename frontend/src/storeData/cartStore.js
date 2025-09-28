@@ -45,7 +45,7 @@ const useCartStore = create((set, get) => ({
     // deleting a product from the cart 
     removeFromCart: async (productId) => {
         try {
-            // Send productId as URL parameter, not body
+            console.log('Removing product:', productId);
             await axios.delete(`/api/cart/removeFromCart/${productId}`);
             set((prevState) => ({
                 cart: prevState.cart.filter((item) => item._id !== productId)
@@ -58,28 +58,41 @@ const useCartStore = create((set, get) => ({
         }
     },
 
-    // Add missing updateQuantity function
+    // updateQuantity function - FIXED VERSION
     updateQuantity: async (productId, quantity) => {
         try {
+            console.log('Updating quantity for product:', productId, 'to:', quantity);
+            
+            // Update backend
             await axios.put(`/api/cart/updateQuantity/${productId}`, { quantity });
             
-            if (quantity === 0) {
-                // Remove item if quantity is 0
-                set((prevState) => ({
-                    cart: prevState.cart.filter((item) => item._id !== productId)
-                }));
-            } else {
-                // Update quantity
-                set((prevState) => ({
-                    cart: prevState.cart.map((item) =>
-                        item._id === productId ? { ...item, quantity } : item
-                    )
-                }));
-            }
+            // Update local state immediately
+            set((prevState) => {
+                if (quantity === 0) {
+                    // Remove item if quantity is 0
+                    return {
+                        cart: prevState.cart.filter((item) => item._id !== productId)
+                    };
+                } else {
+                    // Update quantity
+                    return {
+                        cart: prevState.cart.map((item) =>
+                            item._id === productId ? { ...item, quantity } : item
+                        )
+                    };
+                }
+            });
+            
+            // Recalculate totals
             get().calculateTotals();
             toast.success("Cart updated");
+            
         } catch (error) {
+            console.error("Update quantity error:", error);
             toast.error(error.response?.data?.message || "Failed to update quantity");
+            
+            // Optionally refresh cart from server on error
+            get().getCartProducts();
         }
     },
 
@@ -96,7 +109,10 @@ const useCartStore = create((set, get) => ({
 
     calculateTotals: () => {
         const { cart } = get();
-        const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const subtotal = cart.reduce((sum, item) => {
+            const price = item.productPrice || item.price || 0;
+            return sum + price * item.quantity;
+        }, 0);
         let total = subtotal;
 
         set({ subtotal, total });
