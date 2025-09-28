@@ -7,7 +7,18 @@ const useCartStore = create((set, get) => ({
     cart: [],
     total: 0,
     subtotal: 0, 
+    totalQuantity: 0,
     isLoading: false,
+
+    // Add method to clear local cart state (for user switching)
+    clearCartState: () => {
+        set({ 
+            cart: [], 
+            total: 0, 
+            subtotal: 0, 
+            totalQuantity: 0 
+        });
+    },
 
     // getting all the products in the cart 
     getCartProducts: async () =>{
@@ -20,6 +31,8 @@ const useCartStore = create((set, get) => ({
             toast.error(error.response?.data?.message || "Failed to fetch cart products");
         }
     },
+
+    // ... rest of your existing code stays the same ...
 
     // adding a product to the cart 
     addToCart: async (product) => {
@@ -100,7 +113,7 @@ const useCartStore = create((set, get) => ({
     clearCart: async () => {
         try {
             await axios.delete("/api/cart/clearCart");
-            set({ cart: [], total: 0, subtotal: 0 });
+            set({ cart: [], total: 0, subtotal: 0, totalQuantity: 0 });
             toast.success("Cart cleared");
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to clear cart");
@@ -113,9 +126,13 @@ const useCartStore = create((set, get) => ({
             const price = item.productPrice || item.price || 0;
             return sum + price * item.quantity;
         }, 0);
+        
+        // Calculate total quantity
+        const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+        
         let total = subtotal;
 
-        set({ subtotal, total });
+        set({ subtotal, total, totalQuantity });
     },
 
 }));

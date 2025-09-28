@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { userStore } from "./storeData/userStore";
+import useCartStore from "./storeData/cartStore";
 import { useEffect } from "react";
 
 //components
@@ -46,10 +47,20 @@ import Container from "./components/common/Container";
 
 function App() {
   const { user, checkAuthStatus } = userStore();
+  const { clearCartState, getCartProducts } = useCartStore();
   
+    // checking auth status on app load
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
+
+  // Fetch cart products when user logs in
+  useEffect(() => {
+    clearCartState();
+    if(user){
+      getCartProducts();
+    }
+  }, [user]); 
 
   return (
     <>

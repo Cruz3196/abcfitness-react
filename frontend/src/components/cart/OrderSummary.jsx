@@ -4,10 +4,10 @@ import useCartStore from '../../storeData/cartStore';
 import CartItem from './CartItem';
 
 const OrderSummary = () => {
-    const { total, subtotal } = useCartStore();
+    const { total, totalQuantity } = useCartStore();
 
-    const formattedSubtotal = subtotal.toFixed(2);
     const formattedTotal = total.toFixed(2);
+    const totalItems = totalQuantity;
 
 
     // design of the website 
@@ -33,7 +33,7 @@ const OrderSummary = () => {
         <div className="stats shadow w-full mt-6">
             <div className="stat">
                 <div className="stat-title">Total Items</div>
-                <div className="stat-value text-primary">${formattedSubtotal}</div>
+                <div className="stat-value text-primary">{totalItems}</div>
             </div>
             <div className="stat">
                 <div className="stat-title">Total Amount</div>
