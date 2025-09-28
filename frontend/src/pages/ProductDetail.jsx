@@ -4,9 +4,13 @@ import { productStore } from '../storeData/productStore.js';
 import Spinner from '../components/common/Spinner';
 import FeaturedProducts from '../components/products/FeaturedProducts';
 import Breadcrumbs from '../components/common/Breadcrumbs'; // Step 1: Import the component
+import useCartStore from '../storeData/cartStore.js';
+import { userStore } from '../storeData/userStore.js';
 
 const ProductDetail = () => {
     const { id } = useParams();
+    const { addToCart } = useCartStore();
+    const { user } = userStore();
     const { 
         products,
         isLoading, 
@@ -28,7 +32,21 @@ const ProductDetail = () => {
     if (isLoading && !product) {
         return <div className="flex justify-center pt-20"><Spinner /></div>;
     }
+    
+    // handler for adding product to cart
+        const handleAddToCart = () => {
+        // if the user is not logged, then alert a message
+        if (!user) {
+            toast.error("Please log in to add items to your cart");
+            return;
+        } else {
+            // if user is logged in, then add to cart
+            addToCart(product);
+        }
+    };
 
+
+    // if the product does not exist then return this message 
     if (!product) {
         return (
         <div className="text-center py-20">
@@ -65,6 +83,7 @@ const ProductDetail = () => {
                         <div className="card-actions justify-end mt-6">
                             <button 
                             className="btn btn-primary btn-lg"
+                            onClick={handleAddToCart}
                             >
                             Add to Cart
                             </button>
