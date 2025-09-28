@@ -1,20 +1,43 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import useCartStore from '../../storeData/cartStore';
+import { useState } from 'react';
 
 const CartItem = ({ item }) => {
     const { updateQuantity, removeFromCart } = useCartStore();
+    const [isUpdating, setIsUpdating] = useState(false);
 
-    const handleQuantityChange = (newQuantity) => {
-        if (newQuantity > 0) {
-            updateQuantity(item.id, newQuantity);
+    const handleQuantityChange = async (newQuantity) => {
+        if (newQuantity >= 0 && !isUpdating) {
+            setIsUpdating(true);
+            try {
+                await updateQuantity(item._id, newQuantity);
+            } catch (error) {
+                console.error('Error updating quantity:', error);
+            } finally {
+                setIsUpdating(false);
+            }
         }
-    };
+    }
 
-    const handleRemove = () => {
-        removeFromCart(item.id);
-    };
+    const handleRemove = async () => {
+        if (!isUpdating) {
+            setIsUpdating(true);
+            try {
+                await removeFromCart(item._id);
+            } catch (error) {
+                console.error('Error removing item:', error);
+                setIsUpdating(false);
+            }
+        }
+    }
+
+    // ✅ Fixed field mappings based on your data structure
+    const itemPrice = Number(item.productPrice) || Number(item.price) || 0;
+    const itemQuantity = Number(item.quantity) || 1;
+    const itemName = item.productName || item.name || 'Unknown Product';
+    const itemCategory = item.productCategory || item.category || 'Uncategorized';
+    const itemImage = item.productImage || item.image || item.imageUrl || "https://via.placeholder.com/80x80?text=No+Image";
 
     return (
         <motion.div 
@@ -30,9 +53,13 @@ const CartItem = ({ item }) => {
                     <div className="avatar">
                         <div className="w-20 h-20 rounded-lg">
                             <img 
-                                src={item.image || "/api/placeholder/80/80"} 
-                                alt={item.name}
-                                className="object-cover"
+                                src={itemImage} 
+                                alt={itemName}
+                                className="object-cover w-full h-full"
+                                onError={(e) => {
+                                    console.log('Image failed to load:', itemImage);
+                                    e.target.src = "https://via.placeholder.com/80x80?text=No+Image";
+                                }}
                             />
                         </div>
                     </div>
@@ -40,13 +67,13 @@ const CartItem = ({ item }) => {
                     {/* Product Details */}
                     <div className="flex-1">
                         <h3 className="font-semibold text-lg text-base-content">
-                            {item.name}
+                            {itemName}
                         </h3>
                         <div className="badge badge-outline badge-sm mt-1">
-                            {item.category}
+                            {itemCategory}
                         </div>
                         <p className="text-primary font-bold mt-2">
-                            ${item.price.toFixed(2)}
+                            ${itemPrice.toFixed(2)}
                         </p>
                     </div>
 
@@ -56,17 +83,18 @@ const CartItem = ({ item }) => {
                         <div className="join">
                             <button 
                                 className="btn btn-xs join-item"
-                                onClick={() => handleQuantityChange(item.quantity - 1)}
-                                disabled={item.quantity <= 1}
+                                onClick={() => handleQuantityChange(itemQuantity - 1)}
+                                disabled={itemQuantity <= 1 || isUpdating}
                             >
                                 <Minus className="w-3 h-3" />
                             </button>
                             <span className="btn btn-xs join-item no-animation cursor-default">
-                                {item.quantity}
+                                {itemQuantity}
                             </span>
                             <button 
                                 className="btn btn-xs join-item"
-                                onClick={() => handleQuantityChange(item.quantity + 1)}
+                                onClick={() => handleQuantityChange(itemQuantity + 1)}
+                                disabled={isUpdating}
                             >
                                 <Plus className="w-3 h-3" />
                             </button>
@@ -78,12 +106,13 @@ const CartItem = ({ item }) => {
                         <div className="text-right">
                             <div className="text-sm text-base-content/70">Subtotal</div>
                             <div className="font-bold text-lg">
-                                ${(item.price * item.quantity).toFixed(2)}
+                                ${(itemPrice * itemQuantity).toFixed(2)}
                             </div>
                         </div>
                         <motion.button 
                             onClick={handleRemove}
                             className="btn btn-ghost btn-sm text-error"
+                            disabled={isUpdating}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >

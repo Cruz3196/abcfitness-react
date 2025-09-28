@@ -1,8 +1,22 @@
 import { Link } from 'react-router-dom';
-// import { useCartStore } from '../../store/cartStore';
+import useCartStore from '../../storeData/cartStore';
+import {userStore} from '../../storeData/userStore';
+import { toast } from 'react-hot-toast';
 
 const ProductCard = ({ product }) => {
-    // const addToCart = useCartStore((state) => state.addToCart);
+    const { user } = userStore();
+    const { addToCart } = useCartStore();
+
+    const handleAddToCart = () => {
+        // if the user is not logged, then alert a message
+        if (!user) {
+            toast.error("Please log in to add items to your cart");
+            return;
+        } else {
+            // if user is logged in, then add to cart
+            addToCart(product);
+        }
+    }
 
     return (
         <div className="card card-compact w-full bg-base-100 shadow-xl transition-transform duration-300 hover:scale-105">
@@ -30,6 +44,7 @@ const ProductCard = ({ product }) => {
                     <button
                         // onClick={() => addToCart(product._id)}
                         className="btn btn-primary"
+                        onClick={handleAddToCart}
                     >
                         Add to Cart
                     </button>

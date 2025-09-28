@@ -728,11 +728,6 @@ const AdminDashboard = () => {
                                                         <span>${classItem.price.toFixed(2)}</span>
                                                     </div>
                                                 </div>
-
-                                                <div className="card-actions justify-end">
-                                                    <button className="btn btn-sm btn-ghost">View Details</button>
-                                                    <button className="btn btn-sm btn-primary">Manage</button>
-                                                </div>
                                             </div>
                                         </motion.div>
                                     ))}

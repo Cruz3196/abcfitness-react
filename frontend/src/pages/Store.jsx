@@ -49,7 +49,14 @@ const Store = () => {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="hero min-h-[30vh] bg-base-200 rounded-box mb-12">
-                {/* Hero content remains the same */}
+                <div className="hero-content text-center">
+                    <div className="max-w-lg">
+                        <h1 className="text-5xl font-bold mb-4">Store</h1>
+                        <p className="text-lg text-base-content/70">
+                            Explore our wide range of fitness products designed to help you achieve your health goals. Whether you're a beginner or a seasoned athlete, we have something for everyone.
+                        </p>
+                    </div>
+                </div>
             </div>
         
             <div className="flex flex-col md:flex-row gap-8">

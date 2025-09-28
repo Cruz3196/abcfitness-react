@@ -4,7 +4,13 @@ import useCartStore from '../../storeData/cartStore';
 import CartItem from './CartItem';
 
 const OrderSummary = () => {
-    const { cartItems, getTotalItems, getTotalPrice } = useCartStore();
+    const { total, subtotal } = useCartStore();
+
+    const formattedSubtotal = subtotal.toFixed(2);
+    const formattedTotal = total.toFixed(2);
+
+
+    // design of the website 
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -16,14 +22,6 @@ const OrderSummary = () => {
         }
     };
 
-    if (cartItems.length === 0) {
-        return (
-            <div className="text-center py-8">
-                <p className="text-base-content/70">Your cart is empty</p>
-            </div>
-        );
-    }
-
     return (
         <motion.div 
             className="space-y-4"
@@ -31,22 +29,17 @@ const OrderSummary = () => {
             initial="hidden"
             animate="visible"
         >
-            <AnimatePresence>
-                {cartItems.map(item => (
-                    <CartItem key={item.id} item={item} />
-                ))}
-            </AnimatePresence>
             
-            <div className="stats shadow w-full mt-6">
-                <div className="stat">
-                    <div className="stat-title">Total Items</div>
-                    <div className="stat-value text-primary">{getTotalItems()}</div>
-                </div>
-                <div className="stat">
-                    <div className="stat-title">Total Amount</div>
-                    <div className="stat-value text-secondary">${getTotalPrice().toFixed(2)}</div>
-                </div>
+        <div className="stats shadow w-full mt-6">
+            <div className="stat">
+                <div className="stat-title">Total Items</div>
+                <div className="stat-value text-primary">${formattedSubtotal}</div>
             </div>
+            <div className="stat">
+                <div className="stat-title">Total Amount</div>
+                <div className="stat-value text-secondary">${formattedTotal}</div>
+            </div>
+        </div>
         </motion.div>
     );
 };
