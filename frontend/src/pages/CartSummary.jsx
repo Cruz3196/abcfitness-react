@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import OrderSummary from '../components/cart/OrderSummary';
-import { ShoppingCart, ArrowLeft, Trash2 } from 'lucide-react';
+import { ShoppingCart, ArrowLeft } from 'lucide-react';
 import useCartStore from '../storeData/cartStore';
 import CartItem from '../components/cart/CartItem';
-import FeaturedProducts from '../components/products/FeaturedProducts';
+import CustomerInfo from '../components/cart/CustomerInfo';
+import OrderSummary from '../components/cart/OrderSummary';
 
 const CartSummary = () => {
     const { cart } = useCartStore();
@@ -13,19 +13,12 @@ const CartSummary = () => {
         return cart.reduce((total, item) => total + item.quantity, 0);
     };
 
-    const handleCheckout = () => {
-        console.log('Proceeding to checkout...');
-    };
-
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: {
             opacity: 1,
             y: 0,
-            transition: {
-                duration: 0.6,
-                staggerChildren: 0.1
-            }
+            transition: { duration: 0.6, staggerChildren: 0.1 }
         }
     };
 
@@ -50,7 +43,7 @@ const CartSummary = () => {
                     <div className="flex items-center gap-4 mb-4 md:mb-0">
                         <ShoppingCart className="w-8 h-8 text-primary" />
                         <h1 className="text-4xl font-bold text-base-content">
-                            Shopping Cart
+                            {cart.length > 0 ? 'Checkout' : 'Shopping Cart'}
                         </h1>
                         {cart.length > 0 && (
                             <div className="badge badge-primary badge-lg">
@@ -67,44 +60,48 @@ const CartSummary = () => {
                     </Link>
                 </motion.div>
 
-                {/* Cart Content */}
-                <motion.div 
-                        className="text-center py-16"
-                        variants={itemVariants}
-                >
-                    {cart.length === 0 ? (
-                            <div className="card bg-base-100 shadow-xl max-w-md mx-auto">
-                                <div className="card-body items-center text-center">
-                                    <ShoppingCart className="w-24 h-24 text-base-300 mb-4" />
-                                    <h2 className="card-title text-2xl mb-4">Your cart is empty</h2>
-                                    <p className="text-base-content/70 mb-6">
-                                        Looks like you haven't added any fitness products yet.
-                                    </p>
-                                    <Link to="/store" className="btn btn-primary btn-wide">
-                                        Start Shopping
-                                    </Link>
-                                </div>
+                {cart.length === 0 ? (
+                    <motion.div className="text-center py-16" variants={itemVariants}>
+                        <div className="card bg-base-100 shadow-xl max-w-md mx-auto">
+                            <div className="card-body items-center text-center">
+                                <ShoppingCart className="w-24 h-24 text-base-300 mb-4" />
+                                <h2 className="card-title text-2xl mb-4">Your cart is empty</h2>
+                                <p className="text-base-content/70 mb-6">
+                                    Looks like you haven't added anything yet.
+                                </p>
+                                <Link to="/store" className="btn btn-primary btn-wide">
+                                    Start Shopping
+                                </Link>
                             </div>
-                    ) : (
-                        <div className ="mb-8 text-center">
-                            {cart.map((item) => (
-                                <CartItem key={item._id} item={item} />
-                            ))}
                         </div>
-                    )}
-                    {/* if the user has more than 0 items in the cart show recommended products */}
-                    {/* {cart.length > 0 && <FeaturedProducts/>} */}
-                </motion.div>
+                    </motion.div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        {/* Left Column: Forms and Cart Items */}
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Customer and Payment Forms */}
+                            <CustomerInfo />
 
-                {cart.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Cart Items */}
-                        <motion.div 
-                            className="lg:col-span-2"
-                            variants={itemVariants}
-                        >
-                            <OrderSummary/>
-                        </motion.div>
+                            {/* Cart Items List */}
+                            <motion.div 
+                                className="card bg-base-100 shadow-xl"
+                                variants={itemVariants}
+                            >
+                                <div className="card-body">
+                                    <h2 className="card-title text-2xl mb-4">Review Your Items</h2>
+                                    <div className="space-y-4">
+                                        {cart.map((item) => (
+                                            <CartItem key={item._id} item={item} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                        
+                        {/* Right Column: Order Summary */}
+                        <div className="lg:col-span-1">
+                            <OrderSummary />
+                        </div>
                     </div>
                 )}
             </div>

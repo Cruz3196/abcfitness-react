@@ -1,45 +1,67 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import useCartStore from '../../storeData/cartStore';
-import CartItem from './CartItem';
 
 const OrderSummary = () => {
-    const { total, totalQuantity } = useCartStore();
+    const { total } = useCartStore();
 
-    const formattedTotal = total.toFixed(2);
-    const totalItems = totalQuantity;
+    // Example values for shipping and tax
+    const shippingCost = total > 50 ? 0 : 5.99;
+    const taxRate = 0.08; // 8%
+    const taxAmount = total * taxRate;
+    const finalTotal = total + shippingCost + taxAmount;
 
+    const handlePlaceOrder = () => {
+        // Here you would handle form validation and submission
+        console.log('Order placed!', {
+            subtotal: total.toFixed(2),
+            shipping: shippingCost.toFixed(2),
+            tax: taxAmount.toFixed(2),
+            total: finalTotal.toFixed(2),
+        });
+        // Example: alert('Thank you for your order!');
+    };
 
-    // design of the website 
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1
-            }
-        }
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
     };
 
     return (
         <motion.div 
-            className="space-y-4"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            className="card bg-base-100 shadow-xl sticky top-24"
+            variants={itemVariants}
         >
-            
-        <div className="stats shadow w-full mt-6">
-            <div className="stat">
-                <div className="stat-title">Total Items</div>
-                <div className="stat-value text-primary">{totalItems}</div>
+            <div className="card-body">
+                <h2 className="card-title text-2xl mb-4">Order Summary</h2>
+                <div className="space-y-2 text-base">
+                    <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>${total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Shipping</span>
+                        <span>{shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Tax (8%)</span>
+                        <span>${taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="divider my-2"></div>
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>Total</span>
+                        <span className="text-primary">${finalTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div className="card-actions mt-6">
+                    <button 
+                        className="btn btn-primary btn-block"
+                        onClick={handlePlaceOrder}
+                    >
+                        Place Order
+                    </button>
+                </div>
             </div>
-            <div className="stat">
-                <div className="stat-title">Total Amount</div>
-                <div className="stat-value text-secondary">${formattedTotal}</div>
-            </div>
-        </div>
         </motion.div>
     );
 };
