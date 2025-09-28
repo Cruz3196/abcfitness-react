@@ -1,21 +1,14 @@
-import User from '../models/user.model.js';
-import Product from '../models/product.model.js';
+import Product  from '../models/product.model.js';
 
 export const getCartProducts = async (req, res) => {
     try {
-        // .populate() will look at the 'product' field in the cartItems array
-        // and fetch the full document from the 'products' collection.
-        const user = await User.findById(req.user._id).populate({
-            path: 'cartItems.product',
-            model: 'Product'
-        });
-        // if user is not found, return 404
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        // if user is logged and found, return cart items
-        res.status(200).json(user.cartItems);
+        const products = await Product.find({ _id: { $in: req.user.cartItems} });
 
+        const cartItems = products.map((product) => {
+            const item = req.user.cartItems.find((cartItem) => cartItem.id === product.id)
+            return {...product.toJSON(), quantity: item.quantity };
+        })
+        res.json(cartItems);
     } catch (error) {
         console.log("Error in getCart controller", error.message);
         res.status(500).json({ message: "Server error" });
@@ -30,21 +23,16 @@ export const addToCart = async (req, res) => {
         const { productId } = req.body;
         const user = req.user;
 
-        // ✅ CORRECTED: Find the item by checking the 'product' sub-field.
-        const existingItem = user.cartItems.find(
-            (item) => item.product.toString() === productId
-        );
-
-        if (existingItem) {
+        const existingItem = user.cartItems.find((item) => item.id === productId);
+        if(existingItem){
             existingItem.quantity += 1;
         } else {
-            // ✅ CORRECTED: Push the correct object shape, not just an ID.
-            user.cartItems.push({ product: productId, quantity: 1 });
+            user.cartItems.push(productId);
         }
 
         await user.save();
-        res.status(200).json(user.cartItems);
-
+        res.json(user.cartItems);
+        console.log("Product added to cart successfully");
     } catch (error) {
         console.log("Error in addToCart controller", error.message);
         res.status(500).json({ message: "Server error" });
@@ -59,55 +47,70 @@ export const removeFromCart = async (req, res) => {
         const { productId } = req.body; // If no productId is sent, clear the whole cart.
         const user = req.user;
 
-        if (!productId) {
-            user.cartItems = []; // Clear the entire cart
+
+        const existingItem = user.cartItems.find((item) => item.id === productId);
+        if (existingItem) {
+            // if the item exist then remove it from the cart
+            existingItem.quantity -= 1;
         } else {
-            // ✅ CORRECTED: Filter by the 'product' sub-field.
-            user.cartItems = user.cartItems.filter(
-                (item) => item.product.toString() !== productId
-            );
+            user.cartItems.pop(productId);
         }
 
         await user.save();
-        res.status(200).json(user.cartItems);
-
+        res.json(user.cartItems);
+        console.log("Product removed from cart successfully");
     } catch (error) {
         console.log("Error in removeFromCart controller:", error.message);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-/**
- * Updates the quantity of a specific item in the cart.
- */
+// clearing all the items in the cart 
+export const clearCart = async (req, res) => {
+    try{
+        const { productId } = req.body;
+        const user = req.user;
+        
+        if(!productId){
+            user.cartItems = [];
+    }else{
+        user.cartItems = user.cartItems.filter((item) => item.id !== productId);
+    }
+    await user.save();
+    res.json(user.cartItems);
+    console.log("Cart cleared successfully");
+    }catch (error){
+        console.log("Error in clearCart controller", error.message);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+
+
+// Updates the quantity of a specific item in the cart.
+
 export const updateQuantity = async (req, res) => {
-    try {
+    try{
         const { productId } = req.params;
         const { quantity } = req.body;
         const user = req.user;
+        const existingItem = user.cartItems.find((item) => item.id === productId);
 
-        // Find by the 'product' sub-field.
-        const existingItem = user.cartItems.find(
-            (item) => item.product.toString() === productId
-        );
+		if (existingItem) {
+			if (quantity === 0) {
+				user.cartItems = user.cartItems.filter((item) => item.id !== productId);
+				await user.save();
+				return res.json(user.cartItems);
+			}
 
-        if (existingItem) {
-            if (quantity <= 0) {
-                // If quantity is 0 or less, remove the item from the cart.
-                user.cartItems = user.cartItems.filter(
-                    (item) => item.product.toString() !== productId
-                );
-            } else {
-                existingItem.quantity = quantity;
-            }
-
-            await user.save();
-            res.status(200).json(user.cartItems);
-        } else {
+			existingItem.quantity = quantity;
+			await user.save();
+			res.json(user.cartItems);
+        }else{
             res.status(404).json({ message: "Product not found in cart" });
         }
-    } catch (error) {
+    }catch (error){
         console.log("Error in updateQuantity controller", error.message);
-        res.status(500).json({ message: "Server error" });
+        res.status(500).json({ message: "Server error", error: error.message });
     }
 };
