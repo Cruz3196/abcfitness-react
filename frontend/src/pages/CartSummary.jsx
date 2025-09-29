@@ -43,7 +43,7 @@ const CartSummary = () => {
                     <div className="flex items-center gap-4 mb-4 md:mb-0">
                         <ShoppingCart className="w-8 h-8 text-primary" />
                         <h1 className="text-4xl font-bold text-base-content">
-                            {cart.length > 0 ? 'Checkout' : 'Shopping Cart'}
+                            {cart.length > 0 ? 'In the bag' : 'Shopping Cart'}
                         </h1>
                         {cart.length > 0 && (
                             <div className="badge badge-primary badge-lg">
@@ -79,12 +79,9 @@ const CartSummary = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         {/* Left Column: Forms and Cart Items */}
                         <div className="lg:col-span-2 space-y-8">
-                            {/* Customer and Payment Forms */}
-                            <CustomerInfo />
-
                             {/* Cart Items List */}
                             <motion.div 
-                                className="card bg-base-100 shadow-xl"
+                                className="card bg-base-100 shadow-xl sticky"
                                 variants={itemVariants}
                             >
                                 <div className="card-body">
@@ -101,6 +98,7 @@ const CartSummary = () => {
                         {/* Right Column: Order Summary */}
                         <div className="lg:col-span-1">
                             <OrderSummary />
+
                         </div>
                     </div>
                 )}

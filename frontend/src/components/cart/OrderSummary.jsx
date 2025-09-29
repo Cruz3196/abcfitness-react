@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useCartStore from '../../storeData/cartStore';
 
@@ -29,7 +29,7 @@ const OrderSummary = () => {
 
     return (
         <motion.div 
-            className="card bg-base-100 shadow-xl sticky top-24"
+            className="card bg-base-100 shadow-xl" 
             variants={itemVariants}
         >
             <div className="card-body">
@@ -54,12 +54,13 @@ const OrderSummary = () => {
                     </div>
                 </div>
                 <div className="card-actions mt-6">
-                    <button 
+                    <Link
                         className="btn btn-primary btn-block"
                         onClick={handlePlaceOrder}
+                        to="/checkout"
                     >
-                        Place Order
-                    </button>
+                        Proceed to Checkout
+                    </Link>
                 </div>
             </div>
         </motion.div>
