@@ -6,6 +6,7 @@ import FeaturedProducts from '../components/products/FeaturedProducts';
 import Breadcrumbs from '../components/common/Breadcrumbs'; // Step 1: Import the component
 import useCartStore from '../storeData/cartStore.js';
 import { userStore } from '../storeData/userStore.js';
+import { toast } from 'react-hot-toast';
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -20,6 +21,7 @@ const ProductDetail = () => {
         fetchRecommendedProducts 
     } = productStore();
 
+    // using effect to fetch the product from the product store 
     useEffect(() => {
         if (products.length === 0) {
         fetchAllProducts();
@@ -27,6 +29,7 @@ const ProductDetail = () => {
         fetchRecommendedProducts(id);
     }, [id, products.length, fetchAllProducts, fetchRecommendedProducts]);
 
+    // creating a variable to hold the product details
     const product = getProductById(id);
 
     if (isLoading && !product) {
