@@ -80,7 +80,6 @@ export const updateProduct = async (req, res) => {
         if (!product) {
             return res.status(404).json({ message: "Product not found" });
         }
-
         // --- PRODUCT IMAGE UPLOAD LOGIC ---
         if (productImage) {
             // If an old image exists, delete it from Cloudinary first

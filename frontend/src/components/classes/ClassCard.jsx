@@ -11,8 +11,8 @@ const ClassCard = ({ classInfo }) => {
                         src={classInfo.classPic || 'https://placehold.co/400x225?text=Class'}
                         alt={classInfo.classTitle}
                         className="h-48 w-full object-cover"
-                    />
-                    <div className="absolute top-2 right-2 badge badge-secondary font-bold">
+                    />      
+                    <div className="absolute top-2 right-2 badge badge-secondary font-bold capitalize">
                         {classInfo.classType}
                     </div>
                 </figure>

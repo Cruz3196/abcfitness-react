@@ -77,7 +77,7 @@ const TrainerDashboard = () => {
     const initialClassState = {
         classTitle: '',
         classDescription: '',
-        classType: 'Strength', // Default value
+        classType: '', // e.g., "Cycle", "Cardio", "HIIT", "Zumba", "Bootcamp"
         duration: 60,
         timeSlot: {
             day: '',
@@ -325,11 +325,11 @@ const TrainerDashboard = () => {
                             <div>
                                 <label className="label"><span className="label-text">Class Type</span></label>
                                 <select name="classType" value={newClassData.classType} onChange={handleClassInputChange} className="select select-bordered w-full">
-                                    <option>Strength</option>
+                                    <option>Cycle</option>
                                     <option>Cardio</option>
-                                    <option>Yoga</option>
-                                    <option>CrossFit</option>
-                                    <option>Flexibility</option>
+                                    <option>HIIT</option>
+                                    <option>Zumba</option>
+                                    <option>Bootcamp</option>
                                 </select>
                             </div>
 
