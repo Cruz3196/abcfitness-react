@@ -71,7 +71,7 @@ const Store = () => {
                         <div className="flex justify-center pt-20"><Spinner /></div>
                     ) : (
                         <>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Mapping over the `currentProducts` for the page */}
                                 {currentProducts.map(product => (
                                     <ProductCard key={product._id} product={product} />
