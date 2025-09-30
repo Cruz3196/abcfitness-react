@@ -15,7 +15,7 @@ const Home = () => {
     }, [fetchAllProducts]);
 
     // Create a list of "featured" products to display
-    const featuredProducts = products.slice(0, 3);
+    const featuredProducts = products.slice(0, 4);
 
     return (
         <>
