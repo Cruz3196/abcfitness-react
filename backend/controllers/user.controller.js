@@ -624,6 +624,25 @@ export const deleteFeedback = async (req, res) => {
     }
 };
 
+// fetching a review by class id 
+export const fetchFeedBackByClass = async (req, res) => {
+    try {
+        const { classId } = req.params;
+        
+        const reviews = await Review.find({ class: classId })
+            .populate({
+                path: 'user',
+                select: 'username profileImage'
+            })
+            .sort({ createdAt: -1 });
+            
+        res.status(200).json(reviews);
+    } catch (error) {
+        console.error("Error fetching reviews:", error);
+        res.status(500).json({ message: "Error fetching reviews" });
+    }
+};
+
 // viewing all trainers from customer standpoint 
 export const allTrainers = async(req, res) => {
     try{

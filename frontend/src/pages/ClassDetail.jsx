@@ -7,6 +7,7 @@ import Spinner from '../components/common/Spinner';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { classStore } from '../storeData/classStore';
 import { userStore } from '../storeData/userStore';
+import { reviewStore } from '../storeData/reviewStore';
 import toast from 'react-hot-toast';
 import BookingCard from '../components/user/BookingCard';
 
@@ -27,21 +28,55 @@ const ClassDetail = () => {
         clearSelectedClass 
     } = classStore();
 
-    // Mock reviews for now
-    const [reviews] = useState([
-        { 
-            _id: 'r1', 
-            user: { _id: 'user1', username: 'Bob Williams', profileImage: 'https://placehold.co/100x100/60a5fa/ffffff?text=B' }, 
-            rating: 5, 
-            reviewText: 'An amazing class! The instructor was knowledgeable and the workout was challenging but accessible.' 
-        },
-        { 
-            _id: 'r2', 
-            user: { _id: 'user2', username: 'Diana Prince', profileImage: 'https://placehold.co/100x100/c084fc/ffffff?text=D' }, 
-            rating: 4, 
-            reviewText: 'Great experience and wonderful atmosphere. Will definitely be back!' 
-        },
-    ]);
+    // fetching from the review store 
+        // ✅ Add review store state
+    const { 
+        reviews, 
+        isLoading: reviewsLoading, 
+        isSubmitting,
+        fetchReviewsByClass,
+        submitReview,
+        updateReview,
+        deleteReview,
+        clearReviews
+    } = reviewStore();
+
+    // ✅ Fetch reviews when component mounts
+    useEffect(() => {
+        if (id) {
+            fetchReviewsByClass(id);
+        }
+        
+        // Cleanup when leaving the page
+        return () => {
+            clearReviews();
+        };
+    }, [id, fetchReviewsByClass, clearReviews]);
+
+    // ✅ Handle review submission
+    const handleReviewSubmit = async (reviewData) => {
+        if (!user) {
+            toast.error('Please log in to submit a review');
+            return;
+        }
+        
+        const result = await submitReview(id, reviewData);
+        return result;
+    };
+
+    // ✅ Handle review update
+    const handleReviewUpdate = async (reviewId, updateData) => {
+        const result = await updateReview(reviewId, updateData);
+        return result;
+    };
+
+    // ✅ Handle review deletion
+    const handleReviewDelete = async (reviewId) => {
+        const result = await deleteReview(reviewId);
+        return result;
+    };
+
+    // Function to generate a unique localStorage key per user and class
 
     const getStorageKey = () => {
         if (user && id) {
@@ -340,13 +375,21 @@ const ClassDetail = () => {
             <div className="card bg-base-100 shadow-xl">
                 <div className="card-body">
                     <h2 className="card-title text-2xl mb-6">What Our Members Say</h2>
-                    {reviews.length > 0 ? (
+                    
+                    {reviewsLoading ? (
+                        <div className="flex justify-center py-8">
+                            <span className="loading loading-spinner loading-lg"></span>
+                        </div>
+                    ) : reviews.length > 0 ? (
                         <div className="space-y-6 mb-8">
                             {reviews.map(review => (
                                 <RatingCard 
                                     key={review._id} 
                                     review={review} 
                                     currentUser={user}
+                                    onUpdate={handleReviewUpdate}
+                                    onDelete={handleReviewDelete}
+                                    isSubmitting={isSubmitting}
                                 />
                             ))}
                         </div>
@@ -355,7 +398,11 @@ const ClassDetail = () => {
                     )}
                     
                     {user && (
-                        <RatingForm classId={id} />
+                        <RatingForm 
+                            classId={id} 
+                            onSubmit={handleReviewSubmit}
+                            isSubmitting={isSubmitting}
+                        />
                     )}
                 </div>
             </div>

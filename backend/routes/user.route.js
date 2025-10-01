@@ -4,7 +4,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 
 // importing controllers
 import { createUser, loginUser, logoutUser, refresh} from "../controllers/auth.controller.js";
-import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword, getOrderHistory} from "../controllers/user.controller.js";
+import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword, getOrderHistory, fetchFeedBackByClass} from "../controllers/user.controller.js";
 
 const router = express.Router();
 
@@ -37,6 +37,7 @@ router.delete("/bookings/:bookingId", protectRoute, cancelBooking)
 router.post("/submitFeedback/:classId", protectRoute, submitFeedback);
 router.put("/updateFeedback/:reviewId", protectRoute, updateFeedback);
 router.delete("/deleteFeedback/:reviewId", protectRoute, deleteFeedback);
+router.get("/feedback/:classId", fetchFeedBackByClass)
 
 // Trainer Management 
 router.get("/ourTrainers", allTrainers)
