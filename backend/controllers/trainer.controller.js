@@ -55,7 +55,7 @@ export const createTrainerProfile = async (req, res) => {
 export const updateTrainerProfile = async (req, res) => {
     try {
 
-        const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
+        const { specialization, bio, certifications, experience, trainerProfilePic, email, username } = req.body;
         
         const trainer = await Trainer.findOne({ user: req.user._id });
         
@@ -63,6 +63,36 @@ export const updateTrainerProfile = async (req, res) => {
             console.log("❌ Trainer profile not found for user:", req.user._id);
             return res.status(404).json({ message: "Trainer profile not found." });
         }
+
+
+        // will need to create a function that will update the user name and email in the user maodel 
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            console.log("❌ User not found with ID:", req.user._id);
+            return res.status(404).json({ message: "User not found." });
+        }
+
+        // Update username and email if provided
+        if (username && username !== user.username) {
+            const existingUsername = await User.findOne({ username });
+            if (existingUsername) {
+                return res.status(400).json({ message: "Username already taken." });
+            }
+            user.username = username;
+            trainer.username = username; 
+        }
+
+        if (email && email !== user.email) {
+            const existingEmail = await User.findOne({ email });
+            if (existingEmail) {
+                return res.status(400).json({ message: "Email already in use." });
+            }
+            user.email = email;
+        }
+        // saving the updated user information
+        await user.save();
+
 
         // --- TRAINER PROFILE PICTURE UPLOAD LOGIC ---
         // ✅ FIX: Only upload if trainerProfilePic is a base64 string (new image)
@@ -113,6 +143,7 @@ export const updateTrainerProfile = async (req, res) => {
         const experienceValue = experience ? Number(experience) : trainer.experience;
         
         // Only update fields that are provided and not empty
+
         if (specialization !== undefined && specialization !== '') trainer.specialization = specialization;
         if (bio !== undefined) trainer.bio = bio; // Allow empty bio
         if (certifications !== undefined) trainer.certifications = certifications; // Allow empty certifications
@@ -120,10 +151,18 @@ export const updateTrainerProfile = async (req, res) => {
 
         const savedTrainer = await trainer.save();
 
-        res.status(200).json({ 
-            message: "Trainer profile updated successfully", 
-            trainer: savedTrainer 
-        });
+        const response = {
+            message: "Trainer profile updated successfully",
+            trainer: {
+                ...savedTrainer.toObject(),
+                user: {
+                    username: user.username,
+                    email: user.email
+                }
+            }
+        };
+
+        res.status(200).json(response);
 
     } catch (error) {
         

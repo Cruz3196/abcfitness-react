@@ -1,8 +1,7 @@
-import React from 'react';
 import { userStore } from '../../storeData/userStore';
 import toast from 'react-hot-toast';
 
-const BookingCard = ({ booking, isHistory = false }) => {
+const BookingCard = ({ classInfo, booking, isHistory = false }) => {
     const { cancelBooking, isLoading } = userStore();
 
     const handleCancelBooking = async () => {
@@ -17,12 +16,8 @@ const BookingCard = ({ booking, isHistory = false }) => {
             try {
                 const success = await cancelBooking(booking._id);
                 if (success) {
-                    // ✅ The store will automatically refresh the bookings list via fetchMyBookings()
-                    // No need for additional state management here since the parent component
-                    // will re-render when the userStore state updates
                     console.log('Booking cancelled successfully');
                 } else {
-                    // Error handling is already done in the store
                     console.log('Failed to cancel booking');
                 }
             } catch (error) {
@@ -49,6 +44,23 @@ const BookingCard = ({ booking, isHistory = false }) => {
         });
         
         return `${dateStr} at ${timeStr}`;
+    };
+
+    // ✅ Safe way to get price from multiple possible sources
+    const getPrice = () => {
+        // Try to get price from different possible locations
+        return classInfo?.price || 
+                booking.class?.price || 
+                booking.price || 
+                'Price not available';
+    };
+
+    // ✅ Safe way to get duration
+    const getDuration = () => {
+        return classInfo?.duration || 
+                booking.class?.duration || 
+                booking.duration || 
+                null;
     };
 
     return (
@@ -79,16 +91,20 @@ const BookingCard = ({ booking, isHistory = false }) => {
                         <div className="text-sm text-base-content/70 space-y-1">
                             <p>
                                 <span className="font-medium">Trainer:</span> {' '}
-                                {booking.class?.trainer?.user?.username || 'Unknown Trainer'}
+                                {booking.class?.trainer?.user?.username || 
+                                 booking.class?.trainer?.username || 
+                                 'Unknown Trainer'}
                             </p>
                             <p>
                                 <span className="font-medium">Price:</span> {' '}
-                                ${booking.class?.price || '0'}
+                                <span className="text-primary font-semibold">
+                                    {typeof getPrice() === 'number' ? `$${getPrice()}` : getPrice()}
+                                </span>
                             </p>
-                            {booking.class?.duration && (
+                            {getDuration() && (
                                 <p>
                                     <span className="font-medium">Duration:</span> {' '}
-                                    {booking.class.duration} minutes
+                                    {getDuration()} minutes
                                 </p>
                             )}
                         </div>

@@ -35,8 +35,14 @@ export const getProfile = async (req, res) => {
             
             const fullProfile = {
                 ...user.toObject(),
-                hasTrainerProfile: !!trainerProfile, // Add this field
-                trainerProfile,
+                hasTrainerProfile: !!trainerProfile,
+                trainerProfile: trainerProfile ? {
+                    ...trainerProfile.toObject(),
+                    user: {
+                        username: user.username,
+                        email: user.email
+                    }
+                } : null,
                 classes: trainerClasses
             };
             return res.status(200).json(fullProfile);
@@ -312,7 +318,7 @@ export const viewAllClasses = async (req, res) => {
 export const bookClass = async (req, res) => {
     try {
         const { classId } = req.params;
-        const { date } = req.body; // This should match what frontend sends
+        const { date } = req.body;
 
         if (!date) {
             return res.status(400).json({ message: "A specific date must be provided to book a class." });
@@ -326,14 +332,25 @@ export const bookClass = async (req, res) => {
         const startTime = new Date(`${date}T${selectedClass.timeSlot.startTime}:00`);
         const endTime = new Date(`${date}T${selectedClass.timeSlot.endTime}:00`);
 
-        // Check for double booking for this specific session
-        const existingBooking = await Booking.findOne({ class: classId, user: req.user._id, startTime });
-        if (existingBooking) {
+        // ✅ FIX: Check for existing ACTIVE booking (not cancelled ones)
+        const existingActiveBooking = await Booking.findOne({ 
+            class: classId, 
+            user: req.user._id, 
+            startTime,
+            status: { $ne: "cancelled" } // Only check for non-cancelled bookings
+        });
+        
+        if (existingActiveBooking) {
             return res.status(400).json({ message: "You have already booked this specific class session." });
         }
 
         // Check capacity for this specific session
-        const confirmedBookingsCount = await Booking.countDocuments({ class: classId, startTime, status: "upcoming" });
+        const confirmedBookingsCount = await Booking.countDocuments({ 
+            class: classId, 
+            startTime, 
+            status: "upcoming" // Only count active bookings
+        });
+        
         if (confirmedBookingsCount >= selectedClass.capacity) {
             return res.status(400).json({ message: "Sorry, this class session is full." });
         }
@@ -353,7 +370,7 @@ export const bookClass = async (req, res) => {
         const populatedBooking = await Booking.findById(newBooking._id)
             .populate({
                 path: 'class',
-                select: 'classTitle timeSlot classPic price duration',
+                select: 'classTitle timeSlot classPic price duration capacity classType classDescription',
                 populate: {
                     path: 'trainer',
                     select: 'specialization',
@@ -361,16 +378,22 @@ export const bookClass = async (req, res) => {
                 }
             });
 
-        // 3. Add the user's ID to the class's attendees array
-        await Class.updateOne({ _id: classId }, { $push: { attendees: req.user._id } });
+        // 3. ✅ FIX: Only add to attendees if not already present
+        await Class.updateOne(
+            { _id: classId }, 
+            { $addToSet: { attendees: req.user._id } } // $addToSet prevents duplicates
+        );
 
-        // 4. Add the new booking's ID to the user's bookings array
-        await User.updateOne({ _id: req.user._id }, { $push: { bookings: newBooking._id } });
+        // 4. ✅ FIX: Only add to user bookings if not already present
+        await User.updateOne(
+            { _id: req.user._id }, 
+            { $addToSet: { bookings: newBooking._id } } // $addToSet prevents duplicates
+        );
 
         res.status(201).json({ 
             message: "Class booked successfully", 
             booking: populatedBooking,
-            sessionDate: date // Include the session date for frontend
+            sessionDate: date
         });
     } catch (error) {
         console.log("Error in bookClass controller:", error);
@@ -384,7 +407,7 @@ export const viewBookedClasses = async (req, res) => {
             .sort({ startTime: 'desc' })
             .populate({
                 path: 'class',
-                select: 'classTitle timeSlot classPic',
+                select: 'classTitle timeSlot classPic price duration capacity classType classDescription', // ✅ Added price, duration, and other useful fields
                 populate: {
                     path: 'trainer',
                     select: 'specialization',
@@ -416,6 +439,18 @@ export const cancelBooking = async (req, res) => {
         if (!booking || booking.user._id.toString() !== userId.toString()) {
             return res.status(404).json({ message: "Booking not found or you are not authorized to cancel it." });
         }
+
+        // ✅ FIX: Remove user from class attendees when cancelling
+        await Class.updateOne(
+            { _id: booking.class._id }, 
+            { $pull: { attendees: userId } }
+        );
+
+        // ✅ FIX: Remove booking from user's bookings array
+        await User.updateOne(
+            { _id: userId }, 
+            { $pull: { bookings: bookingId } }
+        );
 
         // Only process a refund if the booking was actually paid for
         if (booking.paymentStatus === 'paid' && booking.stripePaymentIntentId) {

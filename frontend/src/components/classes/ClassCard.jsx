@@ -4,7 +4,7 @@ import { Calendar, Users, DollarSign, Clock } from 'lucide-react';
 
 const ClassCard = ({ classInfo }) => {
     return (
-        <div className="card w-80 bg-base-100 shadow-lg transition-all duration-300 hover:shadow-1xl">
+        <div className="card w-70 bg-base-100 shadow-lg transition-all duration-300 hover:shadow-1xl">
             <Link to={`/classes/${classInfo._id}`}>
                 <figure className="relative">
                     <img

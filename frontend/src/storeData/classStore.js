@@ -37,6 +37,7 @@ export const classStore = create((set, get) => ({
             
             if (existingClass) {
                 set({ selectedClass: existingClass, isLoading: false });
+                // ✅ FIX: Call generateAvailableSessions properly
                 get().generateAvailableSessions(existingClass);
                 return;
             }
@@ -53,6 +54,7 @@ export const classStore = create((set, get) => ({
             
             const classData = response.data;
             set({ selectedClass: classData, isLoading: false });
+            // ✅ FIX: Call generateAvailableSessions properly
             get().generateAvailableSessions(classData);
             
         } catch (error) {
@@ -89,37 +91,67 @@ export const classStore = create((set, get) => ({
         }
     },
 
+
+    // ✅ ADD: Function to add a new class to the store immediately
+    addClassToStore: (newClass) => {
+        const currentClasses = get().classes;
+        set({ classes: [...currentClasses, newClass] });
+    },
+
+    // ✅ ADD: Function to update a class in the store
+    updateClassInStore: (updatedClass) => {
+        const currentClasses = get().classes;
+        const updatedClasses = currentClasses.map(cls => 
+            cls._id === updatedClass._id ? updatedClass : cls
+        );
+        set({ classes: updatedClasses });
+    },
+
+    // ✅ ADD: Function to remove a class from the store
+    removeClassFromStore: (classId) => {
+        const currentClasses = get().classes;
+        const filteredClasses = currentClasses.filter(cls => cls._id !== classId);
+        set({ classes: filteredClasses });
+    },
+
     // Generate available sessions for the next 4 weeks
     generateAvailableSessions: (classData) => {
         if (!classData || !classData.timeSlot) {
             set({ availableSessions: [] });
-            return;
+            return [];
         }
-
-        const sessions = [];
-        const today = new Date();
         
-        // Generate sessions for the next 4 weeks
-        for (let i = 0; i < 28; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + i);
-            
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-            
-            if (dayName === classData.timeSlot.day) {
-                const spotsLeft = Math.max(0, classData.capacity - (classData.attendees?.length || 0));
-                
-                sessions.push({
-                    date: date.toISOString().split('T')[0],
-                    startTime: classData.timeSlot.startTime,
-                    endTime: classData.timeSlot.endTime,
-                    duration: classData.duration,
-                    spotsLeft: spotsLeft
-                });
-            }
+        const today = new Date();
+        const nextDate = new Date(today);
+        
+        // Find next occurrence of the class day
+        const dayMap = {
+            'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+            'Thursday': 4, 'Friday': 5, 'Saturday': 6
+        };
+        
+        const targetDay = dayMap[classData.timeSlot.day];
+        if (targetDay === undefined) {
+            set({ availableSessions: [] });
+            return [];
         }
-
+        
+        const daysUntilTarget = (targetDay - today.getDay() + 7) % 7 || 7;
+        nextDate.setDate(today.getDate() + daysUntilTarget);
+        
+        // ✅ ONLY RETURN ONE SESSION
+        const sessions = [{
+            date: nextDate.toISOString().split('T')[0],
+            startTime: classData.timeSlot.startTime,
+            endTime: classData.timeSlot.endTime,
+            duration: classData.duration,
+            spotsLeft: classData.capacity - (classData.attendees?.length || 0),
+            sessionKey: `${nextDate.toISOString().split('T')[0]}_${classData.timeSlot.startTime}`
+        }];
+        
+        // ✅ FIX: Update the store state
         set({ availableSessions: sessions });
+        return sessions;
     },
 
     // Clear error

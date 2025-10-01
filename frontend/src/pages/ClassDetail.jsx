@@ -102,65 +102,72 @@ const ClassDetail = () => {
             return;
         }
         
-        // ✅ Use classStore's bookClass function
+        // ✅ Use unique session identifier
+        const sessionKey = session.sessionKey || `${session.date}_${session.startTime}`;
+        
         const result = await bookClass(id, session.date);
 
         if (result.success) {
-            // Add the session to booked sessions
-            const newBookedSessions = new Set([...bookedSessions, session.date]);
+            // ✅ Track individual session bookings
+            const newBookedSessions = new Set([...bookedSessions, sessionKey]);
             setBookedSessions(newBookedSessions);
             
-            // Persist to localStorage
-            const storageKey = getStorageKey();
-            if (storageKey) {
-                localStorage.setItem(storageKey, JSON.stringify([...newBookedSessions]));
-            }
+            // ✅ Persist to localStorage with user-specific key
+            const storageKey = `booked_sessions_${user._id}_${id}`;
+            localStorage.setItem(storageKey, JSON.stringify([...newBookedSessions]));
             
-            // Create booking object for the modal
-            const newBooking = {
+            setLatestBooking({
                 _id: result.booking._id,
                 class: selectedClass,
                 sessionDate: result.sessionDate,
                 status: 'upcoming'
-            };
-            setLatestBooking(newBooking);
+            });
             
-            // ✅ Refresh user's bookings in userStore
+            // ✅ Refresh user bookings
             await fetchMyBookings();
         }
     };
 
     // Function to determine button state
     const getButtonState = (session) => {
-        const isBooked = bookedSessions.has(session.date);
-        const isFull = session.spotsLeft === 0;
+        const sessionKey = session.sessionKey || `${session.date}_${session.startTime}`;
+        const isBooked = bookedSessions.has(sessionKey);
+        const isFull = session.spotsLeft <= 0;
+        const isPast = new Date(session.date) < new Date();
         
-        if (isBooked) {
+        if (isPast) {
             return {
-                text: 'Booked!',
+                text: 'Past Session',
                 disabled: true,
-                className: 'btn btn-success',
+                className: 'btn btn-disabled btn-sm',
+                icon: null
+            };
+        } else if (isBooked) {
+            return {
+                text: 'Booked ✓',
+                disabled: true,
+                className: 'btn btn-success btn-sm',
                 icon: '✓'
             };
         } else if (isFull) {
             return {
                 text: 'Full',
                 disabled: true,
-                className: 'btn btn-disabled',
+                className: 'btn btn-disabled btn-sm',
                 icon: null
             };
         } else if (isBooking) {
             return {
                 text: 'Booking...',
                 disabled: true,
-                className: 'btn btn-primary',
+                className: 'btn btn-primary btn-sm loading',
                 icon: null
             };
         } else {
             return {
                 text: `Book for $${selectedClass.price}`,
                 disabled: false,
-                className: 'btn btn-primary',
+                className: 'btn btn-primary btn-sm',
                 icon: null
             };
         }
@@ -250,54 +257,84 @@ const ClassDetail = () => {
             </div>
 
             {/* Booking Section */}
-            <div className="card bg-base-100 shadow-xl mb-8">
-                <div className="card-body">
-                    <h2 className="card-title text-2xl mb-4">Book Your Spot</h2>
-                    {availableSessions.length > 0 ? (
-                        <div className="space-y-3">
-                            {availableSessions.map(session => {
-                                const buttonState = getButtonState(session);
-                                
-                                return (
-                                    <div key={session.date} className="flex justify-between items-center bg-base-200 p-4 rounded-lg">
-                                        <div>
-                                            <p className="font-semibold">
-                                                {new Date(session.date).toLocaleDateString(undefined, { 
-                                                    weekday: 'long', 
+        <div className="card bg-base-100 shadow-xl mb-8">
+            <div className="card-body">
+                <h2 className="card-title text-2xl mb-4">Book Your Spot</h2>
+                {availableSessions.length > 0 ? (
+                    <div className="space-y-1">
+                        {availableSessions.map(session => {
+                            const isBooked = bookedSessions.has(session.date);
+                            const isFull = session.spotsLeft <= 0;
+                            const isPast = new Date(session.date) < new Date();
+                            
+                            return (
+                                <div key={session.date} className="bg-base-100 border-b border-base-300 py-6 hover:bg-base-50 transition-colors">
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                                        {/* Date */}
+                                        <div className="lg:col-span-3">
+                                            <h3 className="text-lg font-bold">
+                                                {new Date(session.date).toLocaleDateString('en-US', { weekday: 'long' })}
+                                            </h3>
+                                            <div className="text-sm opacity-70">
+                                                {new Date(session.date).toLocaleDateString('en-US', { 
                                                     month: 'long', 
                                                     day: 'numeric' 
                                                 })}
-                                            </p>
-                                            <p className="text-sm text-base-content/70">
-                                                {session.startTime} - {session.endTime} ({session.duration} mins) • {session.spotsLeft} spots left
-                                            </p>
+                                            </div>
                                         </div>
-                                        <button
-                                            onClick={() => handleBookClass(session)}
-                                            className={buttonState.className}
-                                            disabled={buttonState.disabled}
-                                        >
-                                            {isBooking ? (
-                                                <>
-                                                    <span className="loading loading-spinner loading-sm"></span>
-                                                    {buttonState.text}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {buttonState.icon && <span className="mr-1">{buttonState.icon}</span>}
-                                                    {buttonState.text}
-                                                </>
-                                            )}
-                                        </button>
+
+                                        {/* Time */}
+                                        <div className="lg:col-span-3">
+                                            <div className="text-primary font-semibold">
+                                                {session.startTime} - {session.endTime}
+                                            </div>
+                                            <div className="text-sm opacity-70">
+                                                {session.duration} minutes
+                                            </div>
+                                        </div>
+
+                                        {/* Spots Available */}
+                                        <div className="lg:col-span-3">
+                                            <div className="text-sm">
+                                                <span className={`font-semibold ${
+                                                    isFull ? 'text-error' : 'text-success'
+                                                }`}>
+                                                    {session.spotsLeft} / {selectedClass.capacity} spots left
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Single Reserve Button - matching ClassSchedule */}
+                                        <div className="lg:col-span-3 flex justify-end">
+                                            <button
+                                                onClick={() => handleBookClass(session)}
+                                                className={`btn ${
+                                                    isPast || isFull || isBooked ? 'btn-disabled' : 'btn-primary'
+                                                }`}
+                                                disabled={isPast || isFull || isBooked || isBooking}
+                                            >
+                                                {isBooking ? 'Booking...' :
+                                                isPast ? 'Past Session' :
+                                                isBooked ? 'Already Booked' :
+                                                isFull ? 'Class Full' :
+                                                'Reserve Spot'}
+                                            </button>
+                                        </div>
                                     </div>
-                                );
-                            })}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center py-20">
+                        <div className="text-base-content/60">
+                            <h3 className="text-xl font-semibold mb-4">No Sessions Available</h3>
+                            <p>No upcoming sessions available for this class.</p>
                         </div>
-                    ) : (
-                        <p className="text-base-content/70">No upcoming sessions available for this class.</p>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
+        </div>
 
             {/* Reviews Section */}
             <div className="card bg-base-100 shadow-xl">

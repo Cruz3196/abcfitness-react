@@ -355,6 +355,7 @@ const TrainerClassDetail = () => {
                                         <option value="Strength Training">Strength Training</option>
                                         <option value="Cardio">Cardio</option>
                                         <option value="Dance">Dance</option>
+                                        <option value="BodySculpt">BodySculpt</option>
                                     </select>
                                 </div>
                                 

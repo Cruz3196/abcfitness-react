@@ -20,7 +20,7 @@ const ProductCard = ({ product }) => {
 
 
     return (
-        <div className="card w-870 card-compact bg-base-100 shadow-xl transition-transform duration-300">
+        <div className="card w-87 card-compact bg-base-100 shadow-md transition-transform duration-300">
             <Link to={`/product/${product._id}`}>
                 <figure>
                     <img

@@ -21,7 +21,7 @@ import TrainerCard from "../components/trainer/TrainerCard";
 
 const TrainerDashboard = () => {
     // ✅ CHANGE: We now get the complete user object, which includes the trainer profile and classes.
-    const { user, updateTrainerProfile, createClass, fetchMyClasses } = userStore();
+    const { user, updateTrainerProfile, createClass, fetchMyClasses, username, email } = userStore();
     const [activeTab, setActiveTab] = useState('profile');
 
     // ✅ ADDED: State management for the modals and form data
@@ -35,6 +35,8 @@ const TrainerDashboard = () => {
     // ✅ ADDED: Handler to open the modal and pre-fill it with current data
     const handleOpenEditModal = () => {
         setEditFormData({
+            username: user?.username || '',
+            email: user?.email || '',
             specialization: user.trainerProfile.specialization || '',
             bio: user.trainerProfile.bio || '',
             certifications: user.trainerProfile.certifications || '',
@@ -250,7 +252,7 @@ const TrainerDashboard = () => {
                 {activeTab === 'profile' && (
                     <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
                         <div className="card-body">
-                             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
                                 <div className="avatar">
                                     <div className="w-32 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
                                         <img src={user?.trainerProfile?.trainerProfilePic || 'https://placehold.co/150'} alt="Trainer Profile"/>
@@ -286,6 +288,8 @@ const TrainerDashboard = () => {
                         <button onClick={() => setIsEditModalOpen(false)} className="btn btn-sm btn-circle absolute right-2 top-2"><X size={20} /></button>
                         <h3 className="font-bold text-lg mb-4">Edit Your Profile</h3>
                         <form onSubmit={handleSubmitUpdate} className="space-y-4">
+                            <div><label className="label"><span className="label-text">Name</span></label><input type="text" name="username" value={editFormData.username} onChange={handleInputChange} className="input input-bordered w-full" /></div>
+                            <div><label className="label"><span className="label-text">Email</span></label><input type="email" name="email" value={editFormData.email} onChange={handleInputChange} className="input input-bordered w-full" /></div>
                             <div><label className="label"><span className="label-text">Specialization</span></label><input type="text" name="specialization" value={editFormData.specialization} onChange={handleInputChange} className="input input-bordered w-full" /></div>
                             <div><label className="label"><span className="label-text">Bio</span></label><textarea name="bio" value={editFormData.bio} onChange={handleInputChange} className="textarea textarea-bordered w-full" rows="3"></textarea></div>
                             <div><label className="label"><span className="label-text">Certifications</span></label><input type="text" name="certifications" value={editFormData.certifications} onChange={handleInputChange} className="input input-bordered w-full" /></div>
@@ -330,6 +334,7 @@ const TrainerDashboard = () => {
                                     <option>HIIT</option>
                                     <option>Zumba</option>
                                     <option>Bootcamp</option>
+                                    <option>BodySculpt</option>
                                 </select>
                             </div>
 

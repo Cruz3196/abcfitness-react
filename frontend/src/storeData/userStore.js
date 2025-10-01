@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import axios from "../api/axios";
 import toast from "react-hot-toast";
+import { classStore } from "./classStore.js"; // Import the class store to sync classes
 
 export const userStore = create((set, get) => ({
     user: null,
@@ -216,8 +217,16 @@ export const userStore = create((set, get) => ({
             // This ensures we get the fresh list of classes, including the new one.
             await get().fetchMyClasses(); 
             
+            // ✅ NEW: Also update the global class store so ClassSchedule updates automatically
+            if (response.data.class) {
+                classStore.getState().addClassToStore(response.data.class);
+            } else {
+                // If the response doesn't include the class, refresh the entire class list
+                classStore.getState().fetchAllClasses();
+            }
+            
             toast.success("Class created successfully!");
-            // No need to set isLoading to false here, fetchMyClasses will do it.
+            set({ isLoading: false }); // Don't forget to set loading false on success
             return true;
         } catch (error) {
             console.error("Create class error:", error);

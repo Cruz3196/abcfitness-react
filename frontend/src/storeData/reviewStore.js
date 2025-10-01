@@ -1,14 +1,6 @@
 import { create } from 'zustand';
 import toast from 'react-hot-toast';
 
-// --- MOCK DATA ---
-const mockReviews = {
-  class1: [
-    { _id: 'r1', user: { _id: 'user1', username: 'Bob Williams', profileImage: 'https://placehold.co/100x100/60a5fa/ffffff?text=B' }, rating: 5, reviewText: 'Alice is an amazing yoga instructor! The class was challenging but accessible. Highly recommended.' },
-    { _id: 'r2', user: { _id: 'user2', username: 'Diana Prince', profileImage: 'https://placehold.co/100x100/c084fc/ffffff?text=D' }, rating: 4, reviewText: 'Great flow and a wonderful atmosphere. Will be back for sure.' },
-  ],
-};
-// ---
 
 export const reviewStore = create((set, get) => ({
   reviews: [],
