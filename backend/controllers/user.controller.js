@@ -459,41 +459,28 @@ export const cancelBooking = async (req, res) => {
         const { bookingId } = req.params;
         const userId = req.user._id;
 
-        // Find the booking
-        const booking = await Booking.findOne({
-            _id: bookingId,
-            user: userId
-        });
+        const booking = await Booking.findOneAndUpdate(
+            { _id: bookingId, user: userId },
+            { 
+                status: 'cancelled',
+                cancelledAt: new Date() // ✅ Track when it was cancelled
+            },
+            { new: true }
+        );
 
         if (!booking) {
-            return res.status(404).json({ message: "Booking not found" });
+            return res.status(404).json({ message: "Booking not found or not owned by user" });
         }
 
-        if (booking.status === 'cancelled') {
-            return res.status(400).json({ message: "Booking is already cancelled" });
-        }
-
-        // Update booking status
-        booking.status = 'cancelled';
-        booking.cancelledAt = new Date();
-        await booking.save();
-
-        // ✅ Remove user from attendees array
-        await Class.findByIdAndUpdate(booking.class, {
-            $pull: { attendees: userId }
+        // ✅ Optional: Add refund logic here if needed
+        
+        res.status(200).json({ 
+            message: "Booking cancelled successfully", 
+            booking 
         });
-
-        console.log('✅ Booking cancelled:', bookingId);
-
-        res.status(200).json({
-            success: true,
-            message: "Booking cancelled successfully",
-            booking
-        });
-
     } catch (error) {
-        console.error("❌ Error cancelling booking:", error);
-        res.status(500).json({ message: "An error occurred while cancelling the booking" });
+        console.error("Error cancelling booking:", error);
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -502,8 +489,15 @@ export const submitFeedback = async (req, res) => {
     try {
         // Getting the class ID from the URL and the feedback from the body.
         const { classId } = req.params;
-        const { rating, reviewText } = req.body;
+        const { rating: ratingStr, reviewText } = req.body;
         const userId = req.user._id;
+
+        // ✅ Parse and validate rating
+        const rating = parseInt(ratingStr, 10);
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: "Rating must be a number between 1 and 5" });
+        }
+
 
         //Finding the class by its primary _id.
         const classInstance = await Class.findById(classId);
@@ -526,6 +520,15 @@ export const submitFeedback = async (req, res) => {
             reviewText,
         });
 
+
+        // ✅ Populate the user data before sending response
+        const populatedReview = await Review.findById(newReview._id)
+            .populate({
+                path: 'user',
+                select: 'username profileImage'
+            });
+
+
         const trainer = await Trainer.findById(classInstance.trainer);
         if (!trainer) {
             return res.status(404).json({ message: "Trainer associated with this class not found" });
@@ -539,7 +542,11 @@ export const submitFeedback = async (req, res) => {
         trainer.rating.totalReviews = newTotalReviews;
         await trainer.save();
 
-        res.status(201).json({ message: "Feedback submitted successfully!", review: newReview });
+        // ✅ Return the populated review instead of the raw one
+        res.status(201).json({ 
+            message: "Feedback submitted successfully!", 
+            review: populatedReview 
+        });
 
     } catch (error) {
         console.log("Error in submitFeedback controller:", error.message);

@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
 		},
 		bookings: [
 			{
-				type: String,
+				type: mongoose.Schema.Types.ObjectId, // ✅ Changed from String to ObjectId
 				ref: "Booking",
 			}
 		],

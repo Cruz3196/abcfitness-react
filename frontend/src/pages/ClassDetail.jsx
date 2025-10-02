@@ -3,8 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Users, DollarSign, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
-import RatingCard from '../components/rating/RatingCard';
-import RatingForm from '../components/rating/RatingForm';
+// import RatingCard from '../components/rating/RatingCard';
+// import RatingForm from '../components/rating/RatingForm';
 import Spinner from '../components/common/Spinner';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { classStore } from '../storeData/classStore';
@@ -310,10 +310,10 @@ useEffect(() => {
                             <Clock size={16} className="text-primary" />
                             <span className="text-sm">{selectedClass.duration} minutes</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        {/* <div className="flex items-center gap-2">
                             <Users size={16} className="text-primary" />
                             <span className="text-sm">{selectedClass.capacity} max capacity</span>
-                        </div>
+                        </div> */}
                         <div className="flex items-center gap-2">
                             <DollarSign size={16} className="text-primary" />
                             <span className="text-sm">${selectedClass.price} per session</span>
@@ -379,7 +379,7 @@ useEffect(() => {
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-6 text-sm text-base-content/70">
-                                                        <div className="flex items-center gap-1">
+                                                        {/* <div className="flex items-center gap-1">
                                                             <Users size={16} />
                                                             <span>
                                                                 <span className={`font-semibold ${
@@ -388,10 +388,10 @@ useEffect(() => {
                                                                     {session.spotsLeft}
                                                                 </span> spots left
                                                             </span>
-                                                        </div>
+                                                        </div> */}
                                                         <div className="flex items-center gap-1">
                                                             <DollarSign size={16} />
-                                                            <span>${selectedClass.price} per session</span>
+                                                            <span>{selectedClass.price} per session</span>
                                                         </div>
                                                         <div className="text-xs">
                                                             {selectedClass.duration} minutes
@@ -410,10 +410,10 @@ useEffect(() => {
                                             
                                             {/* Progress bar for spots */}
                                             <div className="mt-4">
-                                                <div className="flex justify-between text-xs mb-2">
+                                                {/* <div className="flex justify-between text-xs mb-2">
                                                     <span>Capacity</span>
                                                     <span>{selectedClass.capacity - session.spotsLeft}/{selectedClass.capacity}</span>
-                                                </div>
+                                                </div> */}
                                                 <progress 
                                                     className="progress progress-primary w-full" 
                                                     value={selectedClass.capacity - session.spotsLeft} 
@@ -443,7 +443,7 @@ useEffect(() => {
             </motion.div>
 
             {/* Reviews Section */}
-            <motion.div 
+            {/* <motion.div 
                 className="card bg-base-100 shadow-xl"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -481,7 +481,7 @@ useEffect(() => {
                         />
                     )}
                 </div>
-            </motion.div>
+            </motion.div> */}
 
             {/* Booking Confirmation Modal */}
             {latestBooking && (

@@ -379,16 +379,17 @@ fetchMyBookings: async (force = false) => {
     }
 },
 
-    // Replace the cancelBooking function:
+// Replace the cancelBooking function:
 cancelBooking: async (bookingId) => {
     try {
         set({ isLoading: true });
         
         console.log('🚀 Cancelling booking:', bookingId);
-        
-        const response = await axios.delete(`/user/bookings/${bookingId}`);
-        
-        if (response.data.success) {
+
+        const response = await axios.delete(`/user/cancelBooking/${bookingId}`);
+
+        // ✅ Check for successful response (status 200) instead of response.data.success
+        if (response.status === 200 && response.data.message) {
             console.log('✅ Booking cancelled successfully');
             
             // ✅ Force refresh bookings to get updated data
@@ -406,7 +407,7 @@ cancelBooking: async (bookingId) => {
                 set({ 
                     user: { 
                         ...currentUser, 
-                        bookings: updatedBookings // ✅ Use 'bookings' not 'upcomingBookings'
+                        bookings: updatedBookings
                     } 
                 });
             }
@@ -417,6 +418,12 @@ cancelBooking: async (bookingId) => {
         }
     } catch (error) {
         console.error('❌ Error cancelling booking:', error);
+        
+        // ✅ Better error handling - don't throw if cancellation was actually successful
+        if (error.response?.status === 200 || error.message?.includes('successfully')) {
+            // It was actually successful, just return success
+            return { success: true };
+        }
         
         // Better error messages based on status code
         if (error.response?.status === 404) {

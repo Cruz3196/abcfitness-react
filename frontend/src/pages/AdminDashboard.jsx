@@ -70,11 +70,9 @@ const AdminDashboard = () => {
         users, 
         trainers,
         dashboardStats, 
-        pendingTrainers,
         isLoading: isLoadingAdmin, 
         fetchAllUsers, 
         fetchDashboardStats,
-        fetchPendingTrainers,
         fetchClassInsights,
         deleteUser,
         changeUserStatus,
@@ -86,7 +84,6 @@ const AdminDashboard = () => {
         switch (activeTab) {
             case 'overview':
                 fetchDashboardStats();
-                fetchPendingTrainers();
                 break;
             case 'users':
                 fetchAllUsers();
@@ -103,7 +100,7 @@ const AdminDashboard = () => {
             default:
                 break;
         }
-    }, [activeTab, fetchAllUsers, fetchDashboardStats, fetchPendingTrainers, fetchAllProducts, fetchAllTrainers, fetchClassInsights]);
+    }, [activeTab, fetchAllUsers, fetchDashboardStats, fetchAllProducts, fetchAllTrainers, fetchClassInsights]);
 
 
     // Handle user deletion with confirmation
@@ -250,39 +247,6 @@ const AdminDashboard = () => {
                                 <div className="stat-desc">Products + Classes</div>
                             </motion.div>
                         </div>
-
-                        {/* Pending Trainer Approvals */}
-                        <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                            <div className="card-body">
-                                <h2 className="card-title">Pending Trainer Profiles</h2>
-                                {isLoadingAdmin ? (
-                                    <div className="flex justify-center py-4">
-                                        <span className="loading loading-spinner loading-md"></span>
-                                    </div>
-                                ) : pendingTrainers.length === 0 ? (
-                                    <p className="text-base-content/70">No pending trainer profiles</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {pendingTrainers.map(trainer => (
-                                            <div key={trainer._id} className="flex items-center justify-between p-3 border border-base-300 rounded-lg">
-                                                <div>
-                                                        <h3 className="font-bold text-lg">
-                                                            {trainer.username || 'Unknown Trainer'}
-                                                        </h3>
-                                                        <p className="text-sm text-base-content/70">
-                                                            {trainer.email}
-                                                        </p>
-                                                    <p className="text-xs text-base-content/50">
-                                                        Joined: {new Date(trainer.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                </div>
-                                                <div className="badge badge-warning">Needs Profile Setup</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
                     </motion.div>
                 )}
 

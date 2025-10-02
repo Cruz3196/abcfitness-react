@@ -199,7 +199,6 @@ const TrainerDashboard = () => {
                 <motion.div className="tabs tabs-boxed mb-8" variants={itemVariants}>
                     <button className={`tab ${activeTab === 'profile' ? 'tab-active' : ''}`} onClick={() => setActiveTab('profile')}>Profile</button>
                     <button className={`tab ${activeTab === 'classes' ? 'tab-active' : ''}`} onClick={() => setActiveTab('classes')}>My Classes</button>
-                    <button className={`tab ${activeTab === 'schedule' ? 'tab-active' : ''}`} onClick={() => setActiveTab('schedule')}>Schedule</button>
                 </motion.div>
 
                 {/* Classes Tab Content */}
@@ -235,16 +234,6 @@ const TrainerDashboard = () => {
                                     </button>
                                 </div>
                             )}
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Schedule Tab Content */}
-                {activeTab === 'schedule' && (
-                    <motion.div className="card bg-base-100 shadow-lg" variants={itemVariants}>
-                        <div className="card-body">
-                            <h2 className="card-title mb-4">My Schedule</h2>
-                            <p className="text-base-content/70">Schedule management interface coming soon...</p>
                         </div>
                     </motion.div>
                 )}

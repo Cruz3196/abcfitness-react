@@ -48,14 +48,14 @@ const ClassCard = ({ classInfo }) => {
                         <Clock size={16} className="text-primary" />
                         <span>{classInfo.duration} minutes</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                         <Users size={16} className="text-primary" />
                         <span>{classInfo.attendees?.length || 0} / {classInfo.capacity} Spots</span>
-                        {/* ✅ ADD: Show "FULL" badge when class reaches capacity */}
+
                         {(classInfo.attendees?.length >= classInfo.capacity) && (
                             <span className="badge badge-error badge-sm ml-1">FULL</span>
                         )}
-                    </div>
+                    </div> */}
                     <div className="flex items-center gap-2">
                         <DollarSign size={16} className="text-primary" />
                         <span>${classInfo.price}</span>

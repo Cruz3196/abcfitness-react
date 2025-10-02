@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 import Booking from "../models/booking.model.js";
 import Class from "../models/class.model.js";
 import { stripe } from "../lib/stripe.js";
-import { sendOrderConfirmationEmail } from "../utils/nodemailerConfig.js";
+import { sendOrderConfirmationEmail} from "../utils/nodemailerConfig.js";
 
  // Creates a Stripe checkout session for a list of products from a shopping cart.
 export const createCheckoutSession = async (req, res) => {
@@ -173,125 +173,242 @@ export const checkoutSuccess = async (req, res) => {
 
 
 //Creates a Stripe checkout session for a single class booking.
-export const createBookingCheckoutSession = async (req, res) => {
+//Creates a Stripe checkout session for a single class booking.
+export const createClassCheckoutSession = async (req, res) => {
     try {
-        const { bookingId } = req.body;
+        const { classId, sessionDate } = req.body;
         const userId = req.user._id;
 
-        if (!bookingId) {
-            return res.status(400).json({ message: "Booking ID is required" });
+        console.log('🚀 Creating class checkout session:', { classId, sessionDate, userId });
+
+        if (!classId || !sessionDate) {
+            return res.status(400).json({ message: "Class ID and session date are required" });
         }
 
-        const booking = await Booking.findOne({ _id: bookingId, user: userId });
-        if (!booking) {
-            return res.status(404).json({ message: "Booking not found or not owned by user." });
-        }
-        if (booking.paymentStatus === 'paid') {
-            return res.status(400).json({ message: "This booking has already been paid for." });
-        }
-
-        const classDetails = await Class.findById(booking.class);
+        // Fetch class details
+        const classDetails = await Class.findById(classId);
         if (!classDetails) {
-            return res.status(404).json({ message: "Associated class not found." });
+            return res.status(404).json({ message: "Class not found." });
         }
 
+        console.log('✅ Class details found:', classDetails.classTitle);
+
+        // ✅ Check if user already has an ACTIVE (non-cancelled) booking for this session
+        const existingBooking = await Booking.findOne({
+            user: userId,
+            class: classId,
+            sessionDate: sessionDate,
+            paymentStatus: 'paid',
+            status: { $ne: 'cancelled' } // ✅ Exclude cancelled bookings
+        });
+
+        if (existingBooking) {
+            return res.status(400).json({ message: "You have already booked this session." });
+        }
+
+        console.log('✅ No existing booking found, proceeding with checkout...');
+
+        // ✅ Create Stripe line items
         const lineItems = [{
             price_data: {
                 currency: "usd",
                 product_data: {
                     name: classDetails.classTitle,
                     images: [classDetails.classPic],
+                    description: `${classDetails.classType} - ${new Date(sessionDate).toLocaleDateString()} at ${classDetails.timeSlot?.startTime || 'TBD'}`
                 },
-                unit_amount: Math.round(classDetails.price * 100),
+                unit_amount: Math.round(classDetails.price * 100), // Convert to cents
             },
             quantity: 1,
         }];
 
+        console.log('✅ Line items created');
+
+        // ✅ Create Stripe checkout session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
             line_items: lineItems,
             mode: "payment",
             success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.CLIENT_URL}/booking-cancel`,
+            cancel_url: `${process.env.CLIENT_URL}/classes/${classId}`,
             metadata: {
-                bookingId: bookingId,
+                classId: classId,
+                sessionDate: sessionDate,
+                userId: userId.toString(),
+                type: 'class_booking',
+                // ✅ Store additional info for easier access
+                classTitle: classDetails.classTitle,
+                startTime: classDetails.timeSlot?.startTime || "09:00",
+                endTime: classDetails.timeSlot?.endTime || "10:00"
             },
         });
 
-        res.status(200).json({ id: session.id, url: session.url });
+        console.log('✅ Stripe session created:', session.id);
+
+        res.status(200).json({ 
+            id: session.id, 
+            url: session.url,
+            success: true 
+        });
+
     } catch (error) {
-        console.log("Error in createBookingCheckoutSession:", error);
-        res.status(500).json({ message: "Server Error" });
+        console.error("❌ Error in createClassCheckoutSession:", error);
+        res.status(500).json({ 
+            message: "Server Error", 
+            error: error.message,
+            success: false 
+        });
     }
 };
 
-
 //Verifies a successful booking payment and updates the booking status.
 
-export const bookingCheckoutSuccess = async (req, res) => {
+export const classCheckoutSuccess = async (req, res) => {
+    console.log('🚀 classCheckoutSuccess endpoint hit!');
+    console.log('Request body:', req.body);
+    
     try {
         const { session_id } = req.body;
+        
         if (!session_id) {
-            return res.status(400).json({ message: "Session ID is required" });
+            console.log('❌ No session_id provided');
+            return res.status(400).json({ 
+                success: false, 
+                message: "Session ID is required" 
+            });
         }
 
+        console.log('🔍 Retrieving Stripe session:', session_id);
         const session = await stripe.checkout.sessions.retrieve(session_id);
+        console.log('✅ Stripe session retrieved:', session.payment_status);
 
         if (session.payment_status === "paid") {
-            const bookingId = session.metadata.bookingId;
+            const { classId, sessionDate, userId } = session.metadata;
+            console.log('📝 Session metadata:', { classId, sessionDate, userId });
 
-            const updatedBooking = await Booking.findByIdAndUpdate(
-                bookingId,
-                { $set: { paymentStatus: 'paid', status: 'upcoming' } },
-                { new: true }
-            ).populate('user').populate({
-                path: 'class',
-                populate: {
-                    path: 'trainer',
-                    populate: {
-                        path: 'user',
-                        select: 'username email'
-                    }
-                }
+            // Check if booking already exists (prevent duplicates)
+            const existingBooking = await Booking.findOne({
+                user: userId,
+                class: classId,
+                sessionDate: sessionDate,
+                paymentStatus: 'paid'
             });
 
-            if (!updatedBooking) {
-                return res.status(404).json({ message: "Booking not found to update." });
+            if (existingBooking) {
+                console.log('✅ Booking already exists:', existingBooking._id);
+                return res.status(200).json({
+                    success: true,
+                    message: "Booking already confirmed",
+                    bookingId: existingBooking._id,
+                });
             }
 
-            // --- SEND CONFIRMATION EMAILS ---
-            const user = updatedBooking.user;
-            const classDetails = updatedBooking.class;
-            const trainerUser = updatedBooking.class.trainer.user;
-
-            // 1. Send email to the CUSTOMER
-            try {
-                const subject = `Booking Confirmation: ${classDetails.classTitle}`;
-                const text = `Hi ${user.username},\n\nThis confirms your booking for the class:\n\nClass: ${classDetails.classTitle}\nDate: ${updatedBooking.startTime.toDateString()}\nTime: ${classDetails.timeSlot.startTime}\n\nWe look forward to seeing you!`;
-                await sendEmail(user.email, subject, text);
-            } catch (emailError) {
-                console.error("Failed to send booking confirmation email to user:", emailError);
+            // ✅ Fetch class details to get the time information
+            const classDetails = await Class.findById(classId);
+            if (!classDetails) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Class not found"
+                });
             }
 
-            // 2. Send notification email to the TRAINER
-            try {
-                const subject = `New Booking for Your Class: ${classDetails.classTitle}`;
-                const text = `Hi ${trainerUser.username},\n\nA new user, ${user.username}, has just booked your class "${classDetails.classTitle}" for ${updatedBooking.startTime.toDateString()} at ${classDetails.timeSlot.startTime}.\n\nYour class roster has been updated.`;
-                await sendEmail(trainerUser.email, subject, text);
-            } catch (emailError) {
-                console.error("Failed to send new booking notification to trainer:", emailError);
+            // ✅ Calculate start and end times
+            const sessionDateObj = new Date(sessionDate);
+            
+            // Extract time from class timeSlot and create proper Date objects
+            const startTimeStr = classDetails.timeSlot?.startTime || "09:00";
+            const endTimeStr = classDetails.timeSlot?.endTime || "10:00";
+            
+            // Create start time by combining session date with class start time
+            const [startHours, startMinutes] = startTimeStr.split(':').map(Number);
+            const startTime = new Date(sessionDateObj);
+            startTime.setHours(startHours, startMinutes, 0, 0);
+            
+            // Create end time by combining session date with class end time
+            const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
+            const endTime = new Date(sessionDateObj);
+            endTime.setHours(endHours, endMinutes, 0, 0);
+
+            console.log('🕐 Calculated times:', {
+                sessionDate: sessionDateObj,
+                startTime: startTime,
+                endTime: endTime,
+                classTimeSlot: classDetails.timeSlot
+            });
+
+            // ✅ Create the booking with all required fields
+            const newBooking = new Booking({
+                user: userId,
+                class: classId,
+                sessionDate: sessionDateObj,
+                startTime: startTime,
+                endTime: endTime, // ✅ Now including the required endTime
+                paymentStatus: 'paid',
+                status: 'upcoming',
+                stripeSessionId: session_id
+            });
+
+            const savedBooking = await newBooking.save();
+            console.log('✅ New booking created:', savedBooking._id);
+
+            // Populate for email sending
+            const populatedBooking = await Booking.findById(savedBooking._id)
+                .populate('user')
+                .populate({
+                    path: 'class',
+                    populate: {
+                        path: 'trainer',
+                        populate: {
+                            path: 'user',
+                            select: 'username email'
+                        }
+                    }
+                });
+
+            // Send confirmation emails
+            if (populatedBooking) {
+                const user = populatedBooking.user;
+                const classInfo = populatedBooking.class;
+                
+                // Only send emails if we have the email utility available
+                if (typeof sendEmail === 'function') {
+                    try {
+                        // 1. Send email to the CUSTOMER
+                        const customerSubject = `Booking Confirmation: ${classInfo.classTitle}`;
+                        const customerText = `Hi ${user.username},\n\nThis confirms your booking for the class:\n\nClass: ${classInfo.classTitle}\nDate: ${new Date(populatedBooking.sessionDate).toDateString()}\nTime: ${startTimeStr} - ${endTimeStr}\n\nWe look forward to seeing you!`;
+                        await sendEmail(user.email, customerSubject, customerText);
+
+                        // 2. Send notification email to the TRAINER (if trainer exists)
+                        if (classInfo.trainer?.user?.email) {
+                            const trainerSubject = `New Booking for Your Class: ${classInfo.classTitle}`;
+                            const trainerText = `Hi ${classInfo.trainer.user.username},\n\nA new user, ${user.username}, has just booked your class "${classInfo.classTitle}" for ${new Date(populatedBooking.sessionDate).toDateString()} at ${startTimeStr} - ${endTimeStr}.\n\nYour class roster has been updated.`;
+                            await sendEmail(classInfo.trainer.user.email, trainerSubject, trainerText);
+                        }
+                    } catch (emailError) {
+                        console.error("Failed to send confirmation emails:", emailError);
+                        // Don't fail the booking if email fails
+                    }
+                }
             }
 
             res.status(200).json({
                 success: true,
                 message: "Payment successful and booking confirmed",
-                bookingId: updatedBooking._id,
+                bookingId: savedBooking._id,
             });
         } else {
-            res.status(400).json({ success: false, message: "Payment not successful" });
+            console.log('❌ Payment not successful:', session.payment_status);
+            res.status(400).json({ 
+                success: false, 
+                message: "Payment not successful" 
+            });
         }
     } catch (error) {
-        console.log("Error in bookingCheckoutSuccess:", error);
-        res.status(500).json({ message: "Server Error" });
+        console.error("❌ Error in classCheckoutSuccess:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Server Error", 
+            error: error.message 
+        });
     }
 };

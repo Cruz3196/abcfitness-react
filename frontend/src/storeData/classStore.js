@@ -66,7 +66,6 @@ export const classStore = create((set, get) => ({
         }
     },
 
-    // ✅ ADD: Book a class function
     // Book a class
     bookClass: async (classId, sessionDate) => {
         set({ isBooking: true });

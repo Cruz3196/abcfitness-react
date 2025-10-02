@@ -15,7 +15,7 @@ const classSchema = new mongoose.Schema({
 // class description of the class
     classDescription:{
         type: String,
-        required: true
+        required: false
     },
 // 
     classType: {
