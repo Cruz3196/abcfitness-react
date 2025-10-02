@@ -214,27 +214,31 @@ export const userStore = create((set, get) => ({
     createClass: async (classData) => {
         set({ isLoading: true });
         try {
+            // ✅ Send classDescription instead of description to match your backend schema
+            const sanitizedClassData = {
+                classTitle: classData.classTitle,
+                classDescription: classData.classDescription || "", // ✅ Keep as classDescription
+                classType: classData.classType || "General",
+                duration: classData.duration || 60,
+                timeSlot: classData.timeSlot,
+                classPic: classData.classPic || "",
+                capacity: classData.capacity || 10,
+                price: classData.price || 0
+            };
             
-            await axios.post("/trainer/createClass", classData);
+            console.log('📤 Sending class data:', sanitizedClassData);
             
-            // ✅ CRITICAL CHANGE: Instead of checkAuthStatus, call our new function
-            // This ensures we get the fresh list of classes, including the new one.
+            const response = await axios.post("/trainer/createClass", sanitizedClassData);
+            
             await get().fetchMyClasses(); 
             
-            // ✅ NEW: Also update the global class store so ClassSchedule updates automatically
-            if (response.data.class) {
-                classStore.getState().addClassToStore(response.data.class);
-            } else {
-                // If the response doesn't include the class, refresh the entire class list
-                classStore.getState().fetchAllClasses();
-            }
-            
             toast.success("Class created successfully!");
-            set({ isLoading: false }); // Don't forget to set loading false on success
+            set({ isLoading: false });
             return true;
         } catch (error) {
             console.error("Create class error:", error);
-            set({ isLoading: false }); // Set loading false on error
+            console.error("Error response:", error.response?.data);
+            set({ isLoading: false });
             
             if (error.response?.data?.details) {
                 const validationErrors = error.response.data.details;
@@ -376,40 +380,56 @@ fetchMyBookings: async (force = false) => {
 },
 
     // Replace the cancelBooking function:
-    cancelBooking: async (bookingId) => {
-        try {
-            set({ isLoading: true });
+cancelBooking: async (bookingId) => {
+    try {
+        set({ isLoading: true });
+        
+        console.log('🚀 Cancelling booking:', bookingId);
+        
+        const response = await axios.delete(`/user/bookings/${bookingId}`);
+        
+        if (response.data.success) {
+            console.log('✅ Booking cancelled successfully');
             
-            // ✅ Use the correct route that matches your backend
-            const response = await axios.delete(`/user/cancelBooking/${bookingId}`);
+            // ✅ Force refresh bookings to get updated data
+            await get().fetchMyBookings(true); // Force refresh
             
-            if (response.data.success) {
-                // ✅ Update the local state to reflect the cancellation
-                set(state => ({
-                    bookings: state.bookings.map(booking => 
-                        booking._id === bookingId 
-                            ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
-                            : booking
-                    ),
-                    user: {
-                        ...state.user,
-                        bookings: state.user.bookings?.map(booking => 
-                            booking._id === bookingId 
-                                ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
-                                : booking
-                        ) || []
-                    }
-                }));
+            // ✅ Update the current user state with correct property names
+            const currentUser = get().user;
+            if (currentUser && currentUser.bookings) {
+                const updatedBookings = currentUser.bookings.map(booking =>
+                    booking._id === bookingId 
+                        ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
+                        : booking
+                );
                 
-                return response.data;
+                set({ 
+                    user: { 
+                        ...currentUser, 
+                        bookings: updatedBookings // ✅ Use 'bookings' not 'upcomingBookings'
+                    } 
+                });
             }
-        } catch (error) {
-            console.error('Cancel booking error:', error);
-            throw error;
-        } finally {
-            set({ isLoading: false });
+            
+            return { success: true };
+        } else {
+            throw new Error(response.data.message || 'Failed to cancel booking');
         }
-    },
+    } catch (error) {
+        console.error('❌ Error cancelling booking:', error);
+        
+        // Better error messages based on status code
+        if (error.response?.status === 404) {
+            throw new Error('Booking not found or already cancelled');
+        } else if (error.response?.status === 403) {
+            throw new Error('You are not authorized to cancel this booking');
+        } else {
+            throw new Error(error.response?.data?.message || 'Failed to cancel booking');
+        }
+    } finally {
+        set({ isLoading: false });
+    }
+},
 
     // Optional: Action to clear the selected class when leaving the page
     clearSelectedClass: () => {
@@ -424,7 +444,13 @@ axios.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url.includes('/user/login') &&
+            !originalRequest.url.includes('/user/signup') &&
+            !originalRequest.url.includes('/user/refresh-token')
+        ) {
             originalRequest._retry = true;
 
             try {

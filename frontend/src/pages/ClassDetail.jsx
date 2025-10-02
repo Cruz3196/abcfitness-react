@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Calendar, Clock, Users, DollarSign, ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Calendar, Clock, Users, DollarSign, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
 import RatingCard from '../components/rating/RatingCard';
 import RatingForm from '../components/rating/RatingForm';
 import Spinner from '../components/common/Spinner';
@@ -8,14 +10,19 @@ import Breadcrumbs from '../components/common/Breadcrumbs';
 import { classStore } from '../storeData/classStore';
 import { userStore } from '../storeData/userStore';
 import { reviewStore } from '../storeData/reviewStore';
+import axios from '../api/axios';
 import toast from 'react-hot-toast';
 import BookingCard from '../components/user/BookingCard';
+
+// ✅ Load Stripe with your publishable key
+const stripePromise = loadStripe("pk_test_51S9WGyIEpMTZmgDrULbvg0KMshtzSdkQmHiojffBNMBXnxcO6XPk4TkVrramUD783saSb1y5LLmEnRUifA8B7nUm00VYLvV1Ag");
 
 const ClassDetail = () => {
     const { id } = useParams();
     const { user, fetchMyBookings } = userStore();
     const [latestBooking, setLatestBooking] = useState(null);
     const [bookedSessions, setBookedSessions] = useState(new Set());
+    const [isProcessing, setIsProcessing] = useState(false);
     
     const { 
         selectedClass, 
@@ -24,12 +31,11 @@ const ClassDetail = () => {
         isBooking, 
         error, 
         fetchClassById, 
-        bookClass, // ✅ Now using classStore's bookClass
+        bookClass,
         clearSelectedClass 
     } = classStore();
 
     // fetching from the review store 
-        // ✅ Add review store state
     const { 
         reviews, 
         isLoading: reviewsLoading, 
@@ -77,7 +83,6 @@ const ClassDetail = () => {
     };
 
     // Function to generate a unique localStorage key per user and class
-
     const getStorageKey = () => {
         if (user && id) {
             return `booked_${user._id}_${id}`;
@@ -113,60 +118,72 @@ const ClassDetail = () => {
     }, [id, user]);
 
     // Sync with user's actual bookings from server
-    useEffect(() => {
-        if (user && selectedClass && user.upcomingBookings) {
-            const userBookedDatesForThisClass = new Set(
-                user.upcomingBookings
-                    .filter(booking => booking.class?._id === selectedClass._id)
-                    .map(booking => new Date(booking.sessionDate).toISOString().split('T')[0])
-            );
-            
-            setBookedSessions(userBookedDatesForThisClass);
+useEffect(() => {
+    if (user && selectedClass && user.bookings) { // ✅ Use 'bookings' not 'upcomingBookings'
+        // ✅ Only count bookings that are NOT cancelled
+        const userBookedDatesForThisClass = new Set(
+            user.bookings
+                .filter(booking => 
+                    booking.class?._id === selectedClass._id && 
+                    booking.status !== 'cancelled' && // ✅ Exclude cancelled bookings
+                    booking.paymentStatus === 'paid'   // ✅ Only count paid bookings
+                )
+                .map(booking => new Date(booking.sessionDate).toISOString().split('T')[0])
+        );
+        
+        setBookedSessions(userBookedDatesForThisClass);
 
-            // Sync localStorage with server state
-            const storageKey = getStorageKey();
-            if (storageKey) {
-                localStorage.setItem(storageKey, JSON.stringify([...userBookedDatesForThisClass]));
-            }
+        // Sync localStorage with server state
+        const storageKey = getStorageKey();
+        if (storageKey) {
+            localStorage.setItem(storageKey, JSON.stringify([...userBookedDatesForThisClass]));
         }
-    }, [user, selectedClass]);
+    }
+}, [user?.bookings, selectedClass]) // ✅ Listen specifically to bookings changes
 
+    // ✅ Updated handleBookClass with Stripe integration
     const handleBookClass = async (session) => {
         if (!user) {
             toast.error('Please log in to book a class');
             return;
         }
         
-        // ✅ Use unique session identifier
-        const sessionKey = session.sessionKey || `${session.date}_${session.startTime}`;
+        setIsProcessing(true);
         
-        const result = await bookClass(id, session.date);
-
-        if (result.success) {
-            // ✅ Track individual session bookings
-            const newBookedSessions = new Set([...bookedSessions, sessionKey]);
-            setBookedSessions(newBookedSessions);
+        try {
+            console.log('Creating checkout session for:', { classId: id, sessionDate: session.date });
             
-            // ✅ Persist to localStorage with user-specific key
-            const storageKey = `booked_sessions_${user._id}_${id}`;
-            localStorage.setItem(storageKey, JSON.stringify([...newBookedSessions]));
-            
-            setLatestBooking({
-                _id: result.booking._id,
-                class: selectedClass,
-                sessionDate: result.sessionDate,
-                status: 'upcoming'
+            // ✅ Create Stripe checkout session directly (no booking yet)
+            const response = await axios.post('/payment/createClassCheckoutSession', {
+                classId: id,
+                sessionDate: session.date
             });
-            
-            // ✅ Refresh user bookings
-            await fetchMyBookings();
+
+            const sessionData = response.data;
+            console.log('✅ Stripe session created:', sessionData);
+
+            // ✅ Redirect to Stripe checkout
+            const stripe = await stripePromise;
+            const result = await stripe.redirectToCheckout({
+                sessionId: sessionData.id
+            });
+
+            if (result.error) {
+                console.error('Stripe error:', result.error);
+                toast.error(result.error.message);
+            }
+        } catch (error) {
+            console.error('Checkout error:', error);
+            toast.error(error.response?.data?.message || 'Failed to process payment');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     // Function to determine button state
     const getButtonState = (session) => {
-        const sessionKey = session.sessionKey || `${session.date}_${session.startTime}`;
-        const isBooked = bookedSessions.has(sessionKey);
+        const sessionDateString = session.date;
+        const isBooked = bookedSessions.has(sessionDateString);
         const isFull = session.spotsLeft <= 0;
         const isPast = new Date(session.date) < new Date();
         
@@ -174,41 +191,49 @@ const ClassDetail = () => {
             return {
                 text: 'Past Session',
                 disabled: true,
-                className: 'btn btn-disabled btn-sm',
+                className: 'btn btn-disabled',
                 icon: null
             };
         } else if (isBooked) {
             return {
-                text: 'Booked ✓',
+                text: 'Already Booked',
                 disabled: true,
-                className: 'btn btn-success btn-sm',
+                className: 'btn btn-success',
                 icon: '✓'
             };
         } else if (isFull) {
             return {
-                text: 'Full',
+                text: 'Class Full',
                 disabled: true,
-                className: 'btn btn-disabled btn-sm',
+                className: 'btn btn-error',
                 icon: null
             };
-        } else if (isBooking) {
+        } else if (isProcessing) {
             return {
-                text: 'Booking...',
+                text: (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Processing...
+                    </>
+                ),
                 disabled: true,
-                className: 'btn btn-primary btn-sm loading',
+                className: 'btn btn-primary',
                 icon: null
             };
         } else {
             return {
-                text: `Book for $${selectedClass.price}`,
+                text: (
+                    <>
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Reserve Spot - ${selectedClass.price}
+                    </>
+                ),
                 disabled: false,
-                className: 'btn btn-primary btn-sm',
+                className: 'btn btn-primary',
                 icon: null
             };
         }
     };
-
-    // ... rest of the handlers remain the same ...
 
     if (isLoading) {
         return <div className="flex justify-center pt-20"><Spinner /></div>;
@@ -243,7 +268,13 @@ const ClassDetail = () => {
                 <Breadcrumbs paths={breadcrumbPaths} />
             </div>
 
-            <div className="card lg:card-side bg-base-100 shadow-xl mb-8">
+            {/* Class Info Card */}
+            <motion.div 
+                className="card lg:card-side bg-base-100 shadow-xl mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
                 <figure className="lg:w-2/5">
                     <img 
                         src={selectedClass.classPic || 'https://placehold.co/600x400?text=Class'} 
@@ -289,90 +320,135 @@ const ClassDetail = () => {
                         </div>
                     </div>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Booking Section */}
-        <div className="card bg-base-100 shadow-xl mb-8">
-            <div className="card-body">
-                <h2 className="card-title text-2xl mb-4">Book Your Spot</h2>
-                {availableSessions.length > 0 ? (
-                    <div className="space-y-1">
-                        {availableSessions.map(session => {
-                            const isBooked = bookedSessions.has(session.date);
-                            const isFull = session.spotsLeft <= 0;
-                            const isPast = new Date(session.date) < new Date();
-                            
-                            return (
-                                <div key={session.date} className="bg-base-100 border-b border-base-300 py-6 hover:bg-base-50 transition-colors">
-                                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                                        {/* Date */}
-                                        <div className="lg:col-span-3">
-                                            <h3 className="text-lg font-bold">
-                                                {new Date(session.date).toLocaleDateString('en-US', { weekday: 'long' })}
-                                            </h3>
-                                            <div className="text-sm opacity-70">
-                                                {new Date(session.date).toLocaleDateString('en-US', { 
-                                                    month: 'long', 
-                                                    day: 'numeric' 
-                                                })}
-                                            </div>
-                                        </div>
-
-                                        {/* Time */}
-                                        <div className="lg:col-span-3">
-                                            <div className="text-primary font-semibold">
-                                                {session.startTime} - {session.endTime}
-                                            </div>
-                                            <div className="text-sm opacity-70">
-                                                {session.duration} minutes
-                                            </div>
-                                        </div>
-
-                                        {/* Spots Available */}
-                                        <div className="lg:col-span-3">
-                                            <div className="text-sm">
-                                                <span className={`font-semibold ${
-                                                    isFull ? 'text-error' : 'text-success'
-                                                }`}>
-                                                    {session.spotsLeft} / {selectedClass.capacity} spots left
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Single Reserve Button - matching ClassSchedule */}
-                                        <div className="lg:col-span-3 flex justify-end">
-                                            <button
-                                                onClick={() => handleBookClass(session)}
-                                                className={`btn ${
-                                                    isPast || isFull || isBooked ? 'btn-disabled' : 'btn-primary'
-                                                }`}
-                                                disabled={isPast || isFull || isBooked || isBooking}
-                                            >
-                                                {isBooking ? 'Booking...' :
-                                                isPast ? 'Past Session' :
-                                                isBooked ? 'Already Booked' :
-                                                isFull ? 'Class Full' :
-                                                'Reserve Spot'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-20">
-                        <div className="text-base-content/60">
-                            <h3 className="text-xl font-semibold mb-4">No Sessions Available</h3>
-                            <p>No upcoming sessions available for this class.</p>
+            <motion.div 
+                className="card bg-base-100 shadow-xl mb-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.5 }}
+            >
+                <div className="card-body">
+                    <h2 className="card-title text-2xl mb-4">Book Your Spot</h2>
+                    
+                    {!user && (
+                        <div className="alert alert-warning mb-4">
+                            <span>Please log in to book a class</span>
                         </div>
+                    )}
+                    
+                    {availableSessions.length > 0 ? (
+                        <div className="space-y-4">
+                            {availableSessions.map((session, index) => {
+                                const buttonState = getButtonState(session);
+                                const isBooked = bookedSessions.has(session.date);
+                                const isFull = session.spotsLeft <= 0;
+                                const isPast = new Date(session.date) < new Date();
+                                
+                                return (
+                                    <motion.div 
+                                        key={session.date}
+                                        className="card bg-base-200 shadow-sm border border-base-300"
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                    >
+                                        <div className="card-body p-6">
+                                            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-4 mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar size={18} className="text-primary" />
+                                                            <span className="font-semibold text-lg">
+                                                                {new Date(session.date).toLocaleDateString('en-US', {
+                                                                    weekday: 'long',
+                                                                    year: 'numeric',
+                                                                    month: 'long',
+                                                                    day: 'numeric'
+                                                                })}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock size={18} className="text-primary" />
+                                                            <span className="font-medium">
+                                                                {session.startTime} - {session.endTime}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-6 text-sm text-base-content/70">
+                                                        <div className="flex items-center gap-1">
+                                                            <Users size={16} />
+                                                            <span>
+                                                                <span className={`font-semibold ${
+                                                                    isFull ? 'text-error' : 'text-success'
+                                                                }`}>
+                                                                    {session.spotsLeft}
+                                                                </span> spots left
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <DollarSign size={16} />
+                                                            <span>${selectedClass.price} per session</span>
+                                                        </div>
+                                                        <div className="text-xs">
+                                                            {selectedClass.duration} minutes
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <button
+                                                    className={`${buttonState.className} min-w-[200px]`}
+                                                    onClick={() => handleBookClass(session)}
+                                                    disabled={buttonState.disabled || !user}
+                                                >
+                                                    {buttonState.text}
+                                                </button>
+                                            </div>
+                                            
+                                            {/* Progress bar for spots */}
+                                            <div className="mt-4">
+                                                <div className="flex justify-between text-xs mb-2">
+                                                    <span>Capacity</span>
+                                                    <span>{selectedClass.capacity - session.spotsLeft}/{selectedClass.capacity}</span>
+                                                </div>
+                                                <progress 
+                                                    className="progress progress-primary w-full" 
+                                                    value={selectedClass.capacity - session.spotsLeft} 
+                                                    max={selectedClass.capacity}
+                                                ></progress>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-20">
+                            <div className="text-base-content/60">
+                                <h3 className="text-xl font-semibold mb-4">No Sessions Available</h3>
+                                <p>No upcoming sessions available for this class.</p>
+                            </div>
+                        </div>
+                    )}
+                    
+                    <div className="text-center mt-6">
+                        <p className="text-xs text-base-content/70">
+                            Secure payment powered by Stripe • Full refund if cancelled 24h before class
+                        </p>
                     </div>
-                )}
-            </div>
-        </div>
+                </div>
+            </motion.div>
 
             {/* Reviews Section */}
-            <div className="card bg-base-100 shadow-xl">
+            <motion.div 
+                className="card bg-base-100 shadow-xl"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+            >
                 <div className="card-body">
                     <h2 className="card-title text-2xl mb-6">What Our Members Say</h2>
                     
@@ -405,7 +481,7 @@ const ClassDetail = () => {
                         />
                     )}
                 </div>
-            </div>
+            </motion.div>
 
             {/* Booking Confirmation Modal */}
             {latestBooking && (

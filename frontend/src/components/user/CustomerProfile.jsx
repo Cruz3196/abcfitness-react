@@ -531,41 +531,52 @@ const BookingsTab = React.memo(({ upcomingBookings, bookingHistory, isLoading })
     </div>
 ));
 
-const BookingSection = React.memo(({ title, icon: Icon, bookings, isHistory, emptyMessage, emptySubMessage, linkTo, linkText }) => (
-    <div className="card bg-base-100 shadow-lg">
-        <div className="card-body">
-            <h3 className="card-title text-lg mb-4 flex items-center gap-2">
-                <Icon className="w-5 h-5 text-primary" />
-                {title} ({bookings.length})
-            </h3>
-            
-            <div className="space-y-4">
-                {bookings.length === 0 ? (
-                    <div className="text-center py-8">
-                        <Icon className="w-16 h-16 mx-auto text-base-300 mb-4" />
-                        <h4 className="text-lg font-semibold mb-2">{emptyMessage}</h4>
-                        {emptySubMessage && <p className="text-base-content/60 mb-4">{emptySubMessage}</p>}
-                        {linkTo && linkText && (
-                            <Link to={linkTo} className="btn btn-primary">
-                                {linkText}
-                            </Link>
-                        )}
-                    </div>
-                ) : (
-                    <div className="max-h-96 overflow-y-auto space-y-3">
-                        {bookings.map(booking => (
-                            <BookingCard 
-                                key={booking._id} 
-                                booking={booking} 
-                                isHistory={isHistory} 
-                            />
-                        ))}
-                    </div>
-                )}
+const BookingSection = React.memo(({ title, icon: Icon, bookings, isHistory, emptyMessage, emptySubMessage, linkTo, linkText }) => {
+    const { fetchMyBookings } = userStore();
+    
+    // ✅ Callback to refresh bookings when a booking is updated
+    const handleBookingUpdate = useCallback(async () => {
+        console.log('🔄 Refreshing bookings after update...');
+        await fetchMyBookings(true); // Force refresh
+    }, [fetchMyBookings]);
+
+    return (
+        <div className="card bg-base-100 shadow-lg">
+            <div className="card-body">
+                <h3 className="card-title text-lg mb-4 flex items-center gap-2">
+                    <Icon className="w-5 h-5 text-primary" />
+                    {title} ({bookings.length})
+                </h3>
+                
+                <div className="space-y-4">
+                    {bookings.length === 0 ? (
+                        <div className="text-center py-8">
+                            <Icon className="w-16 h-16 mx-auto text-base-300 mb-4" />
+                            <h4 className="text-lg font-semibold mb-2">{emptyMessage}</h4>
+                            {emptySubMessage && <p className="text-base-content/60 mb-4">{emptySubMessage}</p>}
+                            {linkTo && linkText && (
+                                <Link to={linkTo} className="btn btn-primary">
+                                    {linkText}
+                                </Link>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="max-h-96 overflow-y-auto space-y-3">
+                            {bookings.map(booking => (
+                                <BookingCard 
+                                    key={booking._id} 
+                                    booking={booking} 
+                                    isHistory={isHistory}
+                                    onBookingUpdate={handleBookingUpdate} // ✅ Pass the callback
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
-    </div>
-));
+    );
+});
 
 const EditProfileTab = React.memo(({ profileForm, handleInputChange, handleUpdateProfile, setActiveTab, setShowDeleteModal, isLoading }) => (
     <div className="card bg-base-100 shadow-lg max-w-2xl mx-auto">

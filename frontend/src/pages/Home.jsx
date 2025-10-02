@@ -31,9 +31,10 @@ const Home = () => {
                         title="Our Featured Products"
                         subtitle="Hand-picked selection of top-quality items to kickstart your fitness journey."
                     />
-                    <ClassSchedule
+                    {/* <ClassSchedule
                         // ... you would do the same for classes
-                    />
+                    /> */}
+                    <Classes />
                 </>
             )}
         </>

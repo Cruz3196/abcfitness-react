@@ -79,7 +79,7 @@ const TrainerDashboard = () => {
     const initialClassState = {
         classTitle: '',
         classDescription: '',
-        classType: '', // e.g., "Cycle", "Cardio", "HIIT", "Zumba", "Bootcamp"
+        classType: '',
         duration: 60,
         timeSlot: {
             day: '',
@@ -88,6 +88,7 @@ const TrainerDashboard = () => {
         },
         classPic: '',
         capacity: 10,
+        price: 0 // ✅ Add default price
     };
     const [newClassData, setNewClassData] = useState(initialClassState);
 

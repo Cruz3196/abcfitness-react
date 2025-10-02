@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import { reviewStore } from '../../storeData/reviewStore';
-import { userStore } from '../../storeData/userStore';
 import { Edit, Trash2, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const RatingCard = ({ review }) => {
-  const { user: currentUser } = userStore();
-  const { updateReview, deleteReview } = reviewStore();
-
+const RatingCard = ({ review, currentUser, onUpdate, onDelete, isSubmitting }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(review?.reviewText || '');
   const [editRating, setEditRating] = useState(review?.rating || 0);
@@ -21,24 +16,25 @@ const RatingCard = ({ review }) => {
   const reviewUser = review.user || {};
   const isAuthor = currentUser && reviewUser._id && currentUser._id === reviewUser._id;
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (editRating === 0 || !editText.trim()) {
       toast.error('Please provide a rating and a review.');
       return;
     }
     
-    updateReview(review._id, { 
+    const result = await onUpdate(review._id, { 
       reviewText: editText.trim(), 
       rating: editRating 
     });
-    setIsEditing(false);
-    toast.success('Review updated successfully!');
+    
+    if (result?.success) {
+      setIsEditing(false);
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this review?')) {
-      deleteReview(review._id);
-      toast.success('Review deleted successfully!');
+      await onDelete(review._id);
     }
   };
 
@@ -101,6 +97,9 @@ const RatingCard = ({ review }) => {
               )}
               <p className="text-xs text-base-content/60">
                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                {review.updatedAt && review.updatedAt !== review.createdAt && (
+                  <span className="ml-2">(edited)</span>
+                )}
               </p>
             </div>
           </div>
@@ -111,6 +110,7 @@ const RatingCard = ({ review }) => {
                 onClick={handleEdit} 
                 className="btn btn-ghost btn-xs"
                 title="Edit review"
+                disabled={isSubmitting}
               >
                 <Edit size={16} />
               </button>
@@ -118,6 +118,7 @@ const RatingCard = ({ review }) => {
                 onClick={handleDelete} 
                 className="btn btn-ghost btn-xs text-error"
                 title="Delete review"
+                disabled={isSubmitting}
               >
                 <Trash2 size={16} />
               </button>
@@ -131,18 +132,6 @@ const RatingCard = ({ review }) => {
               <label className="label">
                 <span className="label-text">Rating</span>
               </label>
-              <div className="rating">
-                {[1, 2, 3, 4, 5].map(value => (
-                  <input 
-                    key={value} 
-                    type="radio" 
-                    name={`edit-rating-${review._id}`} 
-                    className="mask mask-star-2 bg-orange-400" 
-                    checked={editRating === value} 
-                    onChange={() => setEditRating(value)} 
-                  />
-                ))}
-              </div>
             </div>
             
             <div>
@@ -162,15 +151,16 @@ const RatingCard = ({ review }) => {
               <button 
                 onClick={handleCancel} 
                 className="btn btn-ghost"
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleUpdate} 
-                className="btn btn-primary"
-                disabled={editRating === 0 || !editText.trim()}
+                className={`btn btn-primary ${isSubmitting ? 'loading' : ''}`}
+                disabled={editRating === 0 || !editText.trim() || isSubmitting}
               >
-                Save Changes
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>

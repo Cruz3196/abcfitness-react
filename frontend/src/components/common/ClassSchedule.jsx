@@ -5,7 +5,7 @@ import Spinner from './Spinner';
 
 const ClassSchedule = () => {
     const navigate = useNavigate();
-    const { classes, isLoading, error, fetchAllClasses, cleanupPastSessions } = classStore();
+    const { classes, isLoading, error, fetchAllClasses } = classStore();
     const [selectedFilters, setSelectedFilters] = useState({
         classType: 'View All',
         instructor: 'View All',
@@ -17,39 +17,8 @@ const ClassSchedule = () => {
 
     useEffect(() => {
         fetchAllClasses();
-        
-        // Clean up past sessions once per day
-        const lastCleanup = localStorage.getItem('lastCleanup');
-        const today = new Date().toDateString();
-        
-        if (lastCleanup !== today) {
-            cleanupPastSessions();
-            localStorage.setItem('lastCleanup', today);
-        }
-        
-        // Set up an interval to refresh the schedule at midnight
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(now.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        
-        const timeUntilMidnight = tomorrow.getTime() - now.getTime();
-        
-        const midnightTimeout = setTimeout(() => {
-            // Refresh the component at midnight
-            fetchAllClasses();
-            
-            // Set up daily interval after first midnight
-            const dailyInterval = setInterval(() => {
-                fetchAllClasses();
-            }, 24 * 60 * 60 * 1000); // 24 hours
-            
-            return () => clearInterval(dailyInterval);
-        }, timeUntilMidnight);
-        
-        return () => clearTimeout(midnightTimeout);
-        
-    }, [fetchAllClasses, cleanupPastSessions]);
+
+    }, [fetchAllClasses]);
 
     // Generate next 7 days starting from today
     const generateWeekDays = () => {
@@ -100,31 +69,10 @@ const ClassSchedule = () => {
     });
 
     // Get classes for the selected day
-    const getClassesForDay = (dayName, fullDate) => {
-        const classesForDay = [];
-        const selectedDate = new Date(fullDate);
-        const today = new Date();
-        
-        // Only show classes for today and future dates
-        if (selectedDate >= today || selectedDate.toDateString() === today.toDateString()) {
-            filteredClasses.forEach(classInfo => {
-                if (classInfo.timeSlot?.day === dayName) {
-                    // Create a session instance for this specific date
-                    const sessionInstance = {
-                        ...classInfo,
-                        sessionDate: fullDate,
-                        sessionKey: `${classInfo._id}_${fullDate}`,
-                        // Calculate spots based on general capacity (you might want to fetch actual bookings for this date)
-                        spotsAvailable: classInfo.capacity - (classInfo.attendees?.length || 0),
-                        // Add timing check to disable past sessions within the same day
-                        isPastSession: selectedDate < today
-                    };
-                    classesForDay.push(sessionInstance);
-                }
-            });
-        }
-        
-        return classesForDay;
+    const getClassesForDay = (dayName) => {
+        return filteredClasses.filter(classInfo => 
+            classInfo.timeSlot?.day === dayName
+        );
     };
 
     const handleDayClick = (dayIndex) => {
@@ -157,7 +105,7 @@ const ClassSchedule = () => {
         );
     }
 
-    const dayClasses = getClassesForDay(selectedDay.dayName, selectedDay.fullDate);
+    const dayClasses = getClassesForDay(selectedDay.dayName);
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -291,7 +239,6 @@ const ClassSchedule = () => {
                                         <button 
                                             onClick={() => handleClassDetails(classInfo._id)}
                                             className="text-left btn btn-primary"
-                                            data-session-date={classInfo.sessionDate} // Add session date data
                                         >
                                             Reserve Spot
                                         </button>

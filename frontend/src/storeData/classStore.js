@@ -67,29 +67,34 @@ export const classStore = create((set, get) => ({
     },
 
     // ✅ ADD: Book a class function
+    // Book a class
     bookClass: async (classId, sessionDate) => {
         set({ isBooking: true });
         try {
+            // Get the available sessions for the selected class
             const { availableSessions } = get();
             
+            // Find the matching session
             const session = availableSessions.find(s => s.date === sessionDate);
             if (!session) {
                 throw new Error('No matching session found for the selected date');
             }
             
-            // ✅ FIX: Add :00 for seconds
+            // Prepare the payload: startTime and endTime (combine date + time into ISO strings)
             const payload = {
-                startTime: `${session.date}T${session.startTime}:00`,  // Add :00
-                endTime: `${session.date}T${session.endTime}:00`       // Add :00
+                startTime: `${session.date}T${session.startTime}`,  // e.g., "2023-10-01T10:00:00"
+                endTime: `${session.date}T${session.endTime}`       // e.g., "2023-10-01T11:00:00"
             };
             
-            console.log('🔍 Sending booking request:', payload);
+            console.log('🔍 Sending booking request:', { classId, ...payload });
             
+            // The route is /user/bookings/${classId}, which matches the backend
             const response = await axios.post(`/user/bookings/${classId}`, payload);
             
             toast.success('Class booked successfully!');
             set({ isBooking: false });
             
+            // Return the booking data for the modal
             return {
                 success: true,
                 booking: response.data.booking,
@@ -135,7 +140,7 @@ export const classStore = create((set, get) => ({
         }
         
         const today = new Date();
-        const sessions = [];
+        const nextDate = new Date(today);
         
         // Find next occurrence of the class day
         const dayMap = {
@@ -149,66 +154,21 @@ export const classStore = create((set, get) => ({
             return [];
         }
         
-        // Generate sessions for the next 8 weeks (56 days)
-        const weeksToGenerate = 8;
+        const daysUntilTarget = (targetDay - today.getDay() + 7) % 7 || 7;
+        nextDate.setDate(today.getDate() + daysUntilTarget);
         
-        for (let week = 0; week < weeksToGenerate; week++) {
-            const sessionDate = new Date(today);
-            const daysUntilTarget = (targetDay - today.getDay() + 7) % 7 || 7;
-            sessionDate.setDate(today.getDate() + daysUntilTarget + (week * 7));
-            
-            // Only add future sessions
-            if (sessionDate > today) {
-                sessions.push({
-                    date: sessionDate.toISOString().split('T')[0],
-                    startTime: classData.timeSlot.startTime,
-                    endTime: classData.timeSlot.endTime,
-                    duration: classData.duration,
-                    spotsLeft: classData.capacity - (classData.attendees?.length || 0),
-                    sessionKey: `${sessionDate.toISOString().split('T')[0]}_${classData.timeSlot.startTime}`
-                });
-            }
-        }
+        // ✅ ONLY RETURN ONE SESSION
+        const sessions = [{
+            date: nextDate.toISOString().split('T')[0],
+            startTime: classData.timeSlot.startTime,
+            endTime: classData.timeSlot.endTime,
+            duration: classData.duration,
+            spotsLeft: classData.capacity - (classData.attendees?.length || 0),
+            sessionKey: `${nextDate.toISOString().split('T')[0]}_${classData.timeSlot.startTime}`
+        }];
         
+        // ✅ FIX: Update the store state
         set({ availableSessions: sessions });
-        return sessions;
-    },
-
-    // function for recurring sessions for scheduling
-    getRecurringSessionsForClass: (classData, daysAhead = 30) => {
-        if (!classData || !classData.timeSlot) {
-            return [];
-        }
-        
-        const today = new Date();
-        const sessions = [];
-        
-        const dayMap = {
-            'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
-            'Thursday': 4, 'Friday': 5, 'Saturday': 6
-        };
-        
-        const targetDay = dayMap[classData.timeSlot.day];
-        if (targetDay === undefined) {
-            return [];
-        }
-        
-        // Generate sessions for the specified number of days ahead
-        let currentDate = new Date(today);
-        const endDate = new Date(today);
-        endDate.setDate(today.getDate() + daysAhead);
-        
-        while (currentDate <= endDate) {
-            if (currentDate.getDay() === targetDay && currentDate >= today) {
-                sessions.push({
-                    ...classData,
-                    sessionDate: currentDate.toISOString().split('T')[0],
-                    sessionKey: `${classData._id}_${currentDate.toISOString().split('T')[0]}`
-                });
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        
         return sessions;
     },
 
@@ -220,14 +180,5 @@ export const classStore = create((set, get) => ({
     // Clear selected class
     clearSelectedClass: () => {
         set({ selectedClass: null, availableSessions: [], error: null });
-    },
-    // clearing up past sessions
-    cleanupPastSessions: async () => {
-        try {
-            await axios.delete('/admin/cleanup-past-sessions');
-            console.log('Past sessions cleaned up');
-        } catch (error) {
-            console.error('Error cleaning up past sessions:', error);
-        }
     }
 }));

@@ -33,18 +33,6 @@ const RatingForm = ({ classId, onSubmit }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="form-control">
             <label className="label"><span className="label-text">Your Rating</span></label>
-            <div className="rating rating-lg">
-              {[1, 2, 3, 4, 5].map(value => (
-                <input 
-                  key={value}
-                  type="radio" 
-                  name="rating-form" 
-                  className="mask mask-star-2 bg-orange-400" 
-                  checked={rating === value}
-                  onChange={() => setRating(value)}
-                />
-              ))}
-            </div>
           </div>
           <div className="form-control">
             <label className="label"><span className="label-text">Your Review</span></label>
