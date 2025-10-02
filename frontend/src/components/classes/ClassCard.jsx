@@ -50,7 +50,11 @@ const ClassCard = ({ classInfo }) => {
                     </div>
                     <div className="flex items-center gap-2">
                         <Users size={16} className="text-primary" />
-                        <span>{classInfo.attendees?.length || 0} / {classInfo.capacity} registered</span>
+                        <span>{classInfo.attendees?.length || 0} / {classInfo.capacity} Spots</span>
+                        {/* ✅ ADD: Show "FULL" badge when class reaches capacity */}
+                        {(classInfo.attendees?.length >= classInfo.capacity) && (
+                            <span className="badge badge-error badge-sm ml-1">FULL</span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <DollarSign size={16} className="text-primary" />
@@ -60,8 +64,17 @@ const ClassCard = ({ classInfo }) => {
 
                 <div className="card-actions justify-end">
                     <Link to={`/classes/${classInfo._id}`}>
-                        <button className="btn btn-primary btn-sm">
-                            View Details
+                        <button 
+                            className={`btn btn-sm ${
+                                classInfo.attendees?.length >= classInfo.capacity 
+                                    ? 'btn-disabled' 
+                                    : 'btn-primary'
+                            }`}
+                        >
+                            {classInfo.attendees?.length >= classInfo.capacity 
+                                ? 'Class Full' 
+                                : 'View Details'
+                            }
                         </button>
                     </Link>
                 </div>

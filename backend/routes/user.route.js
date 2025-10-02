@@ -4,7 +4,7 @@ import { protectRoute } from "../middleware/auth.middleware.js";
 
 // importing controllers
 import { createUser, loginUser, logoutUser, refresh} from "../controllers/auth.controller.js";
-import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword, getOrderHistory, fetchFeedBackByClass} from "../controllers/user.controller.js";
+import { getProfile, editUserInfo, deleteUserAccount, viewAllClasses, bookClass,viewBookedClasses, cancelBooking, submitFeedback, updateFeedback, deleteFeedback, allTrainers, viewTrainer, forgotPassword, resetPassword, getOrderHistory, fetchFeedBackByClass, getOrderById} from "../controllers/user.controller.js";
 
 const router = express.Router();
 
@@ -25,13 +25,14 @@ router.delete("/deleteAccount", protectRoute, deleteUserAccount)
 
 // Account GetHistory Order 
 router.get("/orderHistory", protectRoute, getOrderHistory);
+router.get("/orders/:orderId", protectRoute, getOrderById); 
 
 // User Booking class routes 
 router.get("/ourClasses", viewAllClasses)
 router.post("/bookings/:classId", protectRoute, bookClass);
 // once logged in user can view their booked classes
 router.get("/bookings", protectRoute, viewBookedClasses)
-router.delete("/bookings/:bookingId", protectRoute, cancelBooking)
+router.delete("/cancelBooking/:bookingId", protectRoute, cancelBooking)
 
 // Feedback routes 
 router.post("/submitFeedback/:classId", protectRoute, submitFeedback);

@@ -134,7 +134,6 @@ const useCartStore = create((set, get) => ({
 
         set({ subtotal, total, totalQuantity });
     },
-
 }));
 
 export default useCartStore;

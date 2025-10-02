@@ -26,6 +26,7 @@ import TrainerDetail from "./pages/TrainerDetail";
 
 // USER PAGES
 import ProfilePage from "./pages/ProfilePage";
+import OrderDetailsPage from "./pages/OrderDetailsPage";
 
 // ADMIN PAGES
 import AdminDashboard from "./pages/AdminDashboard";
@@ -128,12 +129,22 @@ function App() {
               } 
             />
 
-            {/* Protected Profile Route */}
+            {/* ✅ Fixed: Separate the profile and order routes */}
             <Route 
               path="/profile" 
               element={
                 <ProtectedRoute allowedRoles={['customer']}>
                   <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* ✅ Add the order details route separately */}
+            <Route 
+              path="/order/:orderId" 
+              element={
+                <ProtectedRoute allowedRoles={['customer']}>
+                  <OrderDetailsPage />
                 </ProtectedRoute>
               } 
             />

@@ -7,7 +7,7 @@ import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
 
 // import nodemailer transporter
-import { sendEmail } from "../utils/emailService.js";
+import { sendWelcomeEmail } from "../utils/nodemailerConfig.js";
 
 // 15 minutes for storage to host the token
 const generateTokens = (userId) => {
@@ -61,9 +61,7 @@ export const createUser = async (req, res) => {
 
         // after the user is successfully created, send a welcome email
         try {
-            const subject = "Welcome to ABC Fitness!";
-            const text = `Hi ${username},\n\nThank you for signing up. We're excited to have you!`;
-            await sendEmail(user.email, subject, text);
+            await sendWelcomeEmail(user.email, username);
         } catch (emailError) {
             // Log the error but don't stop the signup process if the email fails.
             console.error("Failed to send welcome email:", emailError);

@@ -10,6 +10,7 @@ export const userStore = create((set, get) => ({
     isLoading: false,
     selectedClass: null, // New state for selected class
     error: null,
+    bookingsLoaded: false, // New state to track if bookings have been loaded
 
     // ROLE CHECKERS =============================================================
     isAdmin: () => {
@@ -67,7 +68,10 @@ export const userStore = create((set, get) => ({
     logout: async () => {
         try {
             await axios.post("/user/logout");
-            set({ user: null });
+            set({ user: null,
+                bookings: [],
+                bookingsLoaded: false
+                });
             return true;
         } catch (error) {
             toast.error(error.response?.data?.message || "An error occurred during logout");
@@ -334,83 +338,76 @@ export const userStore = create((set, get) => ({
 
     // BOOKINGS ACTIONS=====================================================
 
-    // Book a class
-    bookClass: async (classId, sessionDate) => {
-        set({ isLoading: true });
-        try {
-            await axios.post(`/user/bookings/${classId}`, { date: sessionDate }); 
-
-            toast.success('Class booked successfully!');
-            
-            // ✅ Crucial Step: Refreshes the user's booking list after success.
-            get().fetchMyBookings(); 
-            
-            set({ isLoading: false });
-            return true;
-        } catch (error) {
-            console.error("Book class error:", error);
-            toast.error(error.response?.data?.message || 'Failed to book class');
-            set({ isLoading: false });
-            return false;
-        }
-    },
-
 
     // View user's bookings
-    fetchMyBookings: async () => {
+fetchMyBookings: async (force = false) => {
+    const state = get();
+    
+    if (state.bookingsLoaded && !force) {
+        return;
+    }
+
+    try {
         set({ isLoading: true });
-        try {
-            const response = await axios.get("/user/bookings");
+        
+        const response = await axios.get('/user/bookings');
+        
+        if (response.data) {
+            const { upcoming = [], history = [] } = response.data;
+            const allBookings = [...upcoming, ...history];
             
-            // Transform the booking data to include sessionDate
-            const transformedBookings = {
-                upcoming: response.data.upcoming?.map(booking => ({
-                    ...booking,
-                    sessionDate: booking.startTime // Use startTime as sessionDate for consistency
-                })) || [],
-                history: response.data.history?.map(booking => ({
-                    ...booking,
-                    sessionDate: booking.startTime
-                })) || []
-            };
-            
-            // Update user object with bookings data
+            // ✅ Update BOTH the user.bookings AND separate bookings array
             set(state => ({
-                user: { 
-                    ...state.user, 
-                    bookings: response.data,
-                    upcomingBookings: transformedBookings.upcoming,
-                    bookingHistory: transformedBookings.history
+                user: {
+                    ...state.user,
+                    bookings: allBookings // This is what CustomerProfile reads
                 },
+                bookings: allBookings, // This is for other components
+                bookingsLoaded: true,
                 isLoading: false
             }));
             
-            return response.data;
-        } catch (error) {
-            console.error("Fetch bookings error:", error);
-            set({ isLoading: false });
-            toast.error("Failed to fetch bookings");
-            return null;
+            console.log('✅ Bookings loaded:', allBookings.length);
         }
-    },
+    } catch (error) {
+        console.error('❌ Error fetching bookings:', error);
+        set({ isLoading: false });
+    }
+},
 
-    // Cancel a booking
+    // Replace the cancelBooking function:
     cancelBooking: async (bookingId) => {
-        set({ isLoading: true });
         try {
-            const response = await axios.delete(`/user/bookings/${bookingId}`);
+            set({ isLoading: true });
             
-            // Refresh bookings after successful cancellation
-            await get().fetchMyBookings();
+            // ✅ Use the correct route that matches your backend
+            const response = await axios.delete(`/user/cancelBooking/${bookingId}`);
             
-            toast.success(response.data.message || "Booking cancelled successfully");
-            set({ isLoading: false });
-            return true;
+            if (response.data.success) {
+                // ✅ Update the local state to reflect the cancellation
+                set(state => ({
+                    bookings: state.bookings.map(booking => 
+                        booking._id === bookingId 
+                            ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
+                            : booking
+                    ),
+                    user: {
+                        ...state.user,
+                        bookings: state.user.bookings?.map(booking => 
+                            booking._id === bookingId 
+                                ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
+                                : booking
+                        ) || []
+                    }
+                }));
+                
+                return response.data;
+            }
         } catch (error) {
-            console.error("Cancel booking error:", error);
-            toast.error(error.response?.data?.message || "Failed to cancel booking");
+            console.error('Cancel booking error:', error);
+            throw error;
+        } finally {
             set({ isLoading: false });
-            return false;
         }
     },
 

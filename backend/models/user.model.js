@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema(
 			type: String,
 			enum: ["morning", "afternoon", "evening"]
 		},
+		orderHistory: {
+			type: [mongoose.Schema.Types.ObjectId],
+			ref: "Order",
+			default: []
+		},
         cartItems: [
 			{
 				quantity: {

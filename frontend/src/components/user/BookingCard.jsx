@@ -1,161 +1,103 @@
+import React, { useState } from 'react';
 import { userStore } from '../../storeData/userStore';
 import toast from 'react-hot-toast';
 
-const BookingCard = ({ classInfo, booking, isHistory = false }) => {
+const BookingCard = ({ booking, isHistory = false }) => {
     const { cancelBooking, isLoading } = userStore();
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    console.log('📋 BookingCard received:', {
+        bookingId: booking?._id,
+        classTitle: booking?.class?.classTitle,
+        status: booking?.status,
+        isHistory
+    });
+
+
+    if (!booking) return null;
 
     const handleCancelBooking = async () => {
-        // ✅ More descriptive confirmation message
-        const confirmed = window.confirm(
-            `Are you sure you want to cancel your booking for "${booking.class?.classTitle}"?\n\n` +
-            `Session Date: ${new Date(booking.sessionDate).toLocaleDateString()}\n` +
-            `This action cannot be undone.`
-        );
+        if (isCancelling) return;
+        
+        const bookingTitle = booking.class?.classTitle || 'this class';
+        
+        const confirmed = window.confirm(`Are you sure you want to cancel your booking for "${bookingTitle}"?`);
         
         if (confirmed) {
             try {
-                const success = await cancelBooking(booking._id);
-                if (success) {
-                    console.log('Booking cancelled successfully');
-                } else {
-                    console.log('Failed to cancel booking');
-                }
+                setIsCancelling(true);
+                await cancelBooking(booking._id);
+                toast.success('Booking cancelled successfully');
             } catch (error) {
-                console.error('Unexpected error during cancellation:', error);
-                toast.error('An unexpected error occurred');
+                console.error('Error cancelling booking:', error);
+                toast.error('Failed to cancel booking');
+            } finally {
+                setIsCancelling(false);
             }
         }
     };
 
-    // ✅ Helper function to format date and time
     const formatDateTime = (dateTime) => {
         if (!dateTime) return 'Date not available';
-        
-        const date = new Date(dateTime);
-        const dateStr = date.toLocaleDateString(undefined, { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-        const timeStr = date.toLocaleTimeString(undefined, { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        
-        return `${dateStr} at ${timeStr}`;
-    };
-
-    // ✅ Safe way to get price from multiple possible sources
-    const getPrice = () => {
-        // Try to get price from different possible locations
-        return classInfo?.price || 
-                booking.class?.price || 
-                booking.price || 
-                'Price not available';
-    };
-
-    // ✅ Safe way to get duration
-    const getDuration = () => {
-        return classInfo?.duration || 
-                booking.class?.duration || 
-                booking.duration || 
-                null;
+        try {
+            return new Date(dateTime).toLocaleString();
+        } catch {
+            return 'Invalid date';
+        }
     };
 
     return (
         <div className="card bg-base-100 shadow-xl mb-4">
             <div className="card-body">
-                <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                        <h3 className="card-title text-lg">
-                            {booking.class?.classTitle || 'Class Title'}
-                        </h3>
-                        <p className="text-sm text-base-content/70 mb-2">
-                            {formatDateTime(booking.sessionDate)}
-                        </p>
-                        
-                        {/* Status Badge */}
-                        <div className="mb-3">
-                            <span className={`badge ${
-                                booking.status === 'upcoming' ? 'badge-primary' :
-                                booking.status === 'completed' ? 'badge-success' :
-                                booking.status === 'cancelled' ? 'badge-error' : 
-                                'badge-secondary'
-                            }`}>
-                                {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Unknown'}
-                            </span>
-                        </div>
-                        
-                        {/* Additional Details */}
-                        <div className="text-sm text-base-content/70 space-y-1">
-                            <p>
-                                <span className="font-medium">Trainer:</span> {' '}
-                                {booking.class?.trainer?.user?.username || 
-                                 booking.class?.trainer?.username || 
-                                 'Unknown Trainer'}
-                            </p>
-                            <p>
-                                <span className="font-medium">Price:</span> {' '}
-                                <span className="text-primary font-semibold">
-                                    {typeof getPrice() === 'number' ? `$${getPrice()}` : getPrice()}
-                                </span>
-                            </p>
-                            {getDuration() && (
-                                <p>
-                                    <span className="font-medium">Duration:</span> {' '}
-                                    {getDuration()} minutes
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                    
-                    {/* Class Image */}
-                    {booking.class?.classPic && (
-                        <div className="w-16 h-16 ml-4 flex-shrink-0">
-                            <img 
-                                src={booking.class.classPic} 
-                                alt={booking.class.classTitle}
-                                className="w-full h-full object-cover rounded-lg"
-                            />
-                        </div>
-                    )}
+                <h3 className="card-title text-lg">
+                    {booking.class?.classTitle || 'Unknown Class'}
+                </h3>
+                
+                <p className="text-sm text-base-content/70 mb-2">
+                    {formatDateTime(booking.sessionDate || booking.startTime)}
+                </p>
+                
+                <div className="mb-3">
+                    <span className={`badge ${
+                        booking.status === 'upcoming' ? 'badge-primary' :
+                        booking.status === 'completed' ? 'badge-success' :
+                        booking.status === 'cancelled' ? 'badge-error' : 
+                        'badge-secondary'
+                    }`}>
+                        {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || 'Unknown'}
+                    </span>
                 </div>
                 
-                {/* Action Buttons - Only show cancel for upcoming bookings */}
+                <div className="text-sm text-base-content/70 space-y-1">
+                    <p>
+                        <span className="font-medium">Trainer:</span> {' '}
+                        {booking.class?.trainer?.user?.username || 'Unknown Trainer'}
+                    </p>
+                    <p>
+                        <span className="font-medium">Price:</span> {' '}
+                        <span className="text-primary font-semibold">
+                            ${booking.class?.price || 0}
+                        </span>
+                    </p>
+                </div>
+                
                 {!isHistory && booking.status === 'upcoming' && (
                     <div className="card-actions justify-end mt-4">
                         <button 
                             className="btn btn-error btn-sm"
                             onClick={handleCancelBooking}
-                            disabled={isLoading}
+                            disabled={isLoading || isCancelling}
                         >
-                            {isLoading ? (
-                                <>
-                                    <span className="loading loading-spinner loading-sm"></span>
-                                    Cancelling...
-                                </>
-                            ) : (
-                                <>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    Cancel Booking
-                                </>
-                            )}
+                            {isCancelling ? 'Cancelling...' : 'Cancel Booking'}
                         </button>
                     </div>
                 )}
                 
-                {/* Show rebooking option for cancelled bookings */}
-                {booking.status === 'cancelled' && (
+                {booking.status === 'cancelled' && booking.class?._id && (
                     <div className="card-actions justify-end mt-4">
                         <button 
                             className="btn btn-primary btn-sm"
-                            onClick={() => {
-                                // Navigate to class detail page to rebook
-                                window.location.href = `/classes/${booking.class?._id}`;
-                            }}
+                            onClick={() => window.location.href = `/classes/${booking.class._id}`}
                         >
                             Book Again
                         </button>

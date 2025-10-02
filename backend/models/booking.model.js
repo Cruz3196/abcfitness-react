@@ -1,60 +1,57 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const bookingSchema = new mongoose.Schema({
-    // Reference to the user who made the booking.
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
         required: true
     },
-    // Reference to the class template that was booked.
     class: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Class",
+        ref: 'Class',
         required: true
     },
-    // Denormalized reference to the trainer for easier queries.
-    trainer: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Trainer",
+    sessionDate: {
+        type: Date,
         required: true
     },
-
-    // --- REVISED DATE/TIME (Recommended) ---
-    // The exact start date and time of the booked session.
     startTime: {
         type: Date,
         required: true
     },
-    // The exact end time of the session.
     endTime: {
         type: Date,
         required: true
     },
-
-    // --- REVISED STATUS ---
-    // A single, clear status for the booking.
     status: {
         type: String,
-        enum: ["upcoming", "completed", "cancelled", "no-show"],
-        default: "upcoming"
+        enum: ['upcoming', 'completed', 'cancelled'],
+        default: 'upcoming'
+    },
+    cancelledAt: {
+        type: Date
     },
     paymentStatus: {
         type: String,
-        enum: ["pending", "paid", "refunded"],
-        default: "pending",
-    },
-    stripePaymentIntentId: {
-        type: String,
+        enum: ['pending', 'paid', 'refunded'],
+        default: 'paid'
     }
+}, { 
+    timestamps: true 
+});
 
+// ✅ Updated compound index - only apply to non-cancelled bookings
+bookingSchema.index(
+    { class: 1, user: 1, startTime: 1 }, 
+    { 
+        unique: true,
+        partialFilterExpression: { status: { $ne: 'cancelled' } } // ✅ Exclude cancelled bookings from unique constraint
+    }
+);
 
-}, { timestamps: true });
+// Index for efficient queries
+bookingSchema.index({ user: 1, status: 1 });
+bookingSchema.index({ class: 1, sessionDate: 1 });
 
-// Prevents a user from booking the exact same class session twice.
-// This is very precise and reliable.
-bookingSchema.index({ class: 1, user: 1, startTime: 1 }, { unique: true });
-
-const Booking = mongoose.model("Booking", bookingSchema);
-
+const Booking = mongoose.model('Booking', bookingSchema);
 export default Booking;

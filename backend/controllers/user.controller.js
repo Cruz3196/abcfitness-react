@@ -317,86 +317,113 @@ export const viewAllClasses = async (req, res) => {
 //booking a class
 export const bookClass = async (req, res) => {
     try {
-        const { classId } = req.params;
-        const { date } = req.body;
+        const { startTime, endTime } = req.body;
+        const classId = req.params.classId;
+        const userId = req.user._id;
 
-        if (!date) {
-            return res.status(400).json({ message: "A specific date must be provided to book a class." });
-        }
-        
-        const selectedClass = await Class.findById(classId);
-        if (!selectedClass || selectedClass.status !== "available") {
-            return res.status(404).json({ message: "This class is not available for booking." });
-        }
+        console.log('🔍 Booking request received:', { classId, startTime, endTime, userId });
 
-        const startTime = new Date(`${date}T${selectedClass.timeSlot.startTime}:00`);
-        const endTime = new Date(`${date}T${selectedClass.timeSlot.endTime}:00`);
-
-        // ✅ FIX: Check for existing ACTIVE booking (not cancelled ones)
-        const existingActiveBooking = await Booking.findOne({ 
-            class: classId, 
-            user: req.user._id, 
-            startTime,
-            status: { $ne: "cancelled" } // Only check for non-cancelled bookings
-        });
-        
-        if (existingActiveBooking) {
-            return res.status(400).json({ message: "You have already booked this specific class session." });
-        }
-
-        // Check capacity for this specific session
-        const confirmedBookingsCount = await Booking.countDocuments({ 
-            class: classId, 
-            startTime, 
-            status: "upcoming" // Only count active bookings
-        });
-        
-        if (confirmedBookingsCount >= selectedClass.capacity) {
-            return res.status(400).json({ message: "Sorry, this class session is full." });
-        }
-
-        // 1. Create the booking document
-        const newBooking = await Booking.create({
-            user: req.user._id,
-            class: classId,
-            trainer: selectedClass.trainer,
-            startTime,
-            endTime,
-            status: "upcoming",
-            paymentStatus: "pending",
-        });
-
-        // 2. Populate the booking with class and trainer details for response
-        const populatedBooking = await Booking.findById(newBooking._id)
-            .populate({
-                path: 'class',
-                select: 'classTitle timeSlot classPic price duration capacity classType classDescription',
-                populate: {
-                    path: 'trainer',
-                    select: 'specialization',
-                    populate: { path: 'user', select: 'username' }
-                }
+        if (!startTime || !endTime) {
+            return res.status(400).json({ 
+                message: "Start time and end time are required" 
             });
+        }
 
-        // 3. ✅ FIX: Only add to attendees if not already present
-        await Class.updateOne(
-            { _id: classId }, 
-            { $addToSet: { attendees: req.user._id } } // $addToSet prevents duplicates
-        );
+        if (!classId || !classId.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ message: "Invalid class ID format" });
+        }
 
-        // 4. ✅ FIX: Only add to user bookings if not already present
-        await User.updateOne(
-            { _id: req.user._id }, 
-            { $addToSet: { bookings: newBooking._id } } // $addToSet prevents duplicates
-        );
+        const startDate = new Date(startTime);
+        const endDate = new Date(endTime);
+        
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return res.status(400).json({ 
+                message: "Invalid date format" 
+            });
+        }
 
-        res.status(201).json({ 
-            message: "Class booked successfully", 
-            booking: populatedBooking,
-            sessionDate: date
+        // Check if class exists
+        const classToBook = await Class.findById(classId);
+        if (!classToBook) {
+            return res.status(404).json({ message: "Class not found" });
+        }
+
+        if (classToBook.status !== 'available') {
+            return res.status(400).json({ message: `Class is ${classToBook.status} and cannot be booked` });
+        }
+
+        // ✅ Check if class is full using existing attendees array
+        if (classToBook.attendees.length >= classToBook.capacity) {
+            return res.status(400).json({ message: "Class is full" });
+        }
+
+        // Check for existing booking
+        const existingBooking = await Booking.findOne({
+            user: userId,
+            class: classId,
+            startTime: startDate
         });
+
+        let savedBooking;
+
+        if (existingBooking) {
+            if (existingBooking.status === 'cancelled') {
+                // Reactivate cancelled booking
+                existingBooking.status = 'upcoming';
+                existingBooking.sessionDate = startDate;
+                existingBooking.endTime = endDate;
+                savedBooking = await existingBooking.save();
+                
+                // ✅ Add user to attendees array if not already there
+                await Class.findByIdAndUpdate(classId, {
+                    $addToSet: { attendees: userId }
+                });
+                
+                console.log('✅ Cancelled booking reactivated:', savedBooking._id);
+                return res.status(201).json({
+                    message: "Class booked successfully",
+                    booking: savedBooking
+                });
+            } else {
+                return res.status(400).json({ 
+                    message: "You already have an active booking for this class at this time" 
+                });
+            }
+        }
+
+        // Create new booking
+        const newBooking = new Booking({
+            user: userId,
+            class: classId,
+            sessionDate: startDate,
+            startTime: startDate,
+            endTime: endDate,
+            status: 'upcoming'
+        });
+
+        savedBooking = await newBooking.save();
+
+        // ✅ Add user to attendees array
+        await Class.findByIdAndUpdate(classId, {
+            $addToSet: { attendees: userId }
+        });
+
+        console.log('✅ New booking created:', savedBooking._id);
+
+        res.status(201).json({
+            message: "Class booked successfully",
+            booking: savedBooking
+        });
+
     } catch (error) {
-        console.log("Error in bookClass controller:", error);
+        console.error("❌ Error in bookClass:", error);
+        
+        if (error.code === 11000) {
+            return res.status(400).json({ 
+                message: "Booking conflict. Please try again." 
+            });
+        }
+        
         res.status(500).json({ message: "An error occurred while booking the class." });
     }
 };
@@ -426,70 +453,47 @@ export const viewBookedClasses = async (req, res) => {
     }
 };
 
-// cancelling a booking by book id logged in as the user
+// Update your cancelBooking function:
 export const cancelBooking = async (req, res) => {
     try {
         const { bookingId } = req.params;
         const userId = req.user._id;
 
-        // ✅ FIXED: Populate user and class details to use in the email later
-        const booking = await Booking.findById(bookingId).populate('user').populate('class');
+        // Find the booking
+        const booking = await Booking.findOne({
+            _id: bookingId,
+            user: userId
+        });
 
-        // Security check: Does booking exist and belong to the user?
-        if (!booking || booking.user._id.toString() !== userId.toString()) {
-            return res.status(404).json({ message: "Booking not found or you are not authorized to cancel it." });
+        if (!booking) {
+            return res.status(404).json({ message: "Booking not found" });
         }
 
-        // ✅ FIX: Remove user from class attendees when cancelling
-        await Class.updateOne(
-            { _id: booking.class._id }, 
-            { $pull: { attendees: userId } }
-        );
-
-        // ✅ FIX: Remove booking from user's bookings array
-        await User.updateOne(
-            { _id: userId }, 
-            { $pull: { bookings: bookingId } }
-        );
-
-        // Only process a refund if the booking was actually paid for
-        if (booking.paymentStatus === 'paid' && booking.stripePaymentIntentId) {
-            try {
-                // 1. PROCESS STRIPE REFUND
-                await stripe.refunds.create({
-                    payment_intent: booking.stripePaymentIntentId,
-                });
-            } catch (stripeError) {
-                console.error("Stripe refund failed:", stripeError);
-                // Don't stop the whole process, but log the error. The user may need manual support.
-                // In a production app, you would flag this for admin review.
-            }
+        if (booking.status === 'cancelled') {
+            return res.status(400).json({ message: "Booking is already cancelled" });
         }
-        
-        // 2. UPDATE YOUR DATABASE
-        booking.status = "cancelled";
-        booking.paymentStatus = "refunded";
+
+        // Update booking status
+        booking.status = 'cancelled';
+        booking.cancelledAt = new Date();
         await booking.save();
 
-        // 3. SEND CANCELLATION & REFUND EMAIL
-        try {
-            // This code will now work because booking.user and booking.class are populated
-            const subject = `Booking Cancelled: ${booking.class.classTitle}`;
-            const text = `Hi ${booking.user.username},\n\nThis is a confirmation that your booking for the class "${booking.class.classTitle}" on ${booking.startTime.toDateString()} has been cancelled.\n\nA refund has been issued to your original payment method. Please allow 5-10 business days for it to appear on your statement.\n\nThank you.`;
-            
-            await sendEmail(booking.user.email, subject, text);
-            console.log(`Cancellation email sent to ${booking.user.email}`);
-        } catch (emailError) {
-            // If the email fails, the cancellation should still succeed.
-            // Log the error for review.
-            console.error("Failed to send cancellation email, but refund was processed:", emailError);
-        }
+        // ✅ Remove user from attendees array
+        await Class.findByIdAndUpdate(booking.class, {
+            $pull: { attendees: userId }
+        });
 
-        res.status(200).json({ message: "Booking has been successfully cancelled and refunded.", booking });
+        console.log('✅ Booking cancelled:', bookingId);
+
+        res.status(200).json({
+            success: true,
+            message: "Booking cancelled successfully",
+            booking
+        });
 
     } catch (error) {
-        console.log("Error in cancelling your booking", error);
-        res.status(500).json({ message: "An error occurred while trying to cancel your booking." });
+        console.error("❌ Error cancelling booking:", error);
+        res.status(500).json({ message: "An error occurred while cancelling the booking" });
     }
 };
 
@@ -713,18 +717,106 @@ export const viewTrainer = async (req, res) => {
 };
 
 export const getOrderHistory = async (req, res) => {
-  try {
-    // Get the current user's ID from the request
-    const userId = req.user._id;
-    
-    // Find all orders for this user
-    const orders = await Order.find({ user: userId })
-      .sort({ createdAt: -1 })  // Sort by date, most recent first
-      .populate('items.product', 'name price image');  // Get product details
-      
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error("Error in getOrderHistory controller:", error);
-    res.status(500).json({ message: "An error occurred while fetching order history" });
-  }
+    try {
+        console.log('🔍 Fetching orders for user:', req.user._id);
+
+        // Find all orders for this user and populate product details
+        const orders = await Order.find({ user: req.user._id })
+            .populate({
+                path: 'products.product',
+                select: 'productName productPrice productImage'
+            })
+            .sort({ createdAt: -1 }); // Most recent first
+
+        console.log('✅ Found orders:', orders.length);
+
+        // Format orders for frontend
+        const formattedOrders = orders.map(order => ({
+            _id: order._id,
+            orderId: order._id,
+            createdAt: order.createdAt,
+            totalAmount: order.totalAmount,
+            status: 'completed', // You can add a status field to your Order model
+            stripeSessionId: order.stripeSessionId,
+            itemCount: order.products.length,
+            items: order.products.map(item => ({
+                name: item.product?.productName || 'Unknown Product',
+                image: item.product?.productImage || '/api/placeholder/48/48',
+                quantity: item.quantity,
+                price: item.price,
+                totalPrice: item.price * item.quantity
+            }))
+        }));
+
+        res.status(200).json({
+            success: true,
+            orders: formattedOrders
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching user orders:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch order history',
+            error: error.message
+        });
+    }
+};
+
+export const getOrderById = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        
+        console.log('🔍 Fetching order:', orderId, 'for user:', req.user._id);
+
+        // Find the specific order for this user
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: req.user._id 
+        }).populate({
+            path: 'products.product',
+            select: 'productName productImage productPrice'
+        });
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        console.log('✅ Order found:', order._id);
+
+        // Format order for frontend
+        const formattedOrder = {
+            _id: order._id,
+            orderId: order._id,
+            createdAt: order.createdAt,
+            totalAmount: order.totalAmount,
+            status: 'completed', // You can add a status field to your Order model
+            stripeSessionId: order.stripeSessionId,
+            itemCount: order.products.length,
+            items: order.products.map(item => ({
+                name: item.product?.productName || 'Unknown Product',
+                image: item.product?.productImage || '/api/placeholder/64/64',
+                quantity: item.quantity,
+                price: item.price,
+                totalPrice: item.price * item.quantity,
+                productId: item.product?._id
+            }))
+        };
+
+        res.status(200).json({
+            success: true,
+            order: formattedOrder
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching order:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch order details',
+            error: error.message
+        });
+    }
 };
