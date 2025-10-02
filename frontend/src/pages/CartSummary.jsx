@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, ArrowLeft } from 'lucide-react';
 import useCartStore from '../storeData/cartStore';
 import CartItem from '../components/cart/CartItem';
-import CustomerInfo from '../components/cart/CustomerInfo';
 import OrderSummary from '../components/cart/OrderSummary';
 
 const CartSummary = () => {

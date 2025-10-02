@@ -6,7 +6,6 @@ import useCartStore from '../../storeData/cartStore';
 import { userStore } from '../../storeData/userStore';
 import axios from '../../api/axios';
 import toast from 'react-hot-toast';
-import CustomerInfo from './CustomerInfo';
 
 
 

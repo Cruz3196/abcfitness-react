@@ -38,7 +38,6 @@ import TrainerClassDetail from "./pages/TrainerClassDetail";
 
 // Payment Pages
 import CartSummary from "./pages/CartSummary";
-import CheckOut from "./pages/CheckOut";
 import PurchaseSuccessPage from "./pages/PurchaseSuccessPage";
 import PurchaseCancelPage from "./pages/PurchaseCancelPage";
 import BookingSuccessPage from "./pages/BookingSuccessPage";
@@ -91,7 +90,6 @@ function App() {
             <Route path="/purchase-cancel" element={<PurchaseCancelPage />} />
             <Route path="/booking-success" element={<BookingSuccessPage />} />
             <Route path="/booking-cancel" element={<BookingCancelPage />} />
-            <Route path="/checkout" element={<CheckOut />} />
 
             {/* Protected Routes */}
             <Route 
