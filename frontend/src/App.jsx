@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import Navbar from "./components/common/Navbar"
 import CTA from "./components/common/CTA";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import { ThemeProvider } from "./components/common/ThemeProvider";
 
 //Authentication Pages
 import LogIn from "./pages/LogIn"
@@ -64,7 +65,7 @@ function App() {
   }, [user]); 
 
   return (
-    <>
+    <ThemeProvider>
       <Container>
         <Navbar /> 
           <Routes>
@@ -150,7 +151,7 @@ function App() {
         <CTA />
       </Container>
       <Toaster position="top-center" reverseOrder={false} toastOptions={{duration: 4000,}}/> {/* Toast notifications */}
-    </>
+    </ThemeProvider>
   )
 }
 
