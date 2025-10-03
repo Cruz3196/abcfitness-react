@@ -15,7 +15,7 @@ import { ProductCategoriesChart } from '../components/admin/charts/ProductCatego
 import { ClassesTab } from '../components/admin/tabs/ClassesTab';
 import { ProductsTab } from '../components/admin/tabs/ProductsTab';
 import { TrainersTab } from '../components/admin/tabs/TrainersTab';
-import { UsersTab } from '../components/admin/tabs/Userstab'; // Changed from UserTab to UsersTab
+import { UsersTab } from '../components/admin/tabs/UsersTab'; // Changed from UserTab to UsersTab
 
 // Additional imports that might be needed
 import ProductForm from '../components/admin/ProductForm';
