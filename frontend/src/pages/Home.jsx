@@ -4,7 +4,6 @@ import FeaturedProducts from '../components/products/FeaturedProducts';
 import Hero from '../components/common/Hero';
 import Classes from '../components/classes/OurClasses'; 
 import Spinner from '../components/common/Spinner';
-import ClassSchedule from '../components/common/ClassSchedule.jsx';
 
 const Home = () => {
     // Get the data and loading state from your store
