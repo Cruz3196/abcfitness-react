@@ -45,7 +45,7 @@ const Navbar = () => {
         >
             <div className="flex-1 justify-start">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Link to="/" className="btn btn-ghost normal-case text-xl font-bold">
+                    <Link to="/" className="text-lg btn btn-ghost normal-case md:text-xl font-bold">
                         ABC Fitness
                     </Link>
                 </motion.div>
@@ -65,7 +65,7 @@ const Navbar = () => {
                 </div>
             </div>
 
-            <div className="flex-none gap-2">
+            <div className="flex-none gap-0 sm:gap-2">
                 {/* Theme Toggle */}
                 <ThemeToggle />
 
@@ -76,7 +76,7 @@ const Navbar = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </label>
-                    <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                    <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow rounded-box w-52 text-black bg-white">
                         <li><Link to="/store">Products</Link></li>
                         <li><Link to="/classes">Classes</Link></li>
                         <li><Link to="/trainers">Trainers</Link></li>
