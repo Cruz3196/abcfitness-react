@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { userStore } from "../../storeData/userStore";
 import toast from "react-hot-toast";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
 
 const SignUpForm = () => {
     const navigate = useNavigate();
-    const { signup, isLoading, user } = userStore(); // Use 'user' instead of 'isAuthenticated'
+    const { signup, isLoading, user } = userStore();
     const [formData, setFormData] = useState({
         username: "",
         email: "",
@@ -42,117 +43,192 @@ const SignUpForm = () => {
         });
 
         if (success) {
-            // Navigate to login page so they can sign in with their new account
             toast.success('Account created! Please log in.');
             navigate("/login");
         }
     };
 
+    // Animation variants
+    const containerVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.6,
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 15 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: { duration: 0.4 }
+        }
+    };
+
+    const buttonVariants = {
+        hover: { 
+            scale: 1.02,
+            transition: { duration: 0.2 }
+        },
+        tap: { scale: 0.98 }
+    };
+
+    const inputVariants = {
+        focus: { 
+            scale: 1.02,
+            transition: { duration: 0.2 }
+        }
+    };
+
     return (
-        <div className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+        <motion.div 
+            className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+        >
             <form onSubmit={handleSignUp} className="card-body">
-                <div className="form-control">
+                <motion.div className="form-control" variants={itemVariants}>
                     <label className="label">
                         <span className="label-text">Username</span>
                     </label>
-                    <input 
-                        type="text" 
-                        name="username" 
-                        placeholder="username" 
-                        className="input input-bordered" 
-                        value={formData.username} 
-                        onChange={handleChange} 
-                        required 
-                    />
-                </div>
+                    <div className="relative">
+                        <motion.input 
+                            type="text" 
+                            name="username" 
+                            placeholder="username" 
+                            className="input input-bordered w-full pl-12" 
+                            value={formData.username} 
+                            onChange={handleChange}
+                            variants={inputVariants}
+                            whileFocus="focus"
+                            required 
+                        />
+                        <User className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                    </div>
+                </motion.div>
                 
-                <div className="form-control">
+                <motion.div className="form-control" variants={itemVariants}>
                     <label className="label">
                         <span className="label-text">Email</span>
                     </label>
-                    <input 
-                        type="email" 
-                        name="email" 
-                        placeholder="email" 
-                        className="input input-bordered" 
-                        value={formData.email} 
-                        onChange={handleChange} 
-                        required 
-                    />
-                </div>
+                    <div className="relative">
+                        <motion.input 
+                            type="email" 
+                            name="email" 
+                            placeholder="email" 
+                            className="input input-bordered w-full pl-12" 
+                            value={formData.email} 
+                            onChange={handleChange}
+                            variants={inputVariants}
+                            whileFocus="focus"
+                            required 
+                        />
+                        <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                    </div>
+                </motion.div>
                 
-                <div className="form-control">
+                <motion.div className="form-control" variants={itemVariants}>
                     <label className="label">
                         <span className="label-text">Password</span>
                     </label>
                     <div className="relative">
-                        <input 
+                        <motion.input 
                             type={showPassword ? "text" : "password"}
                             name="password" 
                             placeholder="password" 
-                            className="input input-bordered w-full pr-10" 
+                            className="input input-bordered w-full pl-12 pr-12" 
                             value={formData.password} 
-                            onChange={handleChange} 
+                            onChange={handleChange}
+                            variants={inputVariants}
+                            whileFocus="focus"
                             required 
                         />
-                        <button
+                        <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                        <motion.button
                             type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            className="absolute right-4 top-4"
                             onClick={() => setShowPassword(!showPassword)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             {showPassword ? (
                                 <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                             ) : (
                                 <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                             )}
-                        </button>
+                        </motion.button>
                     </div>
-                </div>
+                </motion.div>
                 
-                <div className="form-control">
+                <motion.div className="form-control" variants={itemVariants}>
                     <label className="label">
                         <span className="label-text">Confirm Password</span>
                     </label>
                     <div className="relative">
-                        <input 
+                        <motion.input 
                             type={showConfirmPassword ? "text" : "password"}
                             name="confirmPassword" 
                             placeholder="confirm password" 
-                            className="input input-bordered w-full pr-10" 
+                            className="input input-bordered w-full pl-12 pr-12" 
                             value={formData.confirmPassword} 
-                            onChange={handleChange} 
+                            onChange={handleChange}
+                            variants={inputVariants}
+                            whileFocus="focus"
                             required 
                         />
-                        <button
+                        <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                        <motion.button
                             type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            className="absolute right-4 top-4"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             {showConfirmPassword ? (
                                 <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                             ) : (
                                 <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                             )}
-                        </button>
+                        </motion.button>
                     </div>
-                </div>
+                </motion.div>
                 
-                <div className="form-control mt-6">
-                    <button 
+                <motion.div className="form-control mt-6" variants={itemVariants}>
+                    <motion.button 
                         className="btn btn-primary" 
                         type="submit" 
                         disabled={isLoading}
+                        variants={buttonVariants}
+                        whileHover="hover"
+                        whileTap="tap"
                     >
-                        {isLoading ? <span className="loading loading-spinner"></span> : 'Sign Up'}
-                    </button>
-                </div>
+                        {isLoading ? (
+                            <motion.span 
+                                className="loading loading-spinner"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                        ) : 'Sign Up'}
+                    </motion.button>
+                </motion.div>
                 
-                <p className="text-sm text-center mt-4">
+                <motion.p 
+                    className="text-sm text-center mt-4"
+                    variants={itemVariants}
+                >
                     Already have an account? 
-                    <Link to="/login" className="link link-secondary ml-1">Login</Link>
-                </p>
+                    <motion.span whileHover={{ scale: 1.05 }} className="inline-block">
+                        <Link to="/login" className="link link-secondary ml-1">Login</Link>
+                    </motion.span>
+                </motion.p>
             </form>
-        </div>
+        </motion.div>
     );
 };
 
