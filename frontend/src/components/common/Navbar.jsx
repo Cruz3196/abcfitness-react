@@ -37,7 +37,7 @@ const Navbar = () => {
     };
     
     return (
-    <div className="navbar bg-black text-white px-6 sticky top-0 z-50 shadow-lg">
+    <div className="navbar px-6 sticky top-0 opacity-100 z-10 bg-primary">
         <div className="flex-1 justify-start">
             <Link to="/" className="btn btn-ghost normal-case text-xl">ABC Fitness</Link>
             <Link to="/store" className="btn btn-ghost normal-case text-md">Products</Link>
@@ -84,7 +84,7 @@ const Navbar = () => {
                     </div>
                 </div>
             ) : (
-                <Link to="/login" className="btn btn-primary btn-sm">Login</Link>
+                <Link to="/login" className="btn btn-secondary btn-sm">Login</Link>
             )}
         </div>
     </div>
