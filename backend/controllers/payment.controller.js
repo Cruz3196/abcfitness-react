@@ -286,16 +286,13 @@ export const classCheckoutSuccess = async (req, res) => {
             const { classId, sessionDate, userId } = session.metadata;
             console.log('📝 Session metadata:', { classId, sessionDate, userId });
 
-            // Check if booking already exists (prevent duplicates)
+            // ✅ FIRST - Check if booking already exists using stripeSessionId (most reliable)
             const existingBooking = await Booking.findOne({
-                user: userId,
-                class: classId,
-                sessionDate: sessionDate,
-                paymentStatus: 'paid'
+                stripeSessionId: session_id
             });
 
             if (existingBooking) {
-                console.log('✅ Booking already exists:', existingBooking._id);
+                console.log('✅ Booking already exists for this session:', existingBooking._id);
                 return res.status(200).json({
                     success: true,
                     message: "Booking already confirmed",
@@ -303,8 +300,34 @@ export const classCheckoutSuccess = async (req, res) => {
                 });
             }
 
-            // ✅ Fetch class details to get the time information
-            const classDetails = await Class.findById(classId);
+            // ✅ SECONDARY CHECK - Check for duplicate user/class/date combination
+            const duplicateBooking = await Booking.findOne({
+                user: userId,
+                class: classId,
+                sessionDate: sessionDate,
+                paymentStatus: 'paid',
+                status: { $ne: 'cancelled' }
+            });
+
+            if (duplicateBooking) {
+                console.log('✅ Duplicate booking found (same user/class/date):', duplicateBooking._id);
+                return res.status(200).json({
+                    success: true,
+                    message: "Booking already exists for this class and date",
+                    bookingId: duplicateBooking._id,
+                });
+            }
+
+            // ✅ Fetch class details
+            const classDetails = await Class.findById(classId)
+                .populate({
+                    path: 'trainer',
+                    populate: {
+                        path: 'user',
+                        select: 'username email'
+                    }
+                });
+                
             if (!classDetails) {
                 return res.status(404).json({
                     success: false,
@@ -315,16 +338,13 @@ export const classCheckoutSuccess = async (req, res) => {
             // ✅ Calculate start and end times
             const sessionDateObj = new Date(sessionDate);
             
-            // Extract time from class timeSlot and create proper Date objects
             const startTimeStr = classDetails.timeSlot?.startTime || "09:00";
             const endTimeStr = classDetails.timeSlot?.endTime || "10:00";
             
-            // Create start time by combining session date with class start time
             const [startHours, startMinutes] = startTimeStr.split(':').map(Number);
             const startTime = new Date(sessionDateObj);
             startTime.setHours(startHours, startMinutes, 0, 0);
             
-            // Create end time by combining session date with class end time
             const [endHours, endMinutes] = endTimeStr.split(':').map(Number);
             const endTime = new Date(sessionDateObj);
             endTime.setHours(endHours, endMinutes, 0, 0);
@@ -332,63 +352,74 @@ export const classCheckoutSuccess = async (req, res) => {
             console.log('🕐 Calculated times:', {
                 sessionDate: sessionDateObj,
                 startTime: startTime,
-                endTime: endTime,
-                classTimeSlot: classDetails.timeSlot
+                endTime: endTime
             });
 
-            // ✅ Create the booking with all required fields
-            const newBooking = new Booking({
-                user: userId,
-                class: classId,
-                sessionDate: sessionDateObj,
-                startTime: startTime,
-                endTime: endTime, // ✅ Now including the required endTime
-                paymentStatus: 'paid',
-                status: 'upcoming',
-                stripeSessionId: session_id
-            });
-
-            const savedBooking = await newBooking.save();
-            console.log('✅ New booking created:', savedBooking._id);
-
-            // Populate for email sending
-            const populatedBooking = await Booking.findById(savedBooking._id)
-                .populate('user')
-                .populate({
-                    path: 'class',
-                    populate: {
-                        path: 'trainer',
-                        populate: {
-                            path: 'user',
-                            select: 'username email'
-                        }
-                    }
+            // ✅ Create the booking - wrap in try/catch to handle any DB errors
+            let savedBooking;
+            try {
+                const newBooking = new Booking({
+                    user: userId,
+                    class: classId,
+                    sessionDate: sessionDateObj,
+                    startTime: startTime,
+                    endTime: endTime,
+                    paymentStatus: 'paid',
+                    status: 'upcoming',
+                    stripeSessionId: session_id
                 });
 
-            // Send confirmation emails
-            if (populatedBooking) {
-                const user = populatedBooking.user;
-                const classInfo = populatedBooking.class;
+                savedBooking = await newBooking.save();
+                console.log('✅ New booking created:', savedBooking._id);
+            } catch (bookingError) {
+                console.error('❌ Booking creation error:', bookingError);
                 
-                // Only send emails if we have the email utility available
-                if (typeof sendEmail === 'function') {
-                    try {
-                        // 1. Send email to the CUSTOMER
-                        const customerSubject = `Booking Confirmation: ${classInfo.classTitle}`;
-                        const customerText = `Hi ${user.username},\n\nThis confirms your booking for the class:\n\nClass: ${classInfo.classTitle}\nDate: ${new Date(populatedBooking.sessionDate).toDateString()}\nTime: ${startTimeStr} - ${endTimeStr}\n\nWe look forward to seeing you!`;
-                        await sendEmail(user.email, customerSubject, customerText);
-
-                        // 2. Send notification email to the TRAINER (if trainer exists)
-                        if (classInfo.trainer?.user?.email) {
-                            const trainerSubject = `New Booking for Your Class: ${classInfo.classTitle}`;
-                            const trainerText = `Hi ${classInfo.trainer.user.username},\n\nA new user, ${user.username}, has just booked your class "${classInfo.classTitle}" for ${new Date(populatedBooking.sessionDate).toDateString()} at ${startTimeStr} - ${endTimeStr}.\n\nYour class roster has been updated.`;
-                            await sendEmail(classInfo.trainer.user.email, trainerSubject, trainerText);
-                        }
-                    } catch (emailError) {
-                        console.error("Failed to send confirmation emails:", emailError);
-                        // Don't fail the booking if email fails
+                // If it's a duplicate key error, check if booking exists and return it
+                if (bookingError.code === 11000) {
+                    const existingBookingAfterError = await Booking.findOne({
+                        $or: [
+                            { stripeSessionId: session_id },
+                            { 
+                                user: userId,
+                                class: classId,
+                                sessionDate: sessionDate,
+                                paymentStatus: 'paid'
+                            }
+                        ]
+                    });
+                    
+                    if (existingBookingAfterError) {
+                        console.log('✅ Found existing booking after duplicate error:', existingBookingAfterError._id);
+                        savedBooking = existingBookingAfterError;
+                    } else {
+                        throw bookingError; // Re-throw if we can't find the existing booking
                     }
+                } else {
+                    throw bookingError; // Re-throw non-duplicate errors
                 }
+            }
+
+            // ✅ Send confirmation email
+            try {
+                console.log('📧 Starting email process...');
+                
+                const user = await User.findById(userId);
+                if (!user) {
+                    console.error('❌ User not found for email sending');
+                } else {
+                    console.log('📧 Sending booking confirmation email to:', user.email);
+                    
+                    await sendBookingConfirmationEmail(
+                        user.email,
+                        user.username,
+                        savedBooking,
+                        classDetails
+                    );
+                    console.log('✅ Booking confirmation email sent successfully');
+                }
+            } catch (emailError) {
+                console.error('❌ Email failed but booking succeeded:', emailError);
+                // Don't fail the entire request if email fails
             }
 
             res.status(200).json({

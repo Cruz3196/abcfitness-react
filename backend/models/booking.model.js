@@ -23,34 +23,20 @@ const bookingSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    status: {
-        type: String,
-        enum: ['upcoming', 'completed', 'cancelled'],
-        default: 'upcoming'
-    },
-    cancelledAt: {
-        type: Date
-    },
     paymentStatus: {
         type: String,
         enum: ['pending', 'paid', 'refunded'],
-        default: 'pending'  // ✅ Changed from 'paid' to 'pending'
+        default: 'paid'
     }
 }, { 
     timestamps: true 
 });
 
-// ✅ Updated compound index - only apply to non-cancelled bookings
-bookingSchema.index(
-    { class: 1, user: 1, startTime: 1 }, 
-    { 
-        unique: true,
-        partialFilterExpression: { status: { $ne: 'cancelled' } } // ✅ Exclude cancelled bookings from unique constraint
-    }
-);
+// ✅ SIMPLE: One user, one class = unique booking
+bookingSchema.index({ user: 1, class: 1 }, { unique: true });
 
-// Index for efficient queries
-bookingSchema.index({ user: 1, status: 1 });
+// Performance indexes
+bookingSchema.index({ user: 1 });
 bookingSchema.index({ class: 1, sessionDate: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);

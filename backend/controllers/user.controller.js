@@ -12,18 +12,8 @@ import cloudinary from "../lib/cloudinaryConfig.js";
 // getting user info by id 
 export const getProfile = async (req, res) => {
     try {
-        // Fetch the user's core data and populate the bookings array.
-        const user = await User.findById(req.user._id)
-            .select('-password')
-            .populate({
-                path: 'bookings',
-                model: 'Booking',
-                populate: {
-                    path: 'class',
-                    model: 'Class',
-                    select: 'classTitle startTime'
-                }
-            });
+        // ✅ Just fetch user data, no bookings population
+        const user = await User.findById(req.user._id).select('-password');
 
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -48,7 +38,7 @@ export const getProfile = async (req, res) => {
             return res.status(200).json(fullProfile);
         }
         
-        // For non-trainers, add hasTrainerProfile: false for consistency
+        // ✅ For customers, just return user data
         const userProfile = {
             ...user.toObject(),
             hasTrainerProfile: false
@@ -321,94 +311,47 @@ export const bookClass = async (req, res) => {
         const classId = req.params.classId;
         const userId = req.user._id;
 
-        console.log('🔍 Booking request received:', { classId, startTime, endTime, userId });
+        console.log('🔍 Booking request:', { classId, startTime, endTime, userId });
 
+        // Validate inputs
         if (!startTime || !endTime) {
-            return res.status(400).json({ 
-                message: "Start time and end time are required" 
-            });
-        }
-
-        if (!classId || !classId.match(/^[0-9a-fA-F]{24}$/)) {
-            return res.status(400).json({ message: "Invalid class ID format" });
-        }
-
-        const startDate = new Date(startTime);
-        const endDate = new Date(endTime);
-        
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            return res.status(400).json({ 
-                message: "Invalid date format" 
-            });
+            return res.status(400).json({ message: "Start time and end time are required" });
         }
 
         // Check if class exists
-        const classToBook = await Class.findById(classId);
+        const classToBook = await Class.findById(classId)
+            .populate({
+                path: 'trainer',
+                populate: { path: 'user', select: 'username email' }
+            });
+
         if (!classToBook) {
             return res.status(404).json({ message: "Class not found" });
         }
 
-        if (classToBook.status !== 'available') {
-            return res.status(400).json({ message: `Class is ${classToBook.status} and cannot be booked` });
-        }
-
-        // ✅ Check if class is full using existing attendees array
+        // Check if class is full
         if (classToBook.attendees.length >= classToBook.capacity) {
             return res.status(400).json({ message: "Class is full" });
         }
 
-        // Check for existing booking
-        const existingBooking = await Booking.findOne({
-            user: userId,
-            class: classId,
-            startTime: startDate
-        });
-
-        let savedBooking;
-
-        if (existingBooking) {
-            if (existingBooking.status === 'cancelled') {
-                // Reactivate cancelled booking
-                existingBooking.status = 'upcoming';
-                existingBooking.sessionDate = startDate;
-                existingBooking.endTime = endDate;
-                savedBooking = await existingBooking.save();
-                
-                // ✅ Add user to attendees array if not already there
-                await Class.findByIdAndUpdate(classId, {
-                    $addToSet: { attendees: userId }
-                });
-                
-                console.log('✅ Cancelled booking reactivated:', savedBooking._id);
-                return res.status(201).json({
-                    message: "Class booked successfully",
-                    booking: savedBooking
-                });
-            } else {
-                return res.status(400).json({ 
-                    message: "You already have an active booking for this class at this time" 
-                });
-            }
-        }
-
-        // Create new booking
+        // ✅ SIMPLE: Try to create booking - if duplicate, it will fail
         const newBooking = new Booking({
             user: userId,
             class: classId,
-            sessionDate: startDate,
-            startTime: startDate,
-            endTime: endDate,
-            status: 'upcoming'
+            sessionDate: new Date(startTime),
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+            paymentStatus: 'paid'
         });
 
-        savedBooking = await newBooking.save();
+        const savedBooking = await newBooking.save();
 
-        // ✅ Add user to attendees array
+        // Add user to class attendees
         await Class.findByIdAndUpdate(classId, {
             $addToSet: { attendees: userId }
         });
 
-        console.log('✅ New booking created:', savedBooking._id);
+        console.log(' Booking created:', savedBooking._id);
 
         res.status(201).json({
             message: "Class booked successfully",
@@ -420,36 +363,47 @@ export const bookClass = async (req, res) => {
         
         if (error.code === 11000) {
             return res.status(400).json({ 
-                message: "Booking conflict. Please try again." 
+                message: "You already have a booking for this class" 
             });
         }
         
-        res.status(500).json({ message: "An error occurred while booking the class." });
+        res.status(500).json({ message: "Server error" });
     }
 };
-// viewing the classes the user has booked in his profile 
+
+// viewing the classes the user has booked in his profile
 export const viewBookedClasses = async (req, res) => {
     try {
-        const bookings = await Booking.find({ user: req.user._id })
-            .sort({ startTime: 'desc' })
+        const userId = req.user._id;
+
+        console.log('🔍 Fetching bookings for user:', userId);
+
+        const bookings = await Booking.find({ user: userId })
             .populate({
                 path: 'class',
-                select: 'classTitle timeSlot classPic price duration capacity classType classDescription', // ✅ Added price, duration, and other useful fields
+                select: 'classTitle description capacity price timeSlot',
                 populate: {
                     path: 'trainer',
-                    select: 'specialization',
-                    populate: { path: 'user', select: 'username' }
+                    populate: {
+                        path: 'user',
+                        select: 'username'
+                    }
                 }
-            });
+            })
+            .sort({ createdAt: -1 });
 
-        const now = new Date();
-        const upcoming = bookings.filter(b => b.startTime > now && b.status === 'upcoming');
-        const history = bookings.filter(b => b.startTime <= now || b.status !== 'upcoming');
+        console.log('✅ Found bookings:', bookings.length);
 
-        res.status(200).json({ upcoming, history });
+        res.status(200).json({ 
+            success: true,
+            bookings 
+        });
     } catch (error) {
-        console.error("Error in viewBookedClasses:", error);
-        res.status(500).json({ message: "An error occurred while fetching your bookings." });
+        console.error("❌ Error fetching bookings:", error);
+        res.status(500).json({ 
+            success: false,
+            message: "Server error" 
+        });
     }
 };
 
@@ -459,27 +413,32 @@ export const cancelBooking = async (req, res) => {
         const { bookingId } = req.params;
         const userId = req.user._id;
 
-        const booking = await Booking.findOneAndUpdate(
-            { _id: bookingId, user: userId },
-            { 
-                status: 'cancelled',
-                cancelledAt: new Date() // ✅ Track when it was cancelled
-            },
-            { new: true }
-        );
+        console.log('🔍 Cancelling booking:', { bookingId, userId });
+
+        // Find and delete the booking
+        const booking = await Booking.findOneAndDelete({ 
+            _id: bookingId, 
+            user: userId 
+        }).populate('class', 'classTitle price');
 
         if (!booking) {
-            return res.status(404).json({ message: "Booking not found or not owned by user" });
+            return res.status(404).json({ message: "Booking not found" });
         }
 
-        // ✅ Optional: Add refund logic here if needed
-        
-        res.status(200).json({ 
-            message: "Booking cancelled successfully", 
-            booking 
+        // Remove user from class attendees
+        await Class.findByIdAndUpdate(booking.class._id, {
+            $pull: { attendees: userId }
         });
+
+        console.log('✅ Booking deleted and user removed from attendees');
+
+        res.status(200).json({ 
+            message: "Booking cancelled successfully",
+            refundAmount: booking.class.price
+        });
+
     } catch (error) {
-        console.error("Error cancelling booking:", error);
+        console.error("❌ Error cancelling booking:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
