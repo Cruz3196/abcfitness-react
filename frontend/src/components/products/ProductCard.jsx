@@ -41,10 +41,10 @@ const ProductCard = ({ product }) => {
                     </Link>
                 </h2>
                 <p className="text-lg font-semibold">${product.productPrice.toFixed(2)}</p>
-                <div className="card-actions justify-center items-center">
+                <div className="card-actions justify-start items-start">
                     <button
                         // onClick={() => addToCart(product._id)}
-                        className="btn btn-neutral"
+                        className="btn btn-primary btn-md"
                         onClick={handleAddToCart}
                     >
                         Add to Bag

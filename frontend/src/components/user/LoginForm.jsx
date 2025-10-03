@@ -180,7 +180,7 @@ const LoginForm = () => {
                 <motion.div className="text-center" variants={itemVariants}>
                     <p className="text-sm">
                         Don't have an account?{' '}
-                        <Link to="/signup" className="link link-primary font-semibold">Sign up here</Link>
+                        <Link to="/signup" className="link link-secondary font-semibold">Sign up here</Link>
                     </p>
                 </motion.div>
             </div>
