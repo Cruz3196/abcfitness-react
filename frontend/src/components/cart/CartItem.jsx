@@ -49,7 +49,7 @@ const CartItem = ({ item }) => {
             transition={{ duration: 0.3 }}
         >
             <div className="card-body p-4">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-row md:flex-row gap-4">
                     {/* Product Image */}
                     <div className="avatar">
                         <div className="w-20 h-20 rounded-lg">

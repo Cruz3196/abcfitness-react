@@ -107,7 +107,7 @@ const OrderSummary = ({ customerInfo }) => {
                                     <p className="text-xs text-base-content/70">Qty: {item.quantity}</p>
                                 </div>
                             </div>
-                            <p className="font-semibold">
+                            <p className="flex flex-col items-end w-10 font-semibold">
                                 ${((item.productPrice || item.price) * item.quantity).toFixed(2)}
                             </p>
                         </div>
