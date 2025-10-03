@@ -17,6 +17,7 @@ const CustomerProfile = () => {
         logout, 
         updateProfile, 
         deleteUserAccount, 
+        bookings,
         fetchMyBookings, 
         isLoading: isUserLoading 
     } = userStore();
@@ -36,105 +37,50 @@ const CustomerProfile = () => {
     });
 
     // ✅ Fixed booking filtering logic
-    const { upcomingBookings, bookingHistory, totalBookings } = useMemo(() => {
-        // ✅ Add comprehensive safety checks
-        if (!user || !user.bookings) {
+    const { upcomingBookings,totalBookings } = useMemo(() => {
+        if (!bookings || !Array.isArray(bookings)) {
             return {
                 upcomingBookings: [],
-                bookingHistory: [],
-                totalBookings: 0
-            };
-        }
-
-        // ✅ Ensure bookings is an array
-        const bookings = Array.isArray(user.bookings) ? user.bookings : [];
-        
-        if (bookings.length === 0) {
-            return {
-                upcomingBookings: [],
-                bookingHistory: [],
                 totalBookings: 0
             };
         }
 
         const now = new Date();
         
-        try {
-            const upcoming = bookings.filter(booking => {
-                // ✅ Add null/undefined checks for each booking
-                if (!booking) return false;
-                
-                // ✅ Only show bookings with 'upcoming' status
-                if (booking.status !== 'upcoming') return false;
-                
-                // ✅ Check if booking has a valid date and is in the future
-                if (!booking.startTime && !booking.sessionDate) return false;
-                
-                try {
-                    // ✅ Use sessionDate or startTime, whichever is available
-                    const bookingDate = new Date(booking.sessionDate || booking.startTime);
-                    return bookingDate > now;
-                } catch (dateError) {
-                    console.warn('Invalid date format for booking:', booking);
-                    return false;
-                }
-            });
+        const upcoming = bookings.filter(booking => {
+            if (!booking) return false;
             
-            const history = bookings.filter(booking => {
-                // ✅ Add null/undefined checks for each booking
-                if (!booking) return false;
-                
-                // ✅ Show cancelled or completed bookings in history
-                if (booking.status === 'cancelled' || booking.status === 'completed') {
-                    return true;
-                }
-                
-                // ✅ Show past upcoming bookings in history
-                if (booking.status === 'upcoming') {
-                    if (!booking.startTime && !booking.sessionDate) return false;
-                    
-                    try {
-                        const bookingDate = new Date(booking.sessionDate || booking.startTime);
-                        return bookingDate <= now;
-                    } catch (dateError) {
-                        console.warn('Invalid date format for booking:', booking);
-                        return true; // Show invalid bookings in history
-                    }
-                }
-                
+            try {
+                const bookingDate = new Date(booking.sessionDate || booking.startTime);
+                return bookingDate > now;
+            } catch (dateError) {
                 return false;
-            });
+            }
+        });
+        
+        const history = bookings.filter(booking => {
+            if (!booking) return false;
             
-            return {
-                upcomingBookings: upcoming,
-                bookingHistory: history,
-                totalBookings: bookings.length // Total of all bookings
-            };
-        } catch (error) {
-            console.error('Error processing bookings:', error);
-            return {
-                upcomingBookings: [],
-                bookingHistory: [],
-                totalBookings: 0
-            };
-        }
-    }, [user?.bookings]); // ✅ Only depend on user.bookings
+            try {
+                const bookingDate = new Date(booking.sessionDate || booking.startTime);
+                return bookingDate <= now;
+            } catch (dateError) {
+                return true;
+            }
+        });
+        
+        return {
+            upcomingBookings: upcoming,
+            totalBookings: bookings.length
+        };
+    }, [bookings]); // ✅ Depend on bookings array
 
-    // ✅ Debug logging to help track booking states
-useEffect(() => {
-    if (user?.bookings && Array.isArray(user.bookings) && activeTab === 'bookings') {
-        console.log('📊 Booking Debug Info:');
-        console.log('Total bookings:', user.bookings.length);
-        console.log('Upcoming:', upcomingBookings.length);
-        console.log('History:', bookingHistory.length);
-        console.log('Raw bookings:', user.bookings.map(b => ({
-            id: b._id,
-            status: b.status,
-            sessionDate: b.sessionDate,
-            startTime: b.startTime
-        })));
-    }
-}, [user?.bookings, upcomingBookings.length, bookingHistory.length, activeTab]);
+    // ✅ SIMPLIFIED: Fetch bookings when bookings tab is active
+        useEffect(() => {
+            if (activeTab === 'bookings') {
+                fetchMyBookings();
+            }
+        }, [activeTab, fetchMyBookings]);
 
     // ✅ Optimize data fetching - only fetch when tab is active
     useEffect(() => {
@@ -295,7 +241,6 @@ useEffect(() => {
                     {activeTab === 'bookings' && (
                         <BookingsTab 
                             upcomingBookings={upcomingBookings}
-                            bookingHistory={bookingHistory}
                             isLoading={isUserLoading}
                         />
                     )}
@@ -499,7 +444,7 @@ const OrderCard = React.memo(({ order }) => (
     </div>
 ));
 
-const BookingsTab = React.memo(({ upcomingBookings, bookingHistory, isLoading }) => (
+const BookingsTab = React.memo(({ upcomingBookings, isLoading }) => (
     <div>            
         {isLoading ? (
             <div className="text-center py-12">
@@ -507,7 +452,7 @@ const BookingsTab = React.memo(({ upcomingBookings, bookingHistory, isLoading })
                 <p className="mt-4">Loading your bookings...</p>
             </div>
         ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                 <BookingSection 
                     title="Upcoming Classes"
                     icon={Calendar}
@@ -517,14 +462,6 @@ const BookingsTab = React.memo(({ upcomingBookings, bookingHistory, isLoading })
                     emptySubMessage="Ready to start your fitness journey?"
                     linkTo="/classes"
                     linkText="Browse Classes"
-                />
-                
-                <BookingSection 
-                    title="Class History"
-                    icon={Clock}
-                    bookings={bookingHistory}
-                    isHistory={true}
-                    emptyMessage="No booking history yet"
                 />
             </div>
         )}

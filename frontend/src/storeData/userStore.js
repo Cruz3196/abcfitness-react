@@ -342,101 +342,65 @@ export const userStore = create((set, get) => ({
 
     // BOOKINGS ACTIONS=====================================================
 
-
-    // View user's bookings
-fetchMyBookings: async (force = false) => {
-    const state = get();
-    
-    if (state.bookingsLoaded && !force) {
-        return;
-    }
-
-    try {
-        set({ isLoading: true });
+    // ✅ IMPROVED: Fetch bookings with better caching
+    fetchMyBookings: async (forceRefresh = false) => {
+        const { bookings, isLoading } = get();
         
-        const response = await axios.get('/user/bookings');
-        
-        if (response.data) {
-            const { upcoming = [], history = [] } = response.data;
-            const allBookings = [...upcoming, ...history];
-            
-            // ✅ Update BOTH the user.bookings AND separate bookings array
-            set(state => ({
-                user: {
-                    ...state.user,
-                    bookings: allBookings // This is what CustomerProfile reads
-                },
-                bookings: allBookings, // This is for other components
-                bookingsLoaded: true,
-                isLoading: false
-            }));
-            
-            console.log('✅ Bookings loaded:', allBookings.length);
+        if (isLoading || (bookings.length > 0 && !forceRefresh)) {
+            console.log('📚 Using cached bookings or already loading');
+            return;
         }
-    } catch (error) {
-        console.error('❌ Error fetching bookings:', error);
-        set({ isLoading: false });
-    }
-},
+
+        try {
+            console.log('🔄 Fetching bookings from API...');
+            set({ isLoading: true });
+            
+            const response = await axios.get('/user/bookings');
+            const fetchedBookings = response.data.bookings || [];
+            
+            // ✅ Deduplicate by booking _id
+            const uniqueBookings = Array.from(
+                new Map(fetchedBookings.map(booking => [booking._id, booking])).values()
+            );
+            
+            set({ 
+                bookings: uniqueBookings,
+                isLoading: false 
+            });
+            
+            console.log('✅ Bookings loaded:', uniqueBookings.length);
+        } catch (error) {
+            console.error('❌ Error fetching bookings:', error);
+            set({ 
+                bookings: [],
+                isLoading: false,
+                error: error.response?.data?.message || 'Failed to fetch bookings'
+            });
+        }
+    },
 
 // Replace the cancelBooking function:
-cancelBooking: async (bookingId) => {
-    try {
-        set({ isLoading: true });
-        
-        console.log('🚀 Cancelling booking:', bookingId);
-
-        const response = await axios.delete(`/user/cancelBooking/${bookingId}`);
-
-        // ✅ Check for successful response (status 200) instead of response.data.success
-        if (response.status === 200 && response.data.message) {
-            console.log('✅ Booking cancelled successfully');
+    cancelBooking: async (bookingId) => {
+        try {
+            console.log('🔍 Cancelling booking:', bookingId);
             
-            // ✅ Force refresh bookings to get updated data
-            await get().fetchMyBookings(true); // Force refresh
+            const response = await axios.delete(`/user/cancelBooking/${bookingId}`);
             
-            // ✅ Update the current user state with correct property names
-            const currentUser = get().user;
-            if (currentUser && currentUser.bookings) {
-                const updatedBookings = currentUser.bookings.map(booking =>
-                    booking._id === bookingId 
-                        ? { ...booking, status: 'cancelled', cancelledAt: new Date() }
-                        : booking
-                );
-                
-                set({ 
-                    user: { 
-                        ...currentUser, 
-                        bookings: updatedBookings
-                    } 
-                });
-            }
+            // ✅ Remove from local state immediately
+            const { bookings } = get();
+            const updatedBookings = bookings.filter(booking => booking._id !== bookingId);
+            set({ bookings: updatedBookings });
             
+            console.log('✅ Booking removed from local state');
+            toast.success('Booking cancelled successfully!');
             return { success: true };
-        } else {
-            throw new Error(response.data.message || 'Failed to cancel booking');
+            
+        } catch (error) {
+            console.error('❌ Cancel booking error:', error);
+            toast.error(error.response?.data?.message || 'Failed to cancel booking');
+            return { success: false };
         }
-    } catch (error) {
-        console.error('❌ Error cancelling booking:', error);
-        
-        // ✅ Better error handling - don't throw if cancellation was actually successful
-        if (error.response?.status === 200 || error.message?.includes('successfully')) {
-            // It was actually successful, just return success
-            return { success: true };
-        }
-        
-        // Better error messages based on status code
-        if (error.response?.status === 404) {
-            throw new Error('Booking not found or already cancelled');
-        } else if (error.response?.status === 403) {
-            throw new Error('You are not authorized to cancel this booking');
-        } else {
-            throw new Error(error.response?.data?.message || 'Failed to cancel booking');
-        }
-    } finally {
-        set({ isLoading: false });
-    }
-},
+    },
 
     // Optional: Action to clear the selected class when leaving the page
     clearSelectedClass: () => {
