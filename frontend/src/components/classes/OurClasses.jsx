@@ -29,7 +29,7 @@ const OurClasses = () => {
                 <p className="text-gray-600 mt-6">Find the perfect class to match your fitness goals and schedule.</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 place-items-center">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredClasses.map((classInfo) => (
                 <ClassCard key={classInfo._id} classInfo={classInfo} />
                 ))}

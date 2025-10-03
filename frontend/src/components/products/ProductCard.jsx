@@ -26,7 +26,7 @@ const ProductCard = ({ product }) => {
                     <img
                         src={product.productImage || 'https://placehold.co/400x225?text=No+Image'}
                         alt={product.productName}
-                        className="h-96 w-full object-scale-down"
+                        className="h-96 w-full object-fit: contain"
                         loading="lazy" 
                         width="400" 
                         height="225" 
