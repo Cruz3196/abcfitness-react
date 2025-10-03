@@ -173,7 +173,6 @@ export const checkoutSuccess = async (req, res) => {
 
 
 //Creates a Stripe checkout session for a single class booking.
-//Creates a Stripe checkout session for a single class booking.
 export const createClassCheckoutSession = async (req, res) => {
     try {
         const { classId, sessionDate } = req.body;
