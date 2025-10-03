@@ -1,4 +1,5 @@
 // importing modules 
+import path from 'path';
 import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
@@ -22,6 +23,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// configuring the backend to the front end 
+const __dirname = path.resolve();
+
 //*This middleware parses incoming JSON requests and puts the parsed data in req.body
 app.use(express.json({limit: "50mb"})); // Set limit to handle large payloads
 app.use(express.urlencoded({ limit: "50mb", extended: true })) // for put and post to form the data and gives us a response of that data that was created or edited
@@ -36,6 +40,15 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/payment', PaymentRoutes);
 // app.use('/api/user', userRoutes);
 // app.use('/api/booking', bookingRoutes);
+
+//* navigating the user to the react application
+if (process.env.NODE_ENV === "production"){
+    app.use(express.static(path.join(__dirname, "/frontend/dist")));
+
+    app.get("*", (req,res) => {
+        res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+    })
+}
 
 
 app.listen(PORT, () => {
