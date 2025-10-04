@@ -113,12 +113,8 @@ export const loginUser = async (req, res) => {
             // setting the cookies
             setCookies(res,accessToken, refreshToken);
             
-            // Check if user is trainer and has completed profile setup
-            let hasTrainerProfile = false;
-            if (user.role === 'trainer') {
-                const trainerProfile = await Trainer.findOne({ user: user._id });
-                hasTrainerProfile = !!trainerProfile;
-            }
+            // ✅ FIXED: Use stored value to eliminate delay
+            const hasTrainerProfile = user.hasTrainerProfile || false;
 
             // if the user exists and the password is correct then return the user
             res.json({
@@ -126,7 +122,7 @@ export const loginUser = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 role: user.role,
-                hasTrainerProfile: user.hasTrainerProfile // Directly from the user object
+                hasTrainerProfile
             });
         } else {
             return res.status(401).json({message: "Invalid email or password"});
