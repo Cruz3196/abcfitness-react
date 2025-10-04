@@ -56,43 +56,38 @@ const setCookies = (res, accessToken, refreshToken) => {
 };
 
 export const createUser = async (req, res) => {
-    // getting the email, password and username
     const {email, password, username} = req.body;
     try{
-        // testing to see the data is being displayed
         const userExists = await User.findOne({email});
 
-        // checking if the user already exists 
         if(userExists){
-            // returning an error if the user already exists
             return res.status(400).json({message: "User already exists" })
         }
-        //creating the user
+        
         const user = await User.create({email, password, username});
 
-        // after the user is successfully created, send a welcome email
-        try {
-            await sendWelcomeEmail(user.email, username);
-        } catch (emailError) {
-            // Log the error but don't stop the signup process if the email fails.
+        // ✅ Send email asynchronously (don't await)
+        sendWelcomeEmail(user.email, username).catch(emailError => {
             console.error("Failed to send welcome email:", emailError);
-        }
+        });
 
-        //authenticate user .id is how mongodb stores the id
+        // Authenticate user immediately
         const {accessToken, refreshToken} = generateTokens(user._id);
         await storageRefreshToken(user._id, refreshToken);
-        //setting the cookies
-        setCookies(res,accessToken, refreshToken);
-        // returning the user message, displaying the user, email and role
-        res.status(201).json({ user: {
-            _id: user._id,
-            username: user.username,
-            email: user.email,
-            role: user.role
-        }, message: "Thanks for signing up for ABC Fitness!"});
+        setCookies(res, accessToken, refreshToken);
+        
+        // ✅ Respond immediately without waiting for email
+        res.status(201).json({ 
+            user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }, 
+            message: "Thanks for signing up for ABC Fitness!"
+        });
 
-    }catch (error){
-        // returing an error in the message, if their is an error in creating the user
+    } catch (error){
         console.log("Error in create user controller", error.message);
         res.status(500).json({message: "Error in creating user"});
     }

@@ -43,8 +43,9 @@ const SignUpForm = () => {
         });
 
         if (success) {
-            toast.success('Account created! Please log in.');
-            navigate("/login");
+            toast.success('Account created successfully!');
+            // ✅ Redirect to profile or home, not login (user is already authenticated)
+            navigate("/profile");
         }
     };
 

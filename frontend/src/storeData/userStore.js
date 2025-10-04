@@ -35,12 +35,18 @@ export const userStore = create((set, get) => ({
     },
 
     // AUTHENTICATION ACTIONS=====================================================
-    signup: async ({ username, email, password, confirmPassword }) => {
+    signup: async ({ username, email, password }) => {
         set({ isLoading: true });
-
         try {
             const res = await axios.post("/user/signup", { username, email, password });
-                set({ isLoading: false });
+            
+            // ✅ Set the user state immediately after signup
+            set({ 
+                user: res.data.user,
+                isAuthenticated: true,
+                isLoading: false 
+            });
+            
             return true;
         } catch (error) {
             set({ isLoading: false });
