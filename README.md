@@ -1,5 +1,7 @@
 ABC Fitness React
 
+This project is a rebuild of my previous of my last repo: https://abcfitnesslab.netlify.app
+Link to the new project: https://abcfitness-react.onrender.com
 The stack that was used for this project was: mongodb, expressjs, reactjs, and lastly nodejs.
 Tailwind CSS used for front end development. 
 
