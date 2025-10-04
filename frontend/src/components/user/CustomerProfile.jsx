@@ -146,7 +146,6 @@ useEffect(() => {
         try {
             await updateProfile(profileForm);
             setActiveTab('view');
-            toast.success('Profile updated successfully');
         } catch (error) {
             toast.error('Failed to update profile');
         }

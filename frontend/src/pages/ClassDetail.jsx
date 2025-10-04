@@ -3,8 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Users, DollarSign, ArrowLeft, CreditCard, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
-// import RatingCard from '../components/rating/RatingCard';
-// import RatingForm from '../components/rating/RatingForm';
 import Spinner from '../components/common/Spinner';
 import Breadcrumbs from '../components/common/Breadcrumbs';
 import { classStore } from '../storeData/classStore';
@@ -14,7 +12,6 @@ import axios from '../api/axios';
 import toast from 'react-hot-toast';
 import BookingCard from '../components/user/BookingCard';
 
-// ✅ Load Stripe with your publishable key
 const stripePromise = loadStripe("pk_test_51S9WGyIEpMTZmgDrULbvg0KMshtzSdkQmHiojffBNMBXnxcO6XPk4TkVrramUD783saSb1y5LLmEnRUifA8B7nUm00VYLvV1Ag");
 
 const ClassDetail = () => {
@@ -30,12 +27,11 @@ const ClassDetail = () => {
         isLoading, 
         isBooking, 
         error, 
-        fetchClassById, 
-        bookClass,
-        clearSelectedClass 
+        fetchClassById,
+        bookClass
+        // ✅ REMOVED clearSelectedClass - don't clear on unmount
     } = classStore();
 
-    // fetching from the review store 
     const { 
         reviews, 
         isLoading: reviewsLoading, 
@@ -47,42 +43,46 @@ const ClassDetail = () => {
         clearReviews
     } = reviewStore();
 
-    // ✅ Fetch reviews when component mounts
+    // ✅ Fetch class data FIRST, before anything else
     useEffect(() => {
         if (id) {
+            console.log('Fetching class with ID:', id);
+            fetchClassById(id);
+        }
+        
+        // ✅ DON'T clear selected class on unmount - let it persist in store
+        // This allows data to remain when navigating back
+    }, [id, fetchClassById]);
+
+    // ✅ Fetch reviews AFTER class is loaded
+    useEffect(() => {
+        if (id && selectedClass) {
             fetchReviewsByClass(id);
         }
         
-        // Cleanup when leaving the page
         return () => {
             clearReviews();
         };
-    }, [id, fetchReviewsByClass, clearReviews]);
+    }, [id, selectedClass, fetchReviewsByClass, clearReviews]);
 
-    // ✅ Handle review submission
+    // ✅ Handle review operations
     const handleReviewSubmit = async (reviewData) => {
         if (!user) {
             toast.error('Please log in to submit a review');
             return;
         }
-        
-        const result = await submitReview(id, reviewData);
-        return result;
+        return await submitReview(id, reviewData);
     };
 
-    // ✅ Handle review update
     const handleReviewUpdate = async (reviewId, updateData) => {
-        const result = await updateReview(reviewId, updateData);
-        return result;
+        return await updateReview(reviewId, updateData);
     };
 
-    // ✅ Handle review deletion
     const handleReviewDelete = async (reviewId) => {
-        const result = await deleteReview(reviewId);
-        return result;
+        return await deleteReview(reviewId);
     };
 
-    // Function to generate a unique localStorage key per user and class
+    // Function to generate localStorage key
     const getStorageKey = () => {
         if (user && id) {
             return `booked_${user._id}_${id}`;
@@ -90,58 +90,30 @@ const ClassDetail = () => {
         return null;
     };
 
+    // ✅ Sync with user's actual bookings from server
     useEffect(() => {
-        if (id) {
-            fetchClassById(id);
-        }
-        return () => {
-            // clearSelectedClass();
-            setBookedSessions(new Set());
-        };
-    }, [id, fetchClassById]);
+        if (user && selectedClass && user.bookings) {
+            const userBookedDatesForThisClass = new Set(
+                user.bookings
+                    .filter(booking => 
+                        booking.class?._id === selectedClass._id && 
+                        booking.status !== 'cancelled' &&
+                        booking.paymentStatus === 'paid'
+                    )
+                    .map(booking => new Date(booking.sessionDate).toISOString().split('T')[0])
+            );
+            
+            setBookedSessions(userBookedDatesForThisClass);
 
-    // Check localStorage for booked sessions
-    useEffect(() => {
-        const storageKey = getStorageKey();
-        if (storageKey) {
-            const stored = localStorage.getItem(storageKey);
-            if (stored) {
-                try {
-                    const bookedDates = JSON.parse(stored);
-                    setBookedSessions(new Set(bookedDates));
-                } catch (error) {
-                    console.error('Error parsing stored bookings:', error);
-                    localStorage.removeItem(storageKey);
-                }
+            // Sync localStorage with server state
+            const storageKey = getStorageKey();
+            if (storageKey) {
+                localStorage.setItem(storageKey, JSON.stringify([...userBookedDatesForThisClass]));
             }
         }
-    }, [id, user]);
+    }, [user?.bookings, selectedClass]);
 
-    // Sync with user's actual bookings from server
-useEffect(() => {
-    if (user && selectedClass && user.bookings) { // ✅ Use 'bookings' not 'upcomingBookings'
-        // ✅ Only count bookings that are NOT cancelled
-        const userBookedDatesForThisClass = new Set(
-            user.bookings
-                .filter(booking => 
-                    booking.class?._id === selectedClass._id && 
-                    booking.status !== 'cancelled' && // ✅ Exclude cancelled bookings
-                    booking.paymentStatus === 'paid'   // ✅ Only count paid bookings
-                )
-                .map(booking => new Date(booking.sessionDate).toISOString().split('T')[0])
-        );
-        
-        setBookedSessions(userBookedDatesForThisClass);
-
-        // Sync localStorage with server state
-        const storageKey = getStorageKey();
-        if (storageKey) {
-            localStorage.setItem(storageKey, JSON.stringify([...userBookedDatesForThisClass]));
-        }
-    }
-}, [user?.bookings, selectedClass]) // ✅ Listen specifically to bookings changes
-
-    // ✅ Updated handleBookClass with Stripe integration
+    // ✅ Handle booking with Stripe
     const handleBookClass = async (session) => {
         if (!user) {
             toast.error('Please log in to book a class');
@@ -153,7 +125,6 @@ useEffect(() => {
         try {
             console.log('Creating checkout session for:', { classId: id, sessionDate: session.date });
             
-            // ✅ Create Stripe checkout session directly (no booking yet)
             const response = await axios.post('/payment/createClassCheckoutSession', {
                 classId: id,
                 sessionDate: session.date
@@ -162,7 +133,6 @@ useEffect(() => {
             const sessionData = response.data;
             console.log('✅ Stripe session created:', sessionData);
 
-            // ✅ Redirect to Stripe checkout
             const stripe = await stripePromise;
             const result = await stripe.redirectToCheckout({
                 sessionId: sessionData.id
@@ -191,22 +161,19 @@ useEffect(() => {
             return {
                 text: 'Past Session',
                 disabled: true,
-                className: 'btn btn-disabled',
-                icon: null
+                className: 'btn btn-disabled'
             };
         } else if (isBooked) {
             return {
                 text: 'Already Booked',
                 disabled: true,
-                className: 'btn btn-success',
-                icon: '✓'
+                className: 'btn btn-success'
             };
         } else if (isFull) {
             return {
                 text: 'Class Full',
                 disabled: true,
-                className: 'btn btn-error',
-                icon: null
+                className: 'btn btn-error'
             };
         } else if (isProcessing) {
             return {
@@ -217,8 +184,7 @@ useEffect(() => {
                     </>
                 ),
                 disabled: true,
-                className: 'btn btn-primary',
-                icon: null
+                className: 'btn btn-primary'
             };
         } else {
             return {
@@ -229,16 +195,17 @@ useEffect(() => {
                     </>
                 ),
                 disabled: false,
-                className: 'btn btn-primary',
-                icon: null
+                className: 'btn btn-primary'
             };
         }
     };
 
+    // ✅ Show loading while fetching
     if (isLoading) {
         return <div className="flex justify-center pt-20"><Spinner /></div>;
     }
 
+    // ✅ Show error or not found
     if (error || !selectedClass) {
         return (
             <div className="text-center py-20">
@@ -300,7 +267,6 @@ useEffect(() => {
                     </p>
                     <p className="text-base-content/80 my-4">{selectedClass.classDescription}</p>
                     
-                    {/* Class Details */}
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="flex items-center gap-2">
                             <Calendar size={16} className="text-primary" />
@@ -310,10 +276,6 @@ useEffect(() => {
                             <Clock size={16} className="text-primary" />
                             <span className="text-sm">{selectedClass.duration} minutes</span>
                         </div>
-                        {/* <div className="flex items-center gap-2">
-                            <Users size={16} className="text-primary" />
-                            <span className="text-sm">{selectedClass.capacity} max capacity</span>
-                        </div> */}
                         <div className="flex items-center gap-2">
                             <DollarSign size={16} className="text-primary" />
                             <span className="text-sm">${selectedClass.price} per session</span>
@@ -342,9 +304,7 @@ useEffect(() => {
                         <div className="space-y-4">
                             {availableSessions.map((session, index) => {
                                 const buttonState = getButtonState(session);
-                                const isBooked = bookedSessions.has(session.date);
                                 const isFull = session.spotsLeft <= 0;
-                                const isPast = new Date(session.date) < new Date();
                                 
                                 return (
                                     <motion.div 
@@ -379,16 +339,6 @@ useEffect(() => {
                                                     </div>
                                                     
                                                     <div className="flex items-center gap-6 text-sm text-base-content/70">
-                                                        {/* <div className="flex items-center gap-1">
-                                                            <Users size={16} />
-                                                            <span>
-                                                                <span className={`font-semibold ${
-                                                                    isFull ? 'text-error' : 'text-success'
-                                                                }`}>
-                                                                    {session.spotsLeft}
-                                                                </span> spots left
-                                                            </span>
-                                                        </div> */}
                                                         <div className="flex items-center gap-1">
                                                             <DollarSign size={16} />
                                                             <span>{selectedClass.price} per session</span>
@@ -408,12 +358,7 @@ useEffect(() => {
                                                 </button>
                                             </div>
                                             
-                                            {/* Progress bar for spots */}
                                             <div className="mt-4">
-                                                {/* <div className="flex justify-between text-xs mb-2">
-                                                    <span>Capacity</span>
-                                                    <span>{selectedClass.capacity - session.spotsLeft}/{selectedClass.capacity}</span>
-                                                </div> */}
                                                 <progress 
                                                     className="progress progress-primary w-full" 
                                                     value={selectedClass.capacity - session.spotsLeft} 
@@ -441,47 +386,6 @@ useEffect(() => {
                     </div>
                 </div>
             </motion.div>
-
-            {/* Reviews Section */}
-            {/* <motion.div 
-                className="card bg-base-100 shadow-xl"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-            >
-                <div className="card-body">
-                    <h2 className="card-title text-2xl mb-6">What Our Members Say</h2>
-                    
-                    {reviewsLoading ? (
-                        <div className="flex justify-center py-8">
-                            <span className="loading loading-spinner loading-lg"></span>
-                        </div>
-                    ) : reviews.length > 0 ? (
-                        <div className="space-y-6 mb-8">
-                            {reviews.map(review => (
-                                <RatingCard 
-                                    key={review._id} 
-                                    review={review} 
-                                    currentUser={user}
-                                    onUpdate={handleReviewUpdate}
-                                    onDelete={handleReviewDelete}
-                                    isSubmitting={isSubmitting}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-base-content/70 mb-6">Be the first to review this class!</p>
-                    )}
-                    
-                    {user && (
-                        <RatingForm 
-                            classId={id} 
-                            onSubmit={handleReviewSubmit}
-                            isSubmitting={isSubmitting}
-                        />
-                    )}
-                </div>
-            </motion.div> */}
 
             {/* Booking Confirmation Modal */}
             {latestBooking && (
