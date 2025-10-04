@@ -30,6 +30,7 @@ const LoginForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isLoading) return; // Prevent multiple submissions
         
         // Basic validation
         if (!formData.email || !formData.password) {
@@ -41,7 +42,6 @@ const LoginForm = () => {
             const result = await login(formData.email, formData.password);
             
             if (result) {
-                toast.success("Login successful!");
                 
                 // Redirect based on user role and profile status
                 if (result.role === 'admin') {

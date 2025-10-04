@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import axios from '../api/axios';
 import { toast } from 'react-hot-toast';
 
 const useCartStore = create((set, get) => ({
@@ -10,34 +10,31 @@ const useCartStore = create((set, get) => ({
     totalQuantity: 0,
     isLoading: false,
 
-    // Add method to clear local cart state (for user switching)
-    clearCartState: () => {
-        set({ 
-            cart: [], 
-            total: 0, 
-            subtotal: 0, 
-            totalQuantity: 0 
-        });
-    },
-
     // getting all the products in the cart 
-    getCartProducts: async () =>{
-        try{
-            const res = await axios.get("/api/cart/cartProducts");
-            set({ cart: res.data });
+    getCartProducts: async () => {
+        try {
+
+            set({ isLoading: true });
+            
+            const res = await axios.get("/cart/cartProducts");
+            set({ cart: res.data, isLoading: false });
+            console.log('✅ Cart loaded:', res.data.length, 'items');
+            
             get().calculateTotals();
-        }catch(error){
-            set({ cart: [] });
-            toast.error(error.response?.data?.message || "Failed to fetch cart products");
+        } catch (error) {
+            console.log('❌ Cart fetch failed:', error.response?.status);
+            set({ isLoading: false, cart: [] });
+            
+            if (error.response?.status !== 401) {
+                console.error('❌ Unexpected cart error:', error.message);
+            }
         }
     },
-
-    // ... rest of your existing code stays the same ...
 
     // adding a product to the cart 
     addToCart: async (product) => {
         try{
-            await axios.post("/api/cart/addToCart", { productId: product._id });
+            await axios.post("/cart/addToCart", { productId: product._id });
             toast.success("Product added to cart");
 
             set((prevState) => {
@@ -59,7 +56,7 @@ const useCartStore = create((set, get) => ({
     removeFromCart: async (productId) => {
         try {
             console.log('Removing product:', productId);
-            await axios.delete(`/api/cart/removeFromCart/${productId}`);
+            await axios.delete(`/cart/removeFromCart/${productId}`);
             set((prevState) => ({
                 cart: prevState.cart.filter((item) => item._id !== productId)
             }));
@@ -71,23 +68,19 @@ const useCartStore = create((set, get) => ({
         }
     },
 
-    // updateQuantity function - FIXED VERSION
+    // updateQuantity function
     updateQuantity: async (productId, quantity) => {
         try {
             console.log('Updating quantity for product:', productId, 'to:', quantity);
             
-            // Update backend
-            await axios.put(`/api/cart/updateQuantity/${productId}`, { quantity });
+            await axios.put(`/cart/updateQuantity/${productId}`, { quantity });
             
-            // Update local state immediately
             set((prevState) => {
                 if (quantity === 0) {
-                    // Remove item if quantity is 0
                     return {
                         cart: prevState.cart.filter((item) => item._id !== productId)
                     };
                 } else {
-                    // Update quantity
                     return {
                         cart: prevState.cart.map((item) =>
                             item._id === productId ? { ...item, quantity } : item
@@ -96,15 +89,12 @@ const useCartStore = create((set, get) => ({
                 }
             });
             
-            // Recalculate totals
             get().calculateTotals();
             toast.success("Cart updated");
             
         } catch (error) {
             console.error("Update quantity error:", error);
             toast.error(error.response?.data?.message || "Failed to update quantity");
-            
-            // Optionally refresh cart from server on error
             get().getCartProducts();
         }
     },
@@ -112,12 +102,24 @@ const useCartStore = create((set, get) => ({
     // clearing the cart 
     clearCart: async () => {
         try {
-            await axios.delete("/api/cart/clearCart");
+            await axios.delete("/cart/clearCart");
             set({ cart: [], total: 0, subtotal: 0, totalQuantity: 0 });
             toast.success("Cart cleared");
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to clear cart");
         }
+    },
+    
+    // Clear local cart state (for user switching)
+    clearCartState: () => {
+        console.log('🧹 Clearing cart state');
+        set({ 
+            cart: [], 
+            total: 0, 
+            subtotal: 0, 
+            totalQuantity: 0,
+            isLoading: false 
+        });
     },
 
     calculateTotals: () => {
@@ -127,9 +129,7 @@ const useCartStore = create((set, get) => ({
             return sum + price * item.quantity;
         }, 0);
         
-        // Calculate total quantity
         const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-        
         let total = subtotal;
 
         set({ subtotal, total, totalQuantity });

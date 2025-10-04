@@ -3,6 +3,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
 
 //routes
 import productRoutes from './routes/product.route.js';
@@ -11,8 +12,6 @@ import trainerRoutes from './routes/trainer.route.js';
 import adminRoutes from './routes/admin.route.js';
 import cartRoutes from './routes/cart.route.js';
 import PaymentRoutes from './routes/payment.route.js';
-// import userRoutes from './routes/user.route.js';
-// import bookingRoutes from './routes/booking.route.js';
 
 //database connection 
 import connectMongoDB from './db/connectMongoDB.js';
@@ -21,37 +20,54 @@ import connectMongoDB from './db/connectMongoDB.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
+
+// ✅ CORS Configuration (only for development)
+if (process.env.NODE_ENV !== "production") {
+    app.use(cors({
+        origin: ['http://localhost:5173', 'http://localhost:3000'],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
+    }));
+}
 
 // configuring the backend to the front end 
 const __dirname = path.resolve();
 
-//*This middleware parses incoming JSON requests and puts the parsed data in req.body
-app.use(express.json({limit: "50mb"})); // Set limit to handle large payloads
-app.use(express.urlencoded({ limit: "50mb", extended: true })) // for put and post to form the data and gives us a response of that data that was created or edited
-app.use(cookieParser()); //enable cookie parser for cookies 
+// Middleware
+app.use(express.json({limit: "50mb"}));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+app.use(cookieParser());
 
-//routes for api
+// API Routes (BEFORE static files)
 app.use('/api/user', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/trainer', trainerRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', PaymentRoutes);
-// app.use('/api/user', userRoutes);
-// app.use('/api/booking', bookingRoutes);
 
-//* navigating the user to the react application
-if (process.env.NODE_ENV === "production"){
-    app.use(express.static(path.join(__dirname, "/frontend/dist")));
-
-    app.get("*", (req,res) => {
-        res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-    })
+// ✅ SERVE STATIC FILES IN PRODUCTION
+if (process.env.NODE_ENV === "production") {
+    // Serve static files from the React build
+    app.use(express.static(path.join(__dirname, "frontend/dist")));
+    
+    // Handle React Router - catch all non-API routes
+    app.get("*", (req, res) => {
+        console.log('📄 Serving React app for route:', req.path);
+        res.sendFile(path.resolve(__dirname, "frontend/dist/index.html"));
+    });
+} else {
+    // Development route
+    app.get("/", (req, res) => {
+        res.json({ message: "API is running in development mode" });
+    });
 }
 
-
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+    console.log(`📁 Serving from: ${path.join(__dirname, "frontend/dist")}`);
     connectMongoDB();
 });

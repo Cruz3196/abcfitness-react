@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { userStore } from "../../storeData/userStore";
 import useCartStore from "../../storeData/cartStore";
 import ThemeToggle from "./ThemeToggle";
-import toast from "react-hot-toast";
 
 const Navbar = () => {
     const { user, logout, isAdmin, isTrainer } = userStore();
@@ -16,7 +15,6 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         await logout();
-        toast.success("Logged out successfully");
         navigate("/");
     };
 

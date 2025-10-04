@@ -1,16 +1,16 @@
 import { create } from "zustand";
 import axios from "../api/axios";
 import toast from "react-hot-toast";
-import { classStore } from "./classStore.js"; // Import the class store to sync classes
 
 export const userStore = create((set, get) => ({
     user: null,
     bookings: [],
-    isCheckingAuth: true,
+    isCheckingAuth: true, // ✅ Start as true
     isLoading: false,
-    selectedClass: null, // New state for selected class
+    selectedClass: null,
     error: null,
-    bookingsLoaded: false, // New state to track if bookings have been loaded
+    bookingsLoaded: false,
+    isAuthenticated: false,
 
     // ROLE CHECKERS =============================================================
     isAdmin: () => {
@@ -50,33 +50,56 @@ export const userStore = create((set, get) => ({
     },
 
     login: async (email, password) => {
+        const state = get();
+        
+        // ✅ Prevent double login
+        if (state.isLoading) {
+            console.log('🔄 Login already in progress');
+            return false;
+        }
+        
         set({ isLoading: true });
-
         try {
-            const res = await axios.post("/user/login", { email, password }, {
-                timeout: 5000, // 5 seconds timeout
+            const res = await axios.post("/user/login", { email, password });
+            
+            set({ 
+                user: res.data, 
+                isLoading: false,
+                isAuthenticated: true
             });
-            set({ user: res.data, isLoading: false });
-            return res.data; // Return user data for redirect logic
+            
+            toast.success(`Welcome back, ${res.data.username}!`);
+            return res.data;
         } catch (error) {
             set({ isLoading: false });
-            toast.error(error.response?.data?.message || "An error occurred");
-            return false; // Return failure
+            toast.error(error.response?.data?.message || "Login failed");
+            return false;
         }
     },
 
     logout: async () => {
+        const state = get();
+        
+        // ✅ Prevent double logout
+        if (!state.user && !state.isAuthenticated) {
+            console.log('🚫 Already logged out');
+            return true;
+        }
+        
         try {
             await axios.post("/user/logout");
-            set({ user: null,
-                bookings: [],
-                bookingsLoaded: false
-                });
-            return true;
         } catch (error) {
-            toast.error(error.response?.data?.message || "An error occurred during logout");
-            return false;
+            console.log('❌ Logout request failed, but clearing state anyway');
         }
+        
+        // ✅ Always clear state
+        set({ 
+            user: null,
+            isAuthenticated: false
+        });
+        
+        toast.success('Logged out successfully');
+        return true;
     },
 
     deleteUserAccount: async () => {
@@ -94,27 +117,69 @@ export const userStore = create((set, get) => ({
     },
 
     checkAuthStatus: async () => {
+        console.log('🔍 Starting auth check...');
         set({ isCheckingAuth: true });
+        
         try {
+            console.log('📡 Making request to /user/profile...');
             const response = await axios.get("/user/profile");
-            set({ user: response.data, isCheckingAuth: false });
+            console.log('✅ Auth check successful:', response.data);
+            
+            set({ 
+                user: response.data, 
+                isCheckingAuth: false,
+                isAuthenticated: true
+            });
         } catch (error) {
-            console.log(error.message);
-            set({ isCheckingAuth: false, user: null });
+            console.log('❌ Auth check failed:', error.response?.status, error.message);
+            
+            set({ 
+                isCheckingAuth: false, 
+                user: null,
+                isAuthenticated: false
+            });
+            
+            // ✅ Don't throw error - just log it
+            console.log('🚫 User not authenticated - this is normal for first visit');
         }
     },
 
     refreshToken: async () => {
-        // Prevent multiple simultaneous refresh attempts
-        if (get().isCheckingAuth) return;
+        const currentState = get();
+        
+        console.log('🔄 Refresh token attempt:', {
+            hasUser: !!currentState.user,
+            isAuthenticated: currentState.isAuthenticated,
+            isCheckingAuth: currentState.isCheckingAuth
+        });
+
+        // ✅ Don't try to refresh if we don't have a user
+        if (!currentState.user && !currentState.isAuthenticated) {
+            console.log('🚫 No user to refresh token for');
+            throw new Error('No authenticated user');
+        }
+
+        if (currentState.isCheckingAuth) {
+            console.log('🔄 Already checking auth, skipping refresh');
+            return;
+        }
 
         set({ isCheckingAuth: true });
         try {
+            console.log('📡 Refreshing token...');
             const response = await axios.post("/user/refresh-token");
+            
             set({ isCheckingAuth: false });
+            console.log('✅ Token refreshed successfully');
             return response.data;
         } catch (error) {
-            set({ user: null, isCheckingAuth: false });
+            console.log('❌ Token refresh failed:', error.response?.status);
+            
+            set({ 
+                user: null, 
+                isCheckingAuth: false,
+                isAuthenticated: false
+            });
             throw error;
         }
     },
@@ -415,28 +480,56 @@ axios.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
-        if ( error.response?.status === 401 && !originalRequest._retry ) {
+        
+        console.log('🚨 Axios interceptor caught error:', {
+            status: error.response?.status,
+            url: originalRequest?.url,
+            retry: originalRequest?._retry
+        });
+
+        // ✅ Skip refresh for specific endpoints
+        const skipRefreshUrls = ['/login', '/signup', '/profile', '/refresh-token'];
+        const shouldSkipRefresh = skipRefreshUrls.some(url => 
+            originalRequest?.url?.includes(url)
+        );
+        
+        if (shouldSkipRefresh) {
+            console.log('🚫 Skipping refresh for:', originalRequest?.url);
+            return Promise.reject(error);
+        }
+
+        if (error.response?.status === 401 && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
-                // If a refresh is already in progress, wait for it to complete
+                const { isAuthenticated, user } = userStore.getState();
+                
+                if (!isAuthenticated && !user) {
+                    console.log('🚫 No authenticated user for token refresh');
+                    return Promise.reject(error);
+                }
+
                 if (refreshPromise) {
+                    console.log('⏳ Waiting for existing refresh...');
                     await refreshPromise;
                     return axios(originalRequest);
                 }
 
-                // Start a new refresh process
+                console.log('🔄 Starting token refresh...');
                 refreshPromise = userStore.getState().refreshToken();
                 await refreshPromise;
                 refreshPromise = null;
 
+                console.log('✅ Retrying original request...');
                 return axios(originalRequest);
             } catch (refreshError) {
-                // If refresh fails, redirect to login or handle as needed
+                console.log('❌ Token refresh failed, clearing user state');
+                refreshPromise = null;
                 userStore.getState().logout();
                 return Promise.reject(refreshError);
             }
         }
+        
         return Promise.reject(error);
     }
 );
