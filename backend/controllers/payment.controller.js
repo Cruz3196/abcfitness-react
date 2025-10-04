@@ -9,6 +9,11 @@ import { sendOrderConfirmationEmail} from "../utils/nodemailerConfig.js";
 export const createCheckoutSession = async (req, res) => {
     
     try {
+        // ✅ Add this validation
+        if (!req.user || !req.user._id) {
+            console.log('❌ User not authenticated');
+            return res.status(401).json({ message: "Authentication required" });
+        }
         const { products } = req.body;
 
         if (!Array.isArray(products) || products.length === 0) {

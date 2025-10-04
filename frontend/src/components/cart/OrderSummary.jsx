@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 
 
 
-// ✅ Use Vite environment variable syntax
 const stripePromise = loadStripe("pk_test_51S9WGyIEpMTZmgDrULbvg0KMshtzSdkQmHiojffBNMBXnxcO6XPk4TkVrramUD783saSb1y5LLmEnRUifA8B7nUm00VYLvV1Ag");
 
 const OrderSummary = ({ customerInfo }) => {
@@ -37,9 +36,19 @@ const OrderSummary = ({ customerInfo }) => {
         setIsProcessing(true);
 
         try {
+            // ✅ Pre-validate authentication before checkout
+            try {
+                await axios.get('/auth/profile');
+            } catch (authError) {
+                if (authError.response?.status === 401) {
+                    toast.error('Session expired. Please log in again.');
+                    // Let the interceptor handle logout
+                    return;
+                }
+            }
+
             console.log('Sending checkout request...');
             
-            // ✅ Make the request to your backend
             const response = await axios.post('/payment/createCheckoutSession', {
                 products: cart.map(item => ({
                     _id: item._id,
@@ -53,7 +62,6 @@ const OrderSummary = ({ customerInfo }) => {
             const session = response.data;
             console.log('✅ Session created:', session);
 
-            // ✅ Use Stripe to redirect to checkout
             const stripe = await stripePromise;
             const result = await stripe.redirectToCheckout({
                 sessionId: session.id
@@ -66,7 +74,15 @@ const OrderSummary = ({ customerInfo }) => {
 
         } catch (error) {
             console.error('Checkout error:', error);
-            toast.error(error.response?.data?.message || 'Failed to process checkout');
+            
+            // ✅ Better error handling
+            if (error.response?.status === 401) {
+                toast.error('Your session has expired. Please log in again.');
+            } else if (error.response?.status === 500) {
+                toast.error('Server error. Please try again in a moment.');
+            } else {
+                toast.error(error.response?.data?.message || 'Failed to process checkout');
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -92,7 +108,6 @@ const OrderSummary = ({ customerInfo }) => {
                     </div>
                 )}
                 
-                {/* Cart Items */}
                 <div className="space-y-3 mb-6">
                     {cart.map((item) => (
                         <div key={item._id} className="flex justify-between items-center">
@@ -116,7 +131,6 @@ const OrderSummary = ({ customerInfo }) => {
 
                 <div className="divider"></div>
 
-                {/* Pricing Breakdown */}
                 <div className="space-y-2">
                     <div className="flex justify-between">
                         <span>Subtotal</span>
@@ -137,7 +151,6 @@ const OrderSummary = ({ customerInfo }) => {
                     </div>
                 </div>
 
-                {/* Checkout Button */}
                 <button 
                     className="btn btn-primary btn-lg w-full mt-6"
                     onClick={handleCheckout}

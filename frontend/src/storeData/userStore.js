@@ -477,59 +477,64 @@ export const userStore = create((set, get) => ({
 let refreshPromise = null;
 
 axios.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-        
-        console.log('🚨 Axios interceptor caught error:', {
-            status: error.response?.status,
-            url: originalRequest?.url,
-            retry: originalRequest?._retry
-        });
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    console.log('🚨 Axios interceptor caught error:', {
+      status: error.response?.status,
+      url: originalRequest?.url,
+      retry: originalRequest?._retry
+    });
 
-        // ✅ Skip refresh for specific endpoints
-        const skipRefreshUrls = ['/login', '/signup', '/profile', '/refresh-token'];
-        const shouldSkipRefresh = skipRefreshUrls.some(url => 
-            originalRequest?.url?.includes(url)
-        );
-        
-        if (shouldSkipRefresh) {
-            console.log('🚫 Skipping refresh for:', originalRequest?.url);
-            return Promise.reject(error);
-        }
+    // ✅ ONLY skip refresh for auth endpoints
+    const skipRefreshUrls = ['/login', '/signup', '/refresh-token', '/logout'];
+    const shouldSkipRefresh = skipRefreshUrls.some(url =>
+      originalRequest?.url?.includes(url)
+    );
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            try {
-                const { isAuthenticated, user } = userStore.getState();
-                
-                if (!isAuthenticated && !user) {
-                    console.log('🚫 No authenticated user for token refresh');
-                    return Promise.reject(error);
-                }
-
-                if (refreshPromise) {
-                    console.log('⏳ Waiting for existing refresh...');
-                    await refreshPromise;
-                    return axios(originalRequest);
-                }
-
-                console.log('🔄 Starting token refresh...');
-                refreshPromise = userStore.getState().refreshToken();
-                await refreshPromise;
-                refreshPromise = null;
-
-                console.log('✅ Retrying original request...');
-                return axios(originalRequest);
-            } catch (refreshError) {
-                console.log('❌ Token refresh failed, clearing user state');
-                refreshPromise = null;
-                userStore.getState().logout();
-                return Promise.reject(refreshError);
-            }
-        }
-        
-        return Promise.reject(error);
+    if (shouldSkipRefresh) {
+      console.log('🚫 Skipping refresh for:', originalRequest?.url);
+      return Promise.reject(error);
     }
+
+    // ✅ Handle 401 errors with token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        // ✅ Check if we're already refreshing
+        if (refreshPromise) {
+          console.log('⏳ Waiting for existing refresh...');
+          await refreshPromise;
+        } else {
+          console.log('🔄 Starting token refresh...');
+          refreshPromise = axios.post('/api/auth/refresh-token', {}, {
+            withCredentials: true
+          });
+          
+          await refreshPromise;
+          console.log('✅ Token refreshed successfully');
+          refreshPromise = null;
+        }
+
+        // ✅ Retry the original request
+        console.log('✅ Retrying original request...');
+        return axios(originalRequest);
+
+      } catch (refreshError) {
+        console.log('❌ Token refresh failed:', refreshError);
+        refreshPromise = null;
+        
+        // ✅ Only logout if refresh actually failed (not network error)
+        if (refreshError.response?.status === 401) {
+          userStore.getState().logout();
+        }
+        
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );
