@@ -95,10 +95,10 @@ const ClassDetail = () => {
             fetchClassById(id);
         }
         return () => {
-            clearSelectedClass();
+            // clearSelectedClass();
             setBookedSessions(new Set());
         };
-    }, [id, fetchClassById, clearSelectedClass]);
+    }, [id, fetchClassById]);
 
     // Check localStorage for booked sessions
     useEffect(() => {
