@@ -7,7 +7,7 @@ const router = express.Router();
 
 // product payment routes
 router.post("/createCheckoutSession", protectRoute, createCheckoutSession);
-router.post("/checkoutSuccess", protectRoute, checkoutSuccess);
+router.post("/checkoutSuccess", checkoutSuccess);
 
 // booking payment routes
 router.post("/createClassCheckoutSession", protectRoute, createClassCheckoutSession);
