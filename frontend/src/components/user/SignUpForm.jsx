@@ -106,8 +106,6 @@ const SignUpForm = () => {
                             className="input input-bordered w-full pl-12" 
                             value={formData.username} 
                             onChange={handleChange}
-                            variants={inputVariants}
-                            whileFocus="focus"
                             required 
                         />
                         <User className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
@@ -126,8 +124,6 @@ const SignUpForm = () => {
                             className="input input-bordered w-full pl-12" 
                             value={formData.email} 
                             onChange={handleChange}
-                            variants={inputVariants}
-                            whileFocus="focus"
                             required 
                         />
                         <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
@@ -147,7 +143,6 @@ const SignUpForm = () => {
                             value={formData.password} 
                             onChange={handleChange}
                             variants={inputVariants}
-                            whileFocus="focus"
                             required 
                         />
                         <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
@@ -179,8 +174,6 @@ const SignUpForm = () => {
                             className="input input-bordered w-full pl-12 pr-12" 
                             value={formData.confirmPassword} 
                             onChange={handleChange}
-                            variants={inputVariants}
-                            whileFocus="focus"
                             required 
                         />
                         <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
