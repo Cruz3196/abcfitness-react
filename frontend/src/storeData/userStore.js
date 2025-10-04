@@ -109,19 +109,23 @@ export const userStore = create((set, get) => ({
     },
 
     deleteUserAccount: async () => {
-        set({ isLoading: true });
         try {
-            const response = await axios.delete("/user/deleteAccount");
-            set({ user: null, isLoading: false });
-            toast.success(response.data.message || "Account deleted successfully");
-            return true;
+            const response = await axios.delete('/user/deleteAccount');
+            
+            // Clear user state
+            set({ 
+                user: null, 
+                isAuthenticated: false 
+            });
+            
+            return response.data;
         } catch (error) {
-            set({ isLoading: false });
-            toast.error(error.response?.data?.message || "Failed to delete account");
-            return false;
+            console.error('Delete account error:', error);
+            throw error;
         }
     },
-
+    
+    // Check if user is authenticated on app load
     checkAuthStatus: async () => {
         console.log('🔍 Starting auth check...');
         set({ isCheckingAuth: true });

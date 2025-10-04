@@ -229,19 +229,17 @@ export const editUserInfo = async (req, res) => {
 export const deleteUserAccount = async (req, res) => {
     try {
         const userId = req.user._id;
-
         const user = await User.findById(userId);
+        
         if (!user) {
             return res.status(404).json({ message: "User not found." });
         }
 
-        // Store the details for the email in a separate, simple object before deleting anything.
         const emailDetails = {
             email: user.email,
             username: user.username
         };
 
-        // If the user is a trainer, delete their profile and classes first.
         if (user.role === 'trainer') {
             const trainerProfile = await Trainer.findOne({ user: userId });
             if (trainerProfile) {
@@ -250,28 +248,23 @@ export const deleteUserAccount = async (req, res) => {
             }
         }
 
-        // Also delete all bookings made by this user to clean up the database.
         await Booking.deleteMany({ user: userId });
-
-        // Finally, delete the main User document.
         await User.findByIdAndDelete(userId);
 
-        // good bye email to the user
-        try {
-            const subject = "Your ABC Fitness Account Has Been Deleted";
+        // ✅ Send email asynchronously
+        sendEmail(
+            emailDetails.email, 
+            "Your ABC Fitness Account Has Been Deleted",
+            `Hi ${emailDetails.username},\n\nThis is a confirmation that your account with the email ${emailDetails.email} has been permanently deleted as you requested.`
+        ).catch(emailError => {
+            console.error("Failed to send goodbye email:", emailError);
+        });
 
-            const text = `Hi ${emailDetails.username},\n\nThis is a confirmation that your account with the email ${emailDetails.email} has been permanently deleted as you requested.`;
-            await sendEmail(emailDetails.email, subject, text);
-            console.log(`Goodbye email sent to ${emailDetails.email}`);
-        } catch (emailError) {
-            console.error("Failed to send goodbye email, but account was deleted.", emailError);
-        }
-        // Clear authentication cookies
         res.clearCookie("accessToken");
         res.clearCookie("refreshToken");
-
+        
         res.status(200).json({ message: "Your account has been successfully deleted." });
-
+        
     } catch (error) {
         console.log("Error in deleting account", error);
         res.status(500).json({ message: "An error occurred while deleting your account." });
