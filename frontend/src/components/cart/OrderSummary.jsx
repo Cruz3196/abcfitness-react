@@ -22,71 +22,57 @@ const OrderSummary = ({ customerInfo }) => {
         }
     }, [user, checkAuthStatus]);
 
-    const handleCheckout = async () => {
-        if (!user) {
-            toast.error('Please log in to complete your purchase');
-            return;
-        }
+const handleCheckout = async () => {
+    if (!user) {
+        toast.error('Please log in to complete your purchase');
+        return;
+    }
 
-        if (cart.length === 0) {
-            toast.error('Your cart is empty');
-            return;
-        }
+    if (cart.length === 0) {
+        toast.error('Your cart is empty');
+        return;
+    }
 
-        setIsProcessing(true);
+    setIsProcessing(true);
 
-        try {
-            // ✅ Pre-validate authentication before checkout
-            try {
-                await axios.get('/auth/profile');
-            } catch (authError) {
-                if (authError.response?.status === 401) {
-                    toast.error('Session expired. Please log in again.');
-                    // Let the interceptor handle logout
-                    return;
-                }
-            }
+    try {
+        console.log('Sending checkout request...');
+        
+        const response = await axios.post('/payment/createCheckoutSession', {
+            products: cart.map(item => ({
+                _id: item._id,
+                productName: item.productName,
+                productPrice: item.productPrice || item.price,
+                quantity: item.quantity,
+                img: item.productImage || item.img
+            }))
+        });
 
-            console.log('Sending checkout request...');
-            
-            const response = await axios.post('/payment/createCheckoutSession', {
-                products: cart.map(item => ({
-                    _id: item._id,
-                    productName: item.productName,
-                    productPrice: item.productPrice || item.price,
-                    quantity: item.quantity,
-                    img: item.productImage || item.img
-                }))
-            });
+        const session = response.data;
+        console.log('✅ Session created:', session);
 
-            const session = response.data;
-            console.log('✅ Session created:', session);
-
-            const stripe = await stripePromise;
-            const result = await stripe.redirectToCheckout({
-                sessionId: session.id
-            });
-
-            if (result.error) {
-                console.error('Stripe error:', result.error);
-                toast.error(result.error.message);
-            }
-
-        } catch (error) {
-            console.error('Checkout error:', error);
-            
-            // ✅ Better error handling
-            if (error.response?.status === 401) {
-                toast.error('Your session has expired. Please log in again.');
-            } else if (error.response?.status === 500) {
-                toast.error('Server error. Please try again in a moment.');
-            } else {
-                toast.error(error.response?.data?.message || 'Failed to process checkout');
-            }
-        } finally {
+        // ✅ Direct redirect instead of using Stripe.js
+        if (session.url) {
+            window.location.href = session.url;
+        } else {
+            toast.error('No checkout URL received');
             setIsProcessing(false);
         }
-    };
+
+    } catch (error) {
+        console.error('Checkout error:', error);
+        
+        if (error.response?.status === 401) {
+            toast.error('Your session has expired. Please log in again.');
+        } else if (error.response?.status === 500) {
+            toast.error('Server error. Please try again in a moment.');
+        } else {
+            toast.error(error.response?.data?.message || 'Failed to process checkout');
+        }
+        
+        setIsProcessing(false);
+    }
+};
 
     const taxes = subtotal * 0.08;
     const shipping = subtotal > 50 ? 0 : 9.99;
