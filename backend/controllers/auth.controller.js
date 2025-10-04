@@ -7,7 +7,7 @@ import { redis } from "../lib/redis.js";
 import jwt from "jsonwebtoken";
 
 // import nodemailer transporter
-import { sendWelcomeEmail } from "../utils/nodemailerConfig.js";
+import { sendWelcomeEmail } from "../utils/emailService.js";
 
 // 15 minutes for storage to host the token
 const generateTokens = (userId) => {

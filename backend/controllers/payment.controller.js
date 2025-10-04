@@ -3,7 +3,7 @@ import User from "../models/user.model.js";
 import Booking from "../models/booking.model.js";
 import Class from "../models/class.model.js";
 import { stripe } from "../lib/stripe.js";
-import { sendOrderConfirmationEmail} from "../utils/nodemailerConfig.js";
+import { sendOrderConfirmationEmail} from "../utils/emailService.js";
 
  // Creates a Stripe checkout session for a list of products from a shopping cart.
 export const createCheckoutSession = async (req, res) => {
