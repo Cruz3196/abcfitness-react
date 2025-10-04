@@ -7,13 +7,7 @@ import { sendOrderConfirmationEmail} from "../utils/nodemailerConfig.js";
 
  // Creates a Stripe checkout session for a list of products from a shopping cart.
 export const createCheckoutSession = async (req, res) => {
-    
     try {
-        // ✅ Add this validation
-        if (!req.user || !req.user._id) {
-            console.log('❌ User not authenticated');
-            return res.status(401).json({ message: "Authentication required" });
-        }
         const { products } = req.body;
 
         if (!Array.isArray(products) || products.length === 0) {
@@ -28,23 +22,24 @@ export const createCheckoutSession = async (req, res) => {
                     name: product.productName,
                     images: [product.img],
                 },
-                unit_amount: Math.round(product.productPrice * 100), // Convert to cents
+                unit_amount: Math.round(product.productPrice * 100),
             },
             quantity: product.quantity,
         }));
 
         console.log('🔍 Line items created:', lineItems.length);
 
-        // ✅ Prepare metadata with all required fields
+        // ✅ FIXED: Exclude 'img' from metadata to stay under 500 char limit
         const metadataProducts = products.map(p => ({
             _id: p._id,
             productName: p.productName,
-            productPrice: p.productPrice, // ✅ This will map to 'price' in Order
-            quantity: p.quantity,
-            img: p.img
+            productPrice: p.productPrice,
+            quantity: p.quantity
+            // ❌ img removed - not needed in metadata, already in line_items
         }));
 
         console.log('🔍 Metadata products:', metadataProducts);
+        console.log('🔍 Metadata string length:', JSON.stringify(metadataProducts).length);
 
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
@@ -59,7 +54,6 @@ export const createCheckoutSession = async (req, res) => {
         });
 
         console.log('✅ Stripe session created:', session.id);
-        console.log('🔍 Session metadata:', session.metadata);
 
         res.status(200).json({ id: session.id, url: session.url });
     } catch (error) {
