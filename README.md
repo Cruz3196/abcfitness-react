@@ -9,11 +9,17 @@ Tailwind CSS used for front end development.
 
 
 The back routes:
+
   app.use('/api/user', userRoutes);
+
   app.use('/api/products', productRoutes);
+
   app.use('/api/trainer', trainerRoutes);
+
   app.use('/api/admin', adminRoutes);
+
   app.use('/api/cart', cartRoutes);
+  
   app.use('/api/payment', PaymentRoutes);
 
 🛣️ The Routes in depth: 
