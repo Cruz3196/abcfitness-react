@@ -2,8 +2,6 @@ import { transporter } from "./nodemailerConfig.js";
 
 export const sendEmail = async (to, subject, text) => {
     try {
-        console.log('📧 Attempting to send email to:', to);
-        console.log('📧 Subject:', subject);
         
         const result = await transporter.sendMail({
             from: process.env.EMAIL_USER,
