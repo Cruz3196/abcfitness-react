@@ -16,7 +16,7 @@ export const ThemeProvider = ({ children }) => {
             // Check localStorage first
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
-                return savedTheme === 'night';
+                return savedTheme === 'synthwave';
             }
             
             // Fall back to system preference
@@ -29,21 +29,21 @@ export const ThemeProvider = ({ children }) => {
 
     useEffect(() => {
         try {
-            localStorage.setItem('theme', isDarkMode ? 'night' : 'light');
+            localStorage.setItem('theme', isDarkMode ? 'synthwave' : 'light');
         } catch (error) {
             console.error('Error saving theme to localStorage:', error);
         }
 
-        // Apply theme to document - using "night" instead of "dark"
-        document.documentElement.setAttribute('data-theme', isDarkMode ? 'night' : 'light');
+        // Apply theme to document - using actual DaisyUI theme names
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'synthwave' : 'light');
         
         // Optional: Add class to html for custom CSS if needed
         if (isDarkMode) {
-            document.documentElement.classList.add('night');
+            document.documentElement.classList.add('synthwave');
             document.documentElement.classList.remove('light');
         } else {
             document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('night');
+            document.documentElement.classList.remove('synthwave');
         }
     }, [isDarkMode]);
 
@@ -68,7 +68,7 @@ export const ThemeProvider = ({ children }) => {
     };
 
     const setTheme = (theme) => {
-        setIsDarkMode(theme === 'night');
+        setIsDarkMode(theme === 'synthwave');
     };
 
     return (
@@ -76,7 +76,7 @@ export const ThemeProvider = ({ children }) => {
             isDarkMode, 
             toggleTheme, 
             setTheme,
-            currentTheme: isDarkMode ? 'night' : 'light'
+            currentTheme: isDarkMode ? 'synthwave' : 'light'
         }}>
             {children}
         </ThemeContext.Provider>
