@@ -86,6 +86,7 @@ const CustomerProfile = () => {
     useEffect(() => {
         if (!user) {
             navigate('/login');
+            clearOrders();
             return;
         }
 
@@ -96,7 +97,7 @@ const CustomerProfile = () => {
                 email: user.email || ''
             });
         }
-    }, [user, navigate]);
+    }, [user, navigate, clearOrders]);
 
     // ✅ Lazy load data based on active tab
 useEffect(() => {
