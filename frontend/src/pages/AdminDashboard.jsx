@@ -279,6 +279,7 @@ const AdminDashboard = () => {
                 <ProductEditForm 
                     isOpen={showEditForm}
                     product={editingProduct}
+                    categories={categories}
                     onClose={() => {
                         setShowEditForm(false);
                         setEditingProduct(null);

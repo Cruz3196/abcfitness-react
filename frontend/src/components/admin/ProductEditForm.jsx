@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { X, Image, Upload } from 'lucide-react';
 import { productStore } from '../../storeData/productStore';
 
-const ProductEditForm = ({ product, onClose, categories = [] }) => {
-  const { updateProduct, isLoading } = productStore();
+const ProductEditForm = ({ product, onClose}) => {
+  const { updateProduct, isLoading, categories } = productStore();
   const [formData, setFormData] = useState({
     productName: product.productName || '',
     productDescription: product.productDescription || '',
