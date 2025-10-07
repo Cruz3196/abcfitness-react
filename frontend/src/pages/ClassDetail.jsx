@@ -29,7 +29,6 @@ const ClassDetail = () => {
         error, 
         fetchClassById,
         bookClass
-        // ✅ REMOVED clearSelectedClass - don't clear on unmount
     } = classStore();
 
     const { 
@@ -43,18 +42,14 @@ const ClassDetail = () => {
         clearReviews
     } = reviewStore();
 
-    // ✅ Fetch class data FIRST, before anything else
     useEffect(() => {
         if (id) {
             console.log('Fetching class with ID:', id);
             fetchClassById(id);
         }
-        
-        // ✅ DON'T clear selected class on unmount - let it persist in store
-        // This allows data to remain when navigating back
     }, [id, fetchClassById]);
 
-    // ✅ Fetch reviews AFTER class is loaded
+    // Fetch reviews when class is loaded
     useEffect(() => {
         if (id && selectedClass) {
             fetchReviewsByClass(id);
@@ -65,7 +60,7 @@ const ClassDetail = () => {
         };
     }, [id, selectedClass, fetchReviewsByClass, clearReviews]);
 
-    // ✅ Handle review operations
+    // Handle review submission
     const handleReviewSubmit = async (reviewData) => {
         if (!user) {
             toast.error('Please log in to submit a review');
@@ -90,7 +85,7 @@ const ClassDetail = () => {
         return null;
     };
 
-    // ✅ Sync with user's actual bookings from server
+    // Sync booked sessions from localStorage and user bookings
     useEffect(() => {
         if (user && selectedClass && user.bookings) {
             const userBookedDatesForThisClass = new Set(
@@ -113,7 +108,7 @@ const ClassDetail = () => {
         }
     }, [user?.bookings, selectedClass]);
 
-    // ✅ Handle booking with Stripe
+    // Handle booking with Stripe
     const handleBookClass = async (session) => {
         if (!user) {
             toast.error('Please log in to book a class');
@@ -131,7 +126,6 @@ const ClassDetail = () => {
             });
 
             const sessionData = response.data;
-            console.log('✅ Stripe session created:', sessionData);
 
             const stripe = await stripePromise;
             const result = await stripe.redirectToCheckout({
@@ -200,12 +194,12 @@ const ClassDetail = () => {
         }
     };
 
-    // ✅ Show loading while fetching
+    // Show loading while fetching
     if (isLoading) {
         return <div className="flex justify-center pt-20"><Spinner /></div>;
     }
 
-    // ✅ Show error or not found
+    // Show error or not found
     if (error || !selectedClass) {
         return (
             <div className="text-center py-20">

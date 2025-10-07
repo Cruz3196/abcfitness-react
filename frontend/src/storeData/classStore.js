@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios from '../api/axios';
 import toast from 'react-hot-toast';
-import { userStore } from './userStore'; // ✅ ADD: Import userStore
+import { userStore } from './userStore';
 
 export const classStore = create((set, get) => ({
     classes: [],

@@ -11,11 +11,7 @@ export const useOrderStore = create((set, get) => ({
     fetchOrderHistory: async () => {
         try {
             set({ isLoading: true, error: null });
-            
-            console.log('🚀 Fetching order history...');
-            const response = await axios.get('/user/orderHistory'); // ✅ Keep this as is
-            
-            console.log('✅ Order history response:', response.data);
+            const response = await axios.get('/user/orderHistory'); 
             
             if (response.data.success) {
                 set({ 
@@ -30,7 +26,7 @@ export const useOrderStore = create((set, get) => ({
                 });
             }
         } catch (error) {
-            console.error('❌ Error fetching orders:', error);
+            console.error('Error fetching orders:', error);
             set({ 
                 orders: [],
                 isLoading: false,
@@ -40,13 +36,13 @@ export const useOrderStore = create((set, get) => ({
         }
     },
 
-    // ✅ Add a method to fetch individual order details
+    // Fetch detailed info for a specific order by ID
     fetchOrderById: async (orderId) => {
         try {
             set({ isLoading: true, error: null });
             
-            console.log('🚀 Fetching order details for:', orderId);
-            const response = await axios.get(`/user/orders/${orderId}`); // ✅ Use the new endpoint
+            console.log('Fetching order details for:', orderId);
+            const response = await axios.get(`/user/orders/${orderId}`);
             
             if (response.data.success) {
                 return response.data.order;
@@ -54,7 +50,7 @@ export const useOrderStore = create((set, get) => ({
                 throw new Error('Order not found');
             }
         } catch (error) {
-            console.error('❌ Error fetching order details:', error);
+            console.error('Error fetching order details:', error);
             set({ 
                 isLoading: false,
                 error: error.response?.data?.message || 'Failed to fetch order details'

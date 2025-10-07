@@ -49,9 +49,7 @@ const handleCheckout = async () => {
         });
 
         const session = response.data;
-        console.log('✅ Session created:', session);
 
-        // ✅ Direct redirect instead of using Stripe.js
         if (session.url) {
             window.location.href = session.url;
         } else {

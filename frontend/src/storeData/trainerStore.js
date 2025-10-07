@@ -49,7 +49,7 @@ export const trainerStore = create((set, get) => ({
             const response = await axios.get(`/user/viewTrainer/${trainerId}`);
             set({ 
                 selectedTrainer: response.data, 
-                trainerClasses: response.data.classes || [], // ✅ Also set the classes
+                trainerClasses: response.data.classes || [], 
                 isLoading: false 
             });
         } catch (error) {
@@ -60,8 +60,7 @@ export const trainerStore = create((set, get) => ({
             });
         }
     },
-
-    // ✅ Add alias for backward compatibility
+    
     getTrainerById: async (trainerId) => {
         return get().fetchTrainerById(trainerId);
     },

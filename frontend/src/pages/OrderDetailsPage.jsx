@@ -28,19 +28,16 @@ const OrderDetailsPage = () => {
                 // First try to get from store
                 const cachedOrder = getOrderById(orderId);
                 if (cachedOrder) {
-                    console.log('✅ Found order in store:', cachedOrder);
                     setOrder(cachedOrder);
                     setIsLoading(false);
                     return;
                 }
 
                 // If not in store, fetch from API
-                console.log('🔍 Fetching order from API...');
                 const fetchedOrder = await fetchOrderById(orderId);
                 setOrder(fetchedOrder);
                 
             } catch (error) {
-                console.error('❌ Error loading order details:', error);
                 setError(error.message || 'Failed to load order details');
             } finally {
                 setIsLoading(false);

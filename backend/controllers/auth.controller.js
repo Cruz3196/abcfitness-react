@@ -28,17 +28,12 @@ const storageRefreshToken = async (userId, refreshToken) => {
 }
 //* "accessToken" is the key name, and accessToken is the value, function for setting the cookies 
 const setCookies = (res, accessToken, refreshToken) => {
-    console.log('🍪 Setting cookies for environment:', process.env.NODE_ENV);
-    
-    // ✅ FIXED: Better cookie settings for localhost
+    // cookie settings for localhost
     const cookieOptions = {
         httpOnly: true,
-        secure: false, // ✅ ALWAYS false for localhost (even in production)
-        sameSite: 'lax', // ✅ CHANGED from 'strict' to 'lax' for localhost
-        path: '/',
+        secure: false, 
+        sameSite: 'lax',
     };
-    
-    console.log('🍪 Cookie options:', cookieOptions);
     
     //setting the access token
     res.cookie("accessToken", accessToken, {
@@ -52,7 +47,7 @@ const setCookies = (res, accessToken, refreshToken) => {
         maxAge: 7 * 24 * 60 * 60 * 1000, // expires in 7 days 
     });
     
-    console.log('✅ Cookies set successfully');
+    console.log('Cookies set successfully');
 };
 
 export const createUser = async (req, res) => {
@@ -66,7 +61,6 @@ export const createUser = async (req, res) => {
         
         const user = await User.create({email, password, username});
 
-        // ✅ Send email asynchronously (don't await)
         sendWelcomeEmail(user.email, username).catch(emailError => {
             console.error("Failed to send welcome email:", emailError);
         });
@@ -76,7 +70,7 @@ export const createUser = async (req, res) => {
         await storageRefreshToken(user._id, refreshToken);
         setCookies(res, accessToken, refreshToken);
         
-        // ✅ Respond immediately without waiting for email
+        // Respond immediately without waiting for email
         res.status(201).json({ 
             user: {
                 _id: user._id,
@@ -108,7 +102,7 @@ export const loginUser = async (req, res) => {
             // setting the cookies
             setCookies(res,accessToken, refreshToken);
             
-            // ✅ FIXED: Use stored value to eliminate delay
+            //Use stored value to eliminate delay
             const hasTrainerProfile = user.hasTrainerProfile || false;
 
             // if the user exists and the password is correct then return the user
@@ -168,11 +162,10 @@ export const refresh = async (req, res) => {
             expiresIn: "15m"
         });
         
-        // ✅ FIXED: Use same cookie settings
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: false, // ✅ CHANGED: Always false for localhost
-            sameSite: "lax", // ✅ CHANGED: From 'strict' to 'lax'
+            secure: false, 
+            sameSite: "lax", 
             maxAge: 15 * 60 * 1000,
         });
         

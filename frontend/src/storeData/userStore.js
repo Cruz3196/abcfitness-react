@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "../api/axios";
 import toast from "react-hot-toast";
-import { useOrderStore } from "./useOrderStore"; // ✅ Import order store
+import { useOrderStore } from "./useOrderStore"; 
 
 export const userStore = create((set, get) => ({
     user: null,
@@ -61,8 +61,6 @@ export const userStore = create((set, get) => ({
             console.log('Login already in progress');
             return false;
         }
-        
-        // ✅ Clear previous user's data BEFORE logging in
         useOrderStore.getState().clearOrders();
         
         set({ isLoading: true });
@@ -73,7 +71,7 @@ export const userStore = create((set, get) => ({
                 user: res.data, 
                 isLoading: false,
                 isAuthenticated: true,
-                bookings: [] // ✅ Clear bookings too
+                bookings: [] // Clear bookings on login
             });
             
             toast.success(`Welcome back, ${res.data.username}!`);
@@ -99,15 +97,15 @@ export const userStore = create((set, get) => ({
             console.log('Logout request failed, but clearing state anyway');
         }
         
-        // ✅ Clear orders from order store
+        // when the user logs out, clear their orders
         useOrderStore.getState().clearOrders();
         
-        // ✅ Clear all user-related state
+        // Clear user-related state on logout
         set({ 
             user: null,
             isAuthenticated: false,
-            bookings: [], // ✅ Clear bookings
-            selectedClass: null // ✅ Clear selected class
+            bookings: [], 
+            selectedClass: null 
         });
         
         toast.success('Logged out successfully');
@@ -118,7 +116,6 @@ export const userStore = create((set, get) => ({
         try {
             const response = await axios.delete('/user/deleteAccount');
             
-            // ✅ Clear orders when deleting account
             useOrderStore.getState().clearOrders();
             
             set({ 
@@ -152,7 +149,6 @@ export const userStore = create((set, get) => ({
         } catch (error) {
             console.log('Auth check failed:', error.response?.status, error.message);
             
-            // ✅ Clear orders if auth check fails
             useOrderStore.getState().clearOrders();
             
             set({ 
@@ -196,7 +192,7 @@ export const userStore = create((set, get) => ({
         } catch (error) {
             console.log('Token refresh failed:', error.response?.status);
             
-            // ✅ Clear orders on refresh failure
+            // Clear orders on refresh failure
             useOrderStore.getState().clearOrders();
             
             set({ 
@@ -210,7 +206,7 @@ export const userStore = create((set, get) => ({
     },
 
     clearUser: () => {
-        // ✅ Clear orders when clearing user
+        // Clear orders when clearing user
         useOrderStore.getState().clearOrders();
         
         set({ 

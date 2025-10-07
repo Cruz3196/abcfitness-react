@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, Users, DollarSign, Clock, Calendar } from 'lucide-react';
 
 const TrainerCard = ({ classItem, onEdit, onDelete }) => {
-    // ✅ Safety check: Return early if classItem is not provided
+    // Return early if classItem is not provided
     if (!classItem) {
         return (
             <div className="card bg-base-100 shadow-lg p-4">
@@ -25,7 +25,6 @@ const TrainerCard = ({ classItem, onEdit, onDelete }) => {
 
     return (
         <div className="card bg-base-100 shadow-lg transition-all duration-300 hover:shadow-2xl flex flex-col">
-            {/* ✅ Link now wraps the image and main content */}
             <Link to={`/trainer/my-classes/${classItem._id}`} className="flex-grow">
                 <figure className="relative">
                     <img
@@ -59,8 +58,6 @@ const TrainerCard = ({ classItem, onEdit, onDelete }) => {
                     </div>
                 </div>
             </Link>
-            
-            {/* OPTIONAL Action buttons are outside the Link for separate functionality */}
             
             {/* <div className="card-actions justify-end p-4 pt-0">
                 <button className="btn btn-outline btn-sm gap-2" onClick={(e) => { e.stopPropagation(); onEdit(classItem); }}>

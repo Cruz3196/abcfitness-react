@@ -10,7 +10,7 @@ const Store = () => {
     const { products, categories, isLoading, fetchAllProducts } = productStore(); // Assuming fetchAllProducts is in your store
     
     const [selectedCategories, setSelectedCategories] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1); // ✅ State for current page
+    const [currentPage, setCurrentPage] = useState(1); 
 
     // Fetch products when the component mounts
     useEffect(() => {

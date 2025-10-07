@@ -1,7 +1,7 @@
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
 
-// ✅ FIXED: The component now accepts and uses the 'title' and 'subtitle' props.
+// The component now accepts and uses the 'title' and 'subtitle' props.
 const FeaturedProducts = ({ products, title, subtitle }) => {
     if (!products || products.length === 0) {
         return null; 
@@ -18,7 +18,7 @@ const FeaturedProducts = ({ products, title, subtitle }) => {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 place-content-evenly gap-4">
+            <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 place-content-evenly gap-4">
                 {products.map((product) => (
                     <ProductCard key={product._id} product={product} />
                 ))}

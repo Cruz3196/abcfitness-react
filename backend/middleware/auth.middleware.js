@@ -46,9 +46,9 @@ export const authorize = (...allowedRoles) => {
 
         // Check if the user's role is in the list of allowed roles
         if (allowedRoles.includes(userRole)) {
-            next(); // ✅ Access granted
+            next(); 
         } else {
-            // ❌ Access denied
+            // Access denied
             return res.status(403).json({ message: "Forbidden - You do not have permission to access this resource" });
         }
     };

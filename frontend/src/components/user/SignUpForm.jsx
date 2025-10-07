@@ -44,7 +44,7 @@ const SignUpForm = () => {
 
         if (success) {
             toast.success('Account created successfully!');
-            // ✅ Redirect to profile or home, not login (user is already authenticated)
+            // if success then will redirect to profile 
             navigate("/profile");
         }
     };

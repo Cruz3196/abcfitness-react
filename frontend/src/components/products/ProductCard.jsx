@@ -20,13 +20,13 @@ const ProductCard = ({ product }) => {
 
 
     return (
-        <div className="card w-87 card-compact bg-base-100 shadow-md transition-transform duration-300">
+        <div className="card w-87 card-compact bg-base-200 shadow-md transition-transform duration-300">
             <Link to={`/product/${product._id}`}>
                 <figure>
                     <img
                         src={product.productImage || 'https://placehold.co/400x225?text=No+Image'}
                         alt={product.productName}
-                        className="h-96 w-full object-fit: contain"
+                        className="h-80 w-full object-scale-down"
                         loading="lazy" 
                         width="400" 
                         height="225" 

@@ -9,7 +9,7 @@ const TrainerDetail = () => {
     const { id } = useParams();
     const { 
         selectedTrainer, 
-        trainerClasses,         // ✅ Add this to the destructuring
+        trainerClasses,
         isLoading, 
         error,
         fetchTrainerById, 
@@ -51,7 +51,7 @@ const TrainerDetail = () => {
         );
     }
 
-    // ✅ Safety checks for trainer data structure
+    // Safety checks for trainer data structure
     const trainerName = selectedTrainer.user?.username || 'Unknown Trainer';
     const trainerBio = selectedTrainer.bio || 'No bio available';
     const trainerSpecialization = selectedTrainer.specialization || 'General Fitness';

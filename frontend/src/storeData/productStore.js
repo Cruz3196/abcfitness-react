@@ -13,7 +13,7 @@ export const productStore = create((set, get) => ({
     fetchAllProducts: async () => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.get('/products/all'); // ✅ Correct
+            const { data } = await axios.get('/products/all'); 
             const products = data.products || data;
             const uniqueCategories = [...new Set(products.map(p => p.productCategory).filter(Boolean))];
             
@@ -39,7 +39,7 @@ export const productStore = create((set, get) => ({
     // Fetch recommended products
     fetchRecommendedProducts: async (currentProductId) => {
         try {
-            const { data } = await axios.get('/products/recommended'); // ✅ Correct
+            const { data } = await axios.get('/products/recommended'); 
             const filtered = data.filter(p => p._id !== currentProductId);
             set({ recommendedProducts: filtered });
             return filtered;
@@ -53,7 +53,7 @@ export const productStore = create((set, get) => ({
     createProduct: async (productData) => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.post('/products/create', productData); // ✅ Correct
+            const { data } = await axios.post('/products/create', productData);
             set(state => ({ 
                 products: [...state.products, data],
                 isLoading: false 
@@ -72,7 +72,7 @@ export const productStore = create((set, get) => ({
     updateProduct: async (productId, productData) => {
         set({ isLoading: true });
         try {
-            const { data } = await axios.put(`/products/${productId}`, productData); // ✅ FIXED: Changed from /product/ to /products/
+            const { data } = await axios.put(`/products/${productId}`, productData); 
             set(state => ({ 
                 products: state.products.map(p => 
                     p._id === productId ? data : p
@@ -93,7 +93,7 @@ export const productStore = create((set, get) => ({
     // Delete product (admin only) - FIX THIS
     deleteProduct: async (productId) => {
         try {
-            await axios.delete(`/products/${productId}`); // ✅ FIXED: Changed from /product/ to /products/
+            await axios.delete(`/products/${productId}`); 
             set(state => ({ 
                 products: state.products.filter(p => p._id !== productId)
             }));
@@ -111,7 +111,7 @@ export const productStore = create((set, get) => ({
     toggleFeaturedProduct: async (productId) => {
         try {
             console.log('Toggling featured for product:', productId);
-            const { data } = await axios.put(`/products/${productId}/toggle-featured`); // ✅ FIXED: Changed from /product/ to /products/
+            const { data } = await axios.put(`/products/${productId}/toggle-featured`);
             set(state => ({ 
                 products: state.products.map(p => 
                     p._id === productId ? { ...p, isFeatured: data.isFeatured } : p

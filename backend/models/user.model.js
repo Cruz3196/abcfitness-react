@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
-		hasTrainerProfile: { // ✅ Add this field
+		hasTrainerProfile: { 
         type: Boolean,
         default: false
     }	,
@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
 		},
 		bookings: [
 			{
-				type: mongoose.Schema.Types.ObjectId, // ✅ Changed from String to ObjectId
+				type: mongoose.Schema.Types.ObjectId, 
 				ref: "Booking",
 			}
 		],

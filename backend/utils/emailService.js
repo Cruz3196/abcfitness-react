@@ -10,10 +10,8 @@ export const sendEmail = async (to, subject, text) => {
             text
         });
         
-        console.log('✅ Email sent successfully:', result.messageId);
         return result;
     } catch (error) {
-        console.error("❌ Error sending email:", error);
         throw error; 
     }
 };
@@ -21,8 +19,6 @@ export const sendEmail = async (to, subject, text) => {
 // Add the missing booking confirmation email function
 export const sendBookingConfirmationEmail = async (email, username, booking, classDetails) => {
     try {
-        console.log('📧 Sending booking confirmation to:', email);
-        
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
@@ -59,10 +55,8 @@ export const sendBookingConfirmationEmail = async (email, username, booking, cla
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log('✅ Booking confirmation email sent:', result.messageId);
         return result;
     } catch (error) {
-        console.error('❌ Error sending booking confirmation:', error);
         throw error;
     }
 };
@@ -154,19 +148,15 @@ export const sendOrderConfirmationEmail = async (email, orderId, products, total
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log('✅ Order confirmation email sent successfully:', result.messageId);
         return result;
 
     } catch (error) {
-        console.error('❌ Error sending order confirmation email:', error);
         throw error;
     }
 };
 
 export const sendWelcomeEmail = async (email, name) => {
     try {
-        console.log('📧 Sending welcome email to:', email);
-        
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
@@ -189,10 +179,8 @@ export const sendWelcomeEmail = async (email, name) => {
         };
 
         const result = await transporter.sendMail(mailOptions);
-        console.log('✅ Welcome email sent successfully:', result.messageId);
         return result;
     } catch (error) {
-        console.error('❌ Error sending welcome email:', error);
         throw error;
     }
 };

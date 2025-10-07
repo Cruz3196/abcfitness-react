@@ -33,7 +33,6 @@ const CartItem = ({ item }) => {
         }
     }
 
-    // ✅ Fixed field mappings based on your data structure
     const itemPrice = Number(item.productPrice) || Number(item.price) || 0;
     const itemQuantity = Number(item.quantity) || 1;
     const itemName = item.productName || item.name || 'Unknown Product';

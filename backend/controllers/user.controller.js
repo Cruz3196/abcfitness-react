@@ -12,7 +12,6 @@ import cloudinary from "../lib/cloudinaryConfig.js";
 // getting user info by id 
 export const getProfile = async (req, res) => {
     try {
-        // ✅ Just fetch user data, no bookings population
         const user = await User.findById(req.user._id).select('-password');
 
         if (!user) {
@@ -38,7 +37,7 @@ export const getProfile = async (req, res) => {
             return res.status(200).json(fullProfile);
         }
         
-        // ✅ For customers, just return user data
+        // For customers, just return user data
         const userProfile = {
             ...user.toObject(),
             hasTrainerProfile: false
@@ -251,7 +250,7 @@ export const deleteUserAccount = async (req, res) => {
         await Booking.deleteMany({ user: userId });
         await User.findByIdAndDelete(userId);
 
-        // ✅ Send email asynchronously
+        // Send email asynchronously
         sendEmail(
             emailDetails.email, 
             "Your ABC Fitness Account Has Been Deleted",
@@ -304,8 +303,6 @@ export const bookClass = async (req, res) => {
         const classId = req.params.classId;
         const userId = req.user._id;
 
-        console.log('🔍 Booking request:', { classId, startTime, endTime, userId });
-
         // Validate inputs
         if (!startTime || !endTime) {
             return res.status(400).json({ message: "Start time and end time are required" });
@@ -327,7 +324,7 @@ export const bookClass = async (req, res) => {
             return res.status(400).json({ message: "Class is full" });
         }
 
-        // ✅ SIMPLE: Try to create booking - if duplicate, it will fail
+        // Try to create booking - if duplicate, it will fail
         const newBooking = new Booking({
             user: userId,
             class: classId,
@@ -352,7 +349,6 @@ export const bookClass = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("❌ Error in bookClass:", error);
         
         if (error.code === 11000) {
             return res.status(400).json({ 
@@ -369,8 +365,6 @@ export const viewBookedClasses = async (req, res) => {
     try {
         const userId = req.user._id;
 
-        console.log('🔍 Fetching bookings for user:', userId);
-
         const bookings = await Booking.find({ user: userId })
             .populate({
                 path: 'class',
@@ -385,14 +379,11 @@ export const viewBookedClasses = async (req, res) => {
             })
             .sort({ createdAt: -1 });
 
-        console.log('✅ Found bookings:', bookings.length);
-
         res.status(200).json({ 
             success: true,
             bookings 
         });
     } catch (error) {
-        console.error("❌ Error fetching bookings:", error);
         res.status(500).json({ 
             success: false,
             message: "Server error" 
@@ -405,8 +396,6 @@ export const cancelBooking = async (req, res) => {
     try {
         const { bookingId } = req.params;
         const userId = req.user._id;
-
-        console.log('🔍 Cancelling booking:', { bookingId, userId });
 
         // Find and delete the booking
         const booking = await Booking.findOneAndDelete({ 
@@ -423,15 +412,12 @@ export const cancelBooking = async (req, res) => {
             $pull: { attendees: userId }
         });
 
-        console.log('✅ Booking deleted and user removed from attendees');
-
         res.status(200).json({ 
             message: "Booking cancelled successfully",
             refundAmount: booking.class.price
         });
 
     } catch (error) {
-        console.error("❌ Error cancelling booking:", error);
         res.status(500).json({ message: "Server error" });
     }
 };
@@ -444,7 +430,6 @@ export const submitFeedback = async (req, res) => {
         const { rating: ratingStr, reviewText } = req.body;
         const userId = req.user._id;
 
-        // ✅ Parse and validate rating
         const rating = parseInt(ratingStr, 10);
         if (isNaN(rating) || rating < 1 || rating > 5) {
             return res.status(400).json({ message: "Rating must be a number between 1 and 5" });
@@ -472,8 +457,6 @@ export const submitFeedback = async (req, res) => {
             reviewText,
         });
 
-
-        // ✅ Populate the user data before sending response
         const populatedReview = await Review.findById(newReview._id)
             .populate({
                 path: 'user',
@@ -494,7 +477,6 @@ export const submitFeedback = async (req, res) => {
         trainer.rating.totalReviews = newTotalReviews;
         await trainer.save();
 
-        // ✅ Return the populated review instead of the raw one
         res.status(201).json({ 
             message: "Feedback submitted successfully!", 
             review: populatedReview 
@@ -650,7 +632,6 @@ export const viewTrainer = async (req, res) => {
             status: 'available' 
         }).select('classTitle classType duration timeSlot price classPic capacity attendees');
 
-        // ✅ Return the trainer data in a consistent format
         const response = {
             _id: trainer._id,
             user: {
@@ -659,7 +640,7 @@ export const viewTrainer = async (req, res) => {
             },
             specialization: trainer.specialization,
             bio: trainer.bio,
-            yearsOfExperience: trainer.yearsOfExperience, // ✅ Fixed field name
+            yearsOfExperience: trainer.yearsOfExperience,
             certifications: trainer.certifications,
             trainerProfilePic: trainer.trainerProfilePic,
             rating: trainer.rating,
@@ -677,7 +658,6 @@ export const viewTrainer = async (req, res) => {
 
 export const getOrderHistory = async (req, res) => {
     try {
-        console.log('🔍 Fetching orders for user:', req.user._id);
 
         // Find all orders for this user and populate product details
         const orders = await Order.find({ user: req.user._id })
@@ -686,8 +666,6 @@ export const getOrderHistory = async (req, res) => {
                 select: 'productName productPrice productImage'
             })
             .sort({ createdAt: -1 }); // Most recent first
-
-        console.log('✅ Found orders:', orders.length);
 
         // Format orders for frontend
         const formattedOrders = orders.map(order => ({
@@ -713,7 +691,6 @@ export const getOrderHistory = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching user orders:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order history',
@@ -725,9 +702,7 @@ export const getOrderHistory = async (req, res) => {
 export const getOrderById = async (req, res) => {
     try {
         const { orderId } = req.params;
-        
-        console.log('🔍 Fetching order:', orderId, 'for user:', req.user._id);
-
+    
         // Find the specific order for this user
         const order = await Order.findOne({ 
             _id: orderId, 
@@ -743,8 +718,6 @@ export const getOrderById = async (req, res) => {
                 message: 'Order not found'
             });
         }
-
-        console.log('✅ Order found:', order._id);
 
         // Format order for frontend
         const formattedOrder = {
@@ -771,7 +744,6 @@ export const getOrderById = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching order:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch order details',

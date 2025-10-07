@@ -7,12 +7,12 @@ const RatingCard = ({ review, currentUser, onUpdate, onDelete, isSubmitting }) =
   const [editText, setEditText] = useState(review?.reviewText || '');
   const [editRating, setEditRating] = useState(review?.rating || 0);
 
-  // ✅ Add safety checks for review and user data
+  // Add safety checks for review and user data
   if (!review) {
     return null;
   }
 
-  // ✅ Handle case where user data might not be populated
+  //Handle case where user data might not be populated
   const reviewUser = review.user || {};
   const isAuthor = currentUser && reviewUser._id && currentUser._id === reviewUser._id;
 

@@ -14,7 +14,7 @@ export const createTrainerProfile = async (req, res) => {
 
         const { specialization, bio, certifications, experience, trainerProfilePic } = req.body;
 
-        // ✅ 2. Add basic validation for required fields
+        // if the specialization or bio is not provided then return an error
         if (!specialization || !bio) {
             return res.status(400).json({ message: "Please provide all required fields, including specialization and bio." });
         }
@@ -39,8 +39,6 @@ export const createTrainerProfile = async (req, res) => {
             trainerProfilePic: imageUrl,
             trainerProfilePublicId: imagePublicId
         });
-
-        // ✅ 3. Update the user model to complete the setup flow
         await User.findByIdAndUpdate(req.user._id, { hasTrainerProfile: true });
 
         res.status(201).json({ message: "Trainer profile created successfully", trainer: newProfile });
@@ -60,7 +58,6 @@ export const updateTrainerProfile = async (req, res) => {
         const trainer = await Trainer.findOne({ user: req.user._id });
         
         if (!trainer) {
-            console.log("❌ Trainer profile not found for user:", req.user._id);
             return res.status(404).json({ message: "Trainer profile not found." });
         }
 
@@ -69,7 +66,6 @@ export const updateTrainerProfile = async (req, res) => {
         const user = await User.findById(req.user._id);
 
         if (!user) {
-            console.log("❌ User not found with ID:", req.user._id);
             return res.status(404).json({ message: "User not found." });
         }
 
@@ -95,7 +91,6 @@ export const updateTrainerProfile = async (req, res) => {
 
 
         // --- TRAINER PROFILE PICTURE UPLOAD LOGIC ---
-        // ✅ FIX: Only upload if trainerProfilePic is a base64 string (new image)
         // If it's already a Cloudinary URL, don't try to upload it again
         if (trainerProfilePic && trainerProfilePic !== trainer.trainerProfilePic) {
             
@@ -110,9 +105,8 @@ export const updateTrainerProfile = async (req, res) => {
                     try {
                         console.log("🗑️ Deleting old image with public_id:", trainer.trainerProfilePublicId);
                         await cloudinary.uploader.destroy(trainer.trainerProfilePublicId);
-                        console.log("✅ Old image deleted successfully");
                     } catch (cloudinaryError) {
-                        console.error("❌ Failed to delete old trainer profile pic:", cloudinaryError);
+                        console.log("Error deleting old profile picture from Cloudinary:", cloudinaryError);
                     }
                 }
 
@@ -124,18 +118,15 @@ export const updateTrainerProfile = async (req, res) => {
 
                     trainer.trainerProfilePic = uploadedImage.secure_url;
                     trainer.trainerProfilePublicId = uploadedImage.public_id;
-                    console.log("✅ New image uploaded:", uploadedImage.secure_url);
                 } catch (uploadError) {
-                    console.error("❌ Failed to upload new image:", uploadError);
                     return res.status(500).json({ error: "Failed to upload profile picture", details: uploadError.message });
                 }
             } else if (isNewCloudinaryUrl) {
-                console.log("🔄 Using existing Cloudinary URL");
                 // If it's a different Cloudinary URL, just update the reference
                 trainer.trainerProfilePic = trainerProfilePic;
                 // Note: We can't get the public_id from just the URL, so we'll leave it as is
             } else {
-                console.log("ℹ️ No profile picture change needed");
+                console.log("No profile picture change needed");
             }
         }
         
@@ -296,7 +287,6 @@ export const viewClassAttendees = async (req, res) => {
             return res.status(403).json({ message: "You are not authorized to view attendees for this class." });
         }
 
-        // ✅ IMPROVED: Populate both the user and class details in one efficient query.
         const bookings = await Booking.find({ class: classId })
             .populate({
                 path: 'user',
@@ -304,7 +294,7 @@ export const viewClassAttendees = async (req, res) => {
             })
             .populate({
                 path: 'class',
-                select: 'classTitle classPic' // ✅ Get the class title and its picture
+                select: 'classTitle classPic' 
             });
 
         // The 'bookings' array now contains all the info you need.

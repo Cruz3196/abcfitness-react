@@ -129,7 +129,7 @@ export const getDashboardStats = async (req, res) => {
             }
         ]);
 
-        // ✅ NEW: Calculate total revenue from paid class bookings
+        // calculation for class revenue
         const bookingRevenueStats = await Booking.aggregate([
             { $match: { paymentStatus: 'paid' } },
             {
@@ -189,7 +189,7 @@ export const getDashboardStats = async (req, res) => {
         const stats = {
             financials: {
                 totalProductRevenue,
-                totalClassRevenue, // ✅ ADDED: Include the new stat in the response
+                totalClassRevenue, 
                 totalOrders,
                 totalPaidBookings
             },

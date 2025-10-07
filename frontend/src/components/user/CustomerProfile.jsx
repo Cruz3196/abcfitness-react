@@ -36,7 +36,7 @@ const CustomerProfile = () => {
         email: user?.email || ''
     });
 
-    // ✅ Fixed booking filtering logic
+    // booking data memoization
     const { upcomingBookings,totalBookings } = useMemo(() => {
         if (!bookings || !Array.isArray(bookings)) {
             return {
@@ -73,16 +73,15 @@ const CustomerProfile = () => {
             upcomingBookings: upcoming,
             totalBookings: bookings.length
         };
-    }, [bookings]); // ✅ Depend on bookings array
+    }, [bookings]);
 
-    // ✅ SIMPLIFIED: Fetch bookings when bookings tab is active
+    // Fetch bookings when bookings tab is active
         useEffect(() => {
             if (activeTab === 'bookings') {
                 fetchMyBookings();
             }
         }, [activeTab, fetchMyBookings]);
-
-    // ✅ Optimize data fetching - only fetch when tab is active
+    // Redirect to login if not authenticated
     useEffect(() => {
         if (!user) {
             navigate('/login');
@@ -99,7 +98,6 @@ const CustomerProfile = () => {
         }
     }, [user, navigate, clearOrders]);
 
-    // ✅ Lazy load data based on active tab
 useEffect(() => {
     if (!user) return;
 
@@ -121,8 +119,7 @@ useEffect(() => {
             break;
     }
 }, [activeTab, user, fetchMyBookings, fetchOrderHistory, orders.length]);
-
-    // ✅ Memoize handlers
+    // Logout handler
     const handleLogout = useCallback(async () => {
         try {
             await logout();
@@ -162,8 +159,7 @@ useEffect(() => {
             toast.error('Failed to delete account');
         }
     }, [deleteUserAccount, clearOrders, navigate]);
-
-    // ✅ Simplified animations
+    // Animation variants
     const pageVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
@@ -270,7 +266,7 @@ useEffect(() => {
     );
 };
 
-// ✅ Rest of the components remain the same...
+// Sub-components
 const ProfileInfoCard = React.memo(({ user, setActiveTab }) => (
     <div className="card bg-base-100 shadow-lg">
         <div className="card-body">
@@ -470,8 +466,8 @@ const BookingsTab = React.memo(({ upcomingBookings, isLoading }) => (
 
 const BookingSection = React.memo(({ title, icon: Icon, bookings, isHistory, emptyMessage, emptySubMessage, linkTo, linkText }) => {
     const { fetchMyBookings } = userStore();
-    
-    // ✅ Callback to refresh bookings when a booking is updated
+
+    // Callback to refresh bookings when a booking is updated
     const handleBookingUpdate = useCallback(async () => {
         console.log('🔄 Refreshing bookings after update...');
         await fetchMyBookings(true); // Force refresh
@@ -504,7 +500,7 @@ const BookingSection = React.memo(({ title, icon: Icon, bookings, isHistory, emp
                                     key={booking._id} 
                                     booking={booking} 
                                     isHistory={isHistory}
-                                    onBookingUpdate={handleBookingUpdate} // ✅ Pass the callback
+                                    onBookingUpdate={handleBookingUpdate} 
                                 />
                             ))}
                         </div>

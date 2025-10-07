@@ -12,8 +12,6 @@ const BookingCard = ({ booking, onBookingUpdate }) => {
         try {
             const result = await cancelBooking(booking._id);
             if (result.success) {
-                console.log('✅ Booking cancelled, UI will update automatically');
-                // ✅ No need to call onBookingUpdate since userStore handles state
             }
         } finally {
             setIsCancelling(false);

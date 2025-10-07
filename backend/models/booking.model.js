@@ -32,7 +32,6 @@ const bookingSchema = new mongoose.Schema({
     timestamps: true 
 });
 
-// ✅ SIMPLE: One user, one class = unique booking
 bookingSchema.index({ user: 1, class: 1 }, { unique: true });
 
 // Performance indexes

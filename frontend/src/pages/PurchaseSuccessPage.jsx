@@ -11,13 +11,11 @@ const PurchaseSuccessPage = () => {
     const [error, setError] = useState(null);
     const [orderId, setOrderId] = useState(null);
     const { clearCart } = useCartStore();
-    
-    // ✅ Prevent multiple API calls
+    // Ref to track if we've already processed the success logic
     const hasProcessed = useRef(false);
 
     useEffect(() => {
         const handleCheckoutSuccess = async (sessionId) => {
-            // ✅ Prevent duplicate calls
             if (hasProcessed.current) {
                 console.log('Already processed, skipping...');
                 return;
@@ -26,13 +24,9 @@ const PurchaseSuccessPage = () => {
             hasProcessed.current = true;
 
             try {
-                console.log('🚀 Verifying payment with session ID:', sessionId);
-                
                 const response = await axios.post('/payment/checkoutSuccess', {
                     session_id: sessionId
                 });
-
-                console.log('✅ Payment verification response:', response.data);
 
                 if (response.data.success) {
                     setOrderId(response.data.orderId);
@@ -56,7 +50,7 @@ const PurchaseSuccessPage = () => {
             setIsProcessing(false);
             setError('No session ID found in the URL');
         }
-    }, []); // ✅ Remove clearCart from dependencies to prevent re-runs
+    }, []);
 
     if (isProcessing) {
         return (

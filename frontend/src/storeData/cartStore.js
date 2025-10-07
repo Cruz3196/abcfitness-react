@@ -18,15 +18,12 @@ const useCartStore = create((set, get) => ({
             
             const res = await axios.get("/cart/cartProducts");
             set({ cart: res.data, isLoading: false });
-            console.log('✅ Cart loaded:', res.data.length, 'items');
-            
             get().calculateTotals();
         } catch (error) {
-            console.log('❌ Cart fetch failed:', error.response?.status);
             set({ isLoading: false, cart: [] });
             
             if (error.response?.status !== 401) {
-                console.error('❌ Unexpected cart error:', error.message);
+                console.error('Unexpected cart error:', error.message);
             }
         }
     },

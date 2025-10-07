@@ -20,11 +20,11 @@ import { userStore } from '../storeData/userStore';
 import TrainerCard from "../components/trainer/TrainerCard";
 
 const TrainerDashboard = () => {
-    // ✅ CHANGE: We now get the complete user object, which includes the trainer profile and classes.
+    // fetching the user data from the data store
     const { user, updateTrainerProfile, createClass, fetchMyClasses, username, email } = userStore();
     const [activeTab, setActiveTab] = useState('profile');
 
-    // ✅ ADDED: State management for the modals and form data
+    // setting the data for creating and editing classes
     const [showCreateClass, setShowCreateClass] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editFormData, setEditFormData] = useState(null);
@@ -32,7 +32,7 @@ const TrainerDashboard = () => {
 
     // FOR UPDATING TRAINER PROFILE============================================================
 
-    // ✅ ADDED: Handler to open the modal and pre-fill it with current data
+    // Handler to open the modal and pre-fill it with current data
     const handleOpenEditModal = () => {
         setEditFormData({
             username: user?.username || '',
@@ -46,7 +46,7 @@ const TrainerDashboard = () => {
         setIsEditModalOpen(true);
     };
 
-    // ✅ ADDED: State and handlers for editing the trainer profile
+    // State and handlers for editing the trainer profile
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setEditFormData(prev => ({ ...prev, [name]: value }));
@@ -63,7 +63,7 @@ const TrainerDashboard = () => {
         }
     };
 
-    // ✅ ADDED: Handler for submitting the updated profile
+    // Handler for submitting the updated profile
     const handleSubmitUpdate = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -88,14 +88,14 @@ const TrainerDashboard = () => {
         },
         classPic: '',
         capacity: 10,
-        price: 0 // ✅ Add default price
+        price: 0 
     };
     const [newClassData, setNewClassData] = useState(initialClassState);
 
     const handleClassInputChange = (e) => {
         const { name, value } = e.target;
         
-        // ✅ FIX: Handle nested timeSlot object
+        //Handle nested timeSlot object
         if (name.startsWith('timeSlot.')) {
             const timeSlotField = name.split('.')[1]; // Get 'day', 'startTime', or 'endTime'
             setNewClassData(prev => ({
@@ -211,14 +211,14 @@ const TrainerDashboard = () => {
                             </button>
                         </div>
                         
-                        {/* ✅ FIXED: Access user.classes instead of user.trainerProfile.classes */}
+                        {/* Access user.classes instead of user.trainerProfile.classes */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {user?.classes?.length > 0 ? (
                                 user.classes.map(classItem => (
                                     <TrainerCard 
                                         key={classItem._id} 
                                         classItem={classItem} 
-                                        onEdit={handleEditClass}        // ✅ Fixed: use correct handler
+                                        onEdit={handleEditClass}
                                         onDelete={handleDeleteClass} 
                                     />
                                 ))
@@ -250,7 +250,7 @@ const TrainerDashboard = () => {
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
                                     <h2 className="card-title text-3xl mb-2">{user.username}</h2>
-                                    {/* ✅ UPDATED: Consistent use of optional chaining for safety */}
+                                    {/* Consistent use of optional chaining for safety */}
                                     <p className="font-semibold text-primary text-lg">{user?.trainerProfile?.specialization}</p>
                                     <div className="mt-4 space-y-3 text-base-content/90">
                                         <div className="flex items-center gap-3"><Info className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.bio || "No bio provided."}</p></div>
@@ -258,7 +258,7 @@ const TrainerDashboard = () => {
                                         <div className="flex items-center gap-3"><Clock className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.experience} years of experience</p></div>
                                     </div>
                                     <div className="card-actions justify-center sm:justify-end mt-6">
-                                        {/* ✅ UPDATED: Edit button is now functional */}
+                                        {/* Edit button is now functional */}
                                         <button className="btn btn-primary gap-2" onClick={handleOpenEditModal}>
                                             <Edit className="w-4 h-4"/>
                                             Edit Profile
@@ -271,7 +271,7 @@ const TrainerDashboard = () => {
                 )}
             </div>
 
-            {/* ✅ ADDED: Edit Profile Modal */}
+            {/* Edit Profile Modal */}
             {isEditModalOpen && (
                 <div className="modal modal-open">
                     <div className="modal-box max-w-2xl relative">
@@ -328,7 +328,7 @@ const TrainerDashboard = () => {
                                 </select>
                             </div>
 
-                            {/* ✅ FIXED: Replace single datetime-local with separate day, start time, and end time inputs */}
+                            {/*Replace single datetime-local with separate day, start time, and end time inputs */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className="label"><span className="label-text">Day</span></label>

@@ -22,7 +22,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ CORS Configuration (only for development)
+// CORS configuration for development
 if (process.env.NODE_ENV !== "production") {
     app.use(cors({
         origin: ['http://localhost:5173', 'http://localhost:3000'],
@@ -48,7 +48,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/payment', PaymentRoutes);
 
-// ✅ SERVE STATIC FILES IN PRODUCTION
 if (process.env.NODE_ENV === "production") {
     // Serve static files from the React build
     app.use(express.static(path.join(__dirname, "frontend/dist")));
@@ -66,8 +65,8 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.listen(PORT, () => {
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
-    console.log(`📁 Serving from: ${path.join(__dirname, "frontend/dist")}`);
+    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Serving from: ${path.join(__dirname, "frontend/dist")}`);
     connectMongoDB();
 });

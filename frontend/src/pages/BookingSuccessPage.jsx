@@ -25,15 +25,15 @@ const BookingSuccessPage = () => {
             try {
                 console.log('Verifying payment and creating booking...');
                 
-                // ✅ Use the correct endpoint that matches your routes
+                // posting class checkout success to the backend
                 await api.post('/payment/classCheckoutSuccess', { 
                     session_id: sessionId 
                 });
                 
-                // ✅ Refresh user bookings to show the new booking
+                // Fetch updated bookings
                 await fetchMyBookings();
                 
-                // ✅ Show confetti animation
+                // Show confetti on success
                 setShowConfetti(true);
                 
                 // Stop confetti after 5 seconds

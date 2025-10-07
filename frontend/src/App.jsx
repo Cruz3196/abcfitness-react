@@ -128,7 +128,7 @@ function App() {
               } 
             />
 
-            {/* ✅ Fixed: Separate the profile and order routes */}
+            {/*  Separate the profile and order routes */}
             <Route 
               path="/profile" 
               element={
@@ -138,7 +138,7 @@ function App() {
               } 
             />
             
-            {/* ✅ Add the order details route separately */}
+            {/* the order details route separately */}
             <Route 
               path="/order/:orderId" 
               element={

@@ -9,7 +9,7 @@ const OurClasses = () => {
         fetchAllClasses();
     }, [fetchAllClasses]);
 
-    // Get first 3 classes for featured section (or all if you want)
+
     const featuredClasses = classes.slice(0, 4);
 
     if (isLoading) {
@@ -29,7 +29,7 @@ const OurClasses = () => {
                 <p className="text-gray-600 mt-6">Find the perfect class to match your fitness goals and schedule.</p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {featuredClasses.map((classInfo) => (
                 <ClassCard key={classInfo._id} classInfo={classInfo} />
                 ))}

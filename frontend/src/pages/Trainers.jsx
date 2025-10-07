@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { trainerStore } from '../storeData/trainerStore.js';
-import TrainerProfileCard from '../components/trainer/TrainerProfileCard.jsx'; // ✅ Changed import
+import TrainerProfileCard from '../components/trainer/TrainerProfileCard.jsx'; 
 import Spinner from '../components/common/Spinner';
 
 const Trainers = () => {
