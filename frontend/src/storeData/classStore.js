@@ -52,7 +52,7 @@ export const classStore = create((set, get) => ({
             
             try {
                 // Try public route first
-                response = await axios.get(`/user/classes/${classId}`);
+                response = await axios.get(`/trainer/classes/${classId}`);
                 classData = response.data;
             } catch (publicError) {
                 // Fallback to trainer route
