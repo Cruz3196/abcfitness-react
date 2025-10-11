@@ -496,7 +496,7 @@ axios.interceptors.response.use(
           await refreshPromise;
         } else {
           console.log('Starting token refresh...');
-          refreshPromise = axios.post('/api/auth/refresh-token', {}, {
+          refreshPromise = axios.post('/auth/refresh-token', {}, {
             withCredentials: true
           });
           
