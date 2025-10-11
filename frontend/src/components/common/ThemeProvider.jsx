@@ -16,7 +16,7 @@ export const ThemeProvider = ({ children }) => {
             // Check localStorage first
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
-                return savedTheme === 'synthwave';
+                return savedTheme === 'dark';
             }
             
             // Fall back to system preference
@@ -29,21 +29,21 @@ export const ThemeProvider = ({ children }) => {
 
     useEffect(() => {
         try {
-            localStorage.setItem('theme', isDarkMode ? 'synthwave' : 'light');
+            localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
         } catch (error) {
             console.error('Error saving theme to localStorage:', error);
         }
 
         // Apply theme to document - using actual DaisyUI theme names
-        document.documentElement.setAttribute('data-theme', isDarkMode ? 'synthwave' : 'light');
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
         
         // Optional: Add class to html for custom CSS if needed
         if (isDarkMode) {
-            document.documentElement.classList.add('synthwave');
+            document.documentElement.classList.add('dark');
             document.documentElement.classList.remove('light');
         } else {
             document.documentElement.classList.add('light');
-            document.documentElement.classList.remove('synthwave');
+            document.documentElement.classList.remove('dark');
         }
     }, [isDarkMode]);
 
@@ -68,7 +68,7 @@ export const ThemeProvider = ({ children }) => {
     };
 
     const setTheme = (theme) => {
-        setIsDarkMode(theme === 'synthwave');
+        setIsDarkMode(theme === 'dark');
     };
 
     return (
@@ -76,7 +76,7 @@ export const ThemeProvider = ({ children }) => {
             isDarkMode, 
             toggleTheme, 
             setTheme,
-            currentTheme: isDarkMode ? 'synthwave' : 'light'
+            currentTheme: isDarkMode ? 'dark' : 'light'
         }}>
             {children}
         </ThemeContext.Provider>

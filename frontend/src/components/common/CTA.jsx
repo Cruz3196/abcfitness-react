@@ -2,7 +2,7 @@
 
 const CTA = () => {
     return (
-        <footer className="footer bg-neutral p-10 text-neutral-content mx-auto flex justify-around">
+        <footer className="footer bg-base-500 p-10 mx-auto flex justify-around">
             <nav>
                 <header className="footer-title">Services</header> 
                 <a className="link link-hover">Branding</a>

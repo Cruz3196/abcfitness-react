@@ -24,7 +24,7 @@ const TrainerCard = ({ classItem, onEdit, onDelete }) => {
     };
 
     return (
-        <div className="card bg-base-100 shadow-lg transition-all duration-300 hover:shadow-2xl flex flex-col">
+        <div className="card bg-base-200 shadow-lg transition-all duration-300 hover:shadow-2xl flex flex-col">
             <Link to={`/trainer/my-classes/${classItem._id}`} className="flex-grow">
                 <figure className="relative">
                     <img

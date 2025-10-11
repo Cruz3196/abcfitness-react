@@ -36,7 +36,7 @@ const Navbar = () => {
     
     return (
         <motion.div 
-            className="navbar px-6 sticky top-0 z-50 bg-neutral text-white"
+            className="navbar px-6 sticky top-0 z-50 bg-base-100 shadow-md"
             initial={{ y: -100 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.3 }}
@@ -74,7 +74,7 @@ const Navbar = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </label>
-                    <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow rounded-box w-52 text-black bg-white">
+                    <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow rounded-box w-52 bg-base-100 border border-base-300">
                         <li><Link to="/store">Products</Link></li>
                         <li><Link to="/classes">Classes</Link></li>
                         <li><Link to="/trainers">Trainers</Link></li>
