@@ -96,9 +96,10 @@ const useCartStore = create((set, get) => ({
         }
     },
 
-    // clearing the cart 
+    // clearing the cart when user checks out
     clearCart: async () => {
         try {
+            // Clear cart on server
             await axios.delete("/cart/clearCart");
             set({ cart: [], total: 0, subtotal: 0, totalQuantity: 0 });
             toast.success("Cart cleared");
@@ -109,7 +110,6 @@ const useCartStore = create((set, get) => ({
     
     // Clear local cart state (for user switching)
     clearCartState: () => {
-        console.log('🧹 Clearing cart state');
         set({ 
             cart: [], 
             total: 0, 
