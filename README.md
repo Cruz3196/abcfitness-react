@@ -40,3 +40,22 @@ All endpoints have been tested in the backend before integration with the fronte
 Users will receive an email via Nodemailer when creating an account, resetting their password, or purchasing a product. Please note: when making a purchase, refer to the image below for implementation details.
 
 <img width="1385" height="1031" alt="image" src="https://github.com/user-attachments/assets/96400446-bc98-48ff-9427-f9cf844bf5f3" />
+
+## Running the project 
+In order to run this project, you would first need to ```git clone```. Once the project has been cloned; cd into the main directory and install the dependencies by running ```npm run install```, then navigate to the main directory and run ```npm run build``` this will generate "dist" folder in the frontend. 
+
+## Email Setup
+
+This project uses email functionality. To enable it:
+
+1. Get your email credentials:
+   - **Gmail**: Enable 2FA and create an [App Password](https://support.google.com/accounts/answer/185833)
+   - **SendGrid**: Sign up and get an API key
+   - **Other**: Use your SMTP credentials
+
+2. Add to your `.env` file:
+```bash
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_SERVICE=gmail 
+```
