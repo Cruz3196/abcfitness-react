@@ -39,45 +39,45 @@ All endpoints have been tested in the backend before integration with the fronte
 Clone this project ```git clone```. Once the project has been cloned; cd into the main directory and install the dependencies by running ```npm run install```,
 Before running the project, ensure that you’ve created a .env file with all the required environment variables as outlined in the Environment Setup section. Also, make sure that external services such as MongoDB, Redis, Stripe, and any email services are properly configured and running as those are needed in order to run this project, after you have successfully configured variables, navigate to the main directory and run ```npm run build``` this will generate "dist" folder in the frontend. Once the build is complete, return to the main directory and start the backend server with npm run dev. To run the frontend in development mode, navigate into the frontend directory and run npm run dev. 
 
-## Environment Setup
+# Environment Setup
 Create a ```.env``` file at the root of the root directory and add the following configuration variables:
 
   PORT=3000
   MONGO_URI= your_mongo_uri_here
 
-  # put back to 3000 to deploy or put 5173 for local testing
+  ## put back to 3000 to deploy or put 5173 for local testing
 
   CLIENT_URL=http://localhost:3000
 
   #CLIENT_URL=https://abcfitness-react.onrender.com
 
-  # change to production for deployment and change to development for local testing
+  ## change to production for deployment and change to development for local testing
 
   NODE_ENV=production
 
-  # CLOUDINARY CREDS 
+  ## CLOUDINARY CREDS 
   CLOUDINARY_CLOUD_NAME= your_cloudinary_cloud_name_here
 
   CLOUDINARY_API_KEY= 261875643614937
 
   CLOUDINARY_API_SECRET_KEY= your_cloudinary_api_secret_key_here
 
-  # REDIS 
+  ## REDIS 
   REDIS_URL= your_redis_url_here
 
-  # ACCESS AND REFRESH TOKENS
+  ## ACCESS AND REFRESH TOKENS
 
   ACCESS_TOKEN_SECRET= your_access_token_secret_here
 
   REFRESH_TOKEN_SECRET= your_refresh_token_secret_here
 
-  # STRIPE SECRET KEY
+  ## STRIPE SECRET KEY
 
   STRIPE_SECRET_KEY= your_stripe_secret_key_here
 
   VITE_STRIPE_PUBLISHABLE_KEY= your_stripe_publishable_key_here
 
-  # EMAIL SERVICE
+  ## EMAIL SERVICE
 
   EMAIL_USER= your_email_here
 
