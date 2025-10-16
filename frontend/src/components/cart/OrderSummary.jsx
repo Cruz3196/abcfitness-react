@@ -94,21 +94,30 @@ const handleCheckout = async () => {
                 
                 <div className="space-y-3 mb-6">
                     {cart.map((item) => (
-                        <div key={item._id} className="flex justify-between items-center">
-                            <div className="flex items-center space-x-3">
-                                <img 
-                                    src={item.productImage || item.img} 
-                                    alt={item.productName}
-                                    className="w-12 h-12 object-cover rounded"
-                                />
-                                <div>
-                                    <p className="font-medium text-sm">{item.productName}</p>
-                                    <p className="text-xs text-base-content/70">Qty: {item.quantity}</p>
-                                </div>
+                        <div key={item._id} className="flex items-start gap-3">
+                            {/* Product Image */}
+                            <img
+                                src={item.productImage || item.img}
+                                alt={item.productName}
+                                className="w-12 h-12 object-cover rounded flex-shrink-0"
+                            />
+                        
+                            {/* Product Info - Can expand */}
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm sm:text-base break-words">
+                                {item.productName}
+                                </p>
+                                <p className="text-xs text-base-content/70 mt-0.5">
+                                Qty: {item.quantity}
+                                </p>
                             </div>
-                            <p className="flex flex-col items-end w-10 font-semibold">
+                        
+                            {/* Price - Fixed width on right */}
+                            <div className="text-right flex-shrink-0">
+                                <p className="font-semibold text-sm sm:text-base whitespace-nowrap">
                                 ${((item.productPrice || item.price) * item.quantity).toFixed(2)}
-                            </p>
+                                </p>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -135,25 +144,27 @@ const handleCheckout = async () => {
                     </div>
                 </div>
 
-                <button 
-                    className="btn btn-primary btn-lg w-full mt-6"
-                    onClick={handleCheckout}
-                    disabled={isProcessing || cart.length === 0 || !user}
-                >
-                    {isProcessing ? (
-                        <>
-                            <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                            Processing...
-                        </>
-                    ) : !user ? (
-                        'Please Log In'
-                    ) : (
-                        <>
-                            <CreditCard className="w-5 h-5 mr-2" />
-                            Proceed to Checkout
-                        </>
-                    )}
-                </button>
+                <div className="flex justify-center">
+                    <button 
+                        className="btn btn-primary btn-md w-52 mt-5"
+                        onClick={handleCheckout}
+                        disabled={isProcessing || cart.length === 0 || !user}
+                    >
+                        {isProcessing ? (
+                            <>
+                                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                                Processing...
+                            </>
+                        ) : !user ? (
+                            'Please Log In'
+                        ) : (
+                            <>
+                                <CreditCard className="w-5 h-5 mr-2" />
+                                Proceed to Checkout
+                            </>
+                        )}
+                    </button>
+                </div>
 
                 <div className="text-center mt-4">
                     <p className="text-xs text-base-content/70">

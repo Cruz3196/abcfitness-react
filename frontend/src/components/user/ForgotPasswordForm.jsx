@@ -97,7 +97,7 @@ const ForgotPasswordForm = () => {
     if (isSubmitted) {
         return (
             <motion.div 
-                className="card w-96 lg:w-[28rem] bg-base-100 shadow-xl"
+                className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100"
                 variants={successVariants}
                 initial="hidden"
                 animate="visible"
@@ -150,7 +150,7 @@ const ForgotPasswordForm = () => {
 
     return (
         <motion.div 
-            className="card w-96 lg:w-[28rem] bg-base-100 shadow-xl"
+            className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100"
             variants={containerVariants}
             initial="hidden"
             animate="visible"

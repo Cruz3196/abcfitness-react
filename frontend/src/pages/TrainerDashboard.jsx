@@ -248,10 +248,10 @@ const TrainerDashboard = () => {
                                         <img src={user?.trainerProfile?.trainerProfilePic || 'https://placehold.co/150'} alt="Trainer Profile"/>
                                     </div>
                                 </div>
-                                <div className="flex-1 text-center sm:text-left">
-                                    <h2 className="card-title text-3xl mb-2">{user.username}</h2>
+                                <div className="grid grid-cols-1 gap-4 flex-1">
+                                    <h2 className="card-title text-3xl mb-2 justify-center sm:justify-start">{user.username}</h2>
                                     {/* Consistent use of optional chaining for safety */}
-                                    <p className="font-semibold text-primary text-lg">{user?.trainerProfile?.specialization}</p>
+                                    <p className="font-semibold text-primary text-lg text-center sm:text-start">{user?.trainerProfile?.specialization}</p>
                                     <div className="mt-4 space-y-3 text-base-content/90">
                                         <div className="flex items-center gap-3"><Info className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.bio || "No bio provided."}</p></div>
                                         <div className="flex items-center gap-3"><Award className="w-5 h-5 ... shrink-0" /><p>{user?.trainerProfile?.certifications || "No certifications listed."}</p></div>

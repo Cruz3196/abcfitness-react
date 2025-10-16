@@ -41,17 +41,97 @@ const CartItem = ({ item }) => {
 
     return (
         <motion.div 
-            className="card bg-base-100 shadow-sm border border-base-300 mb-4"
+            className="card bg-base-100 shadow-sm border border-base-300 mb-3 sm:mb-4"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3 }}
         >
-            <div className="card-body p-4">
-                <div className="flex flex-row md:flex-row gap-4">
+            <div className="card-body p-3 sm:p-4">
+                {/* Mobile Layout */}
+                <div className="flex md:hidden gap-3">
+                    {/* Product Image */}
+                    <div className="avatar flex-shrink-0">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg">
+                            <img 
+                                src={itemImage} 
+                                alt={itemName}
+                                className="object-cover w-full h-full"
+                                onError={(e) => {
+                                    e.target.src = "https://via.placeholder.com/80x80?text=No+Image";
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Product Info and Controls */}
+                    <div className="flex-1 flex flex-col justify-between min-w-0">
+                        {/* Top: Name, Category, Price */}
+                        <div>
+                            <h3 className="font-semibold text-base sm:text-lg text-base-content truncate">
+                                {itemName}
+                            </h3>
+                            <div className="badge badge-outline badge-xs sm:badge-sm mt-1">
+                                {itemCategory}
+                            </div>
+                            <p className="text-primary font-bold mt-1 sm:mt-2 text-sm sm:text-base">
+                                ${itemPrice.toFixed(2)}
+                            </p>
+                        </div>
+
+                        {/* Bottom: Quantity, Subtotal, Remove */}
+                        <div className="flex items-center justify-between mt-2 gap-2">
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs text-base-content/70">Qty:</span>
+                                <div className="join">
+                                    <button 
+                                        className={`btn btn-xs join-item ${isUpdating ? 'loading' : ''}`}
+                                        onClick={() => handleQuantityChange(itemQuantity - 1)}
+                                        disabled={itemQuantity <= 1 || isUpdating}
+                                    >
+                                        {!isUpdating && <Minus className="w-3 h-3" />}
+                                    </button>
+                                    <span className="btn btn-xs join-item no-animation cursor-default min-w-[2rem]">
+                                        {itemQuantity}
+                                    </span>
+                                    <button 
+                                        className={`btn btn-xs join-item ${isUpdating ? 'loading' : ''}`}
+                                        onClick={() => handleQuantityChange(itemQuantity + 1)}
+                                        disabled={isUpdating}
+                                    >
+                                        {!isUpdating && <Plus className="w-3 h-3" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Subtotal */}
+                            <div className="text-right">
+                                <div className="text-xs text-base-content/70">Total</div>
+                                <div className="font-bold text-sm sm:text-base">
+                                    ${(itemPrice * itemQuantity).toFixed(2)}
+                                </div>
+                            </div>
+
+                            {/* Remove Button */}
+                            <motion.button 
+                                onClick={handleRemove}
+                                className={`btn btn-ghost btn-xs sm:btn-sm text-error ${isUpdating ? 'loading' : ''}`}
+                                disabled={isUpdating}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                {!isUpdating && <Trash2 className="w-4 h-4" />}
+                            </motion.button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden md:flex gap-4">
                     {/* Product Image */}
                     <div className="avatar">
-                        <div className="w-20 h-20 rounded-lg">
+                        <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-lg">
                             <img 
                                 src={itemImage} 
                                 alt={itemName}
@@ -87,7 +167,7 @@ const CartItem = ({ item }) => {
                             >
                                 {!isUpdating && <Minus className="w-3 h-3" />}
                             </button>
-                            <span className="btn btn-xs join-item no-animation cursor-default">
+                            <span className="btn btn-xs join-item no-animation cursor-default min-w-[2.5rem]">
                                 {itemQuantity}
                             </span>
                             <button 

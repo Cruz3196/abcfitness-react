@@ -84,7 +84,7 @@ const ResetPasswordForm = () => {
 
     return (
         <motion.div 
-            className="card w-96 lg:w-[28rem] bg-base-100 shadow-xl"
+            className="card shrink-0 w-full max-w-sm shadow-2xl bg-base-100"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -97,7 +97,7 @@ const ResetPasswordForm = () => {
                     Set New Password
                 </motion.h2>
                 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="card-body p-0">
                     {/* New Password Input */}
                     <motion.div className="form-control" variants={itemVariants}>
                         <label className="label">

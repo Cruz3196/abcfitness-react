@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { userStore } from "./storeData/userStore";
 import useCartStore from "./storeData/cartStore";
@@ -63,6 +63,20 @@ function App() {
       getCartProducts();
     }
   }, [user]); 
+
+  // using a useLocation so that footer is not displayed on login, signup, and password reset pages
+  const PreventFooter = () => {
+    // declaring location to get the current path
+    const location = useLocation();
+    const noFooterPaths = ['/login', '/signup', '/forgot-password', '/reset-password/:token', '/admindashboard', '/trainerdashboard', '/trainer-setup', '/cart', '/purchase-success', '/purchase-cancel', '/booking-success', '/booking-cancel', '/profile'];
+    // If the current path is in the noFooterPaths array, do not render the footer 
+    if(noFooterPaths.includes(location.pathname)){
+      // if the path is in the noFooterPaths array then return null if not return the CTA component
+      return null;
+    }
+    // return the CTA component if the path is not in the noFooterPaths array
+    return <CTA />;
+  }
 
   return (
     <ThemeProvider>
@@ -148,7 +162,7 @@ function App() {
               } 
             />
           </Routes>
-        <CTA />
+        <PreventFooter />
       </Container>
       <Toaster position="top-center" reverseOrder={false} toastOptions={{duration: 4000,}}/> {/* Toast notifications */}
     </ThemeProvider>
