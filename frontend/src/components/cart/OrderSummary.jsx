@@ -146,7 +146,7 @@ const handleCheckout = async () => {
 
                 <div className="flex justify-center">
                     <button 
-                        className="btn btn-primary btn-md w-52 mt-5"
+                        className="btn btn-primary btn-md w-full mt-5"
                         onClick={handleCheckout}
                         disabled={isProcessing || cart.length === 0 || !user}
                     >

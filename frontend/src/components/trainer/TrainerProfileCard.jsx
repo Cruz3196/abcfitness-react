@@ -35,7 +35,7 @@ const TrainerProfileCard = ({ trainer }) => {
                     </h2>
                     
                     {trainer.specialization && (
-                        <div className="badge badge-secondary mb-2">
+                        <div className="badge badge-secondary mb-2 mx-auto">
                             {trainer.specialization}
                         </div>
                     )}
