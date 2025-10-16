@@ -1,4 +1,4 @@
-ABC Fitness React
+## ABC Fitness React
 
 This project is a rebuild of my previous of my last repo: https://abcfitnesslab.netlify.app
 
@@ -8,7 +8,7 @@ The stack that was used for this project was: mongodb, expressjs, reactjs, and l
 Tailwind CSS used for front end development. 
 
 
-The back routes:
+## The back routes:
 
   app.use('/api/user', userRoutes);
 
@@ -22,7 +22,7 @@ The back routes:
   
   app.use('/api/payment', PaymentRoutes);
 
-🛣️ The Routes in depth: 
+# 🛣️ The Routes in depth: 
  
    User Routes: Users can book classes, purchase products, delete their accounts, and view their history of booked classes and purchased products. The authentication controller is also located within the user routes. It uses bcrypt, JSON Web Tokens (JWT), and cookie-parser. When a user creates an account, a token is generated to authenticate the user during login. This includes both access and refresh tokens. The refresh token resets every 15 minutes using a Redis cache system. The access token is used to log in to the account, and passwords are hashed using bcrypt. Middleware checks are implemented to determine if the user is an admin or has a trainer profile.
 
@@ -35,7 +35,7 @@ Cart Routes: These routes are for customers to manage their shopping cart. Users
   Payment Routes: These routes generate a session with Stripe. Once an order is placed, the user is redirected to a success page.
 All endpoints have been tested in the backend before integration with the frontend.
 
-🚨 IMPORTANT 🚨
+## 🚨 IMPORTANT 🚨
 
 Users will receive an email via Nodemailer when creating an account, resetting their password, or purchasing a product. Please note: when making a purchase, refer to the image below for implementation details.
 
