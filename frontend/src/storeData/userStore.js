@@ -58,7 +58,7 @@ export const userStore = create((set, get) => ({
         const state = get();
         
         if (state.isLoading) {
-            console.log('Login already in progress');
+            // console.log('Login already in progress');
             return false;
         }
         useOrderStore.getState().clearOrders();
@@ -165,29 +165,29 @@ export const userStore = create((set, get) => ({
     refreshToken: async () => {
         const currentState = get();
         
-        console.log('Refresh token attempt:', {
-            hasUser: !!currentState.user,
-            isAuthenticated: currentState.isAuthenticated,
-            isCheckingAuth: currentState.isCheckingAuth
-        });
+        // console.log('Refresh token attempt:', {
+        //     hasUser: !!currentState.user,
+        //     isAuthenticated: currentState.isAuthenticated,
+        //     isCheckingAuth: currentState.isCheckingAuth
+        // });
 
         if (!currentState.user && !currentState.isAuthenticated) {
-            console.log('No user to refresh token for');
+            // console.log('No user to refresh token for');
             throw new Error('No authenticated user');
         }
 
         if (currentState.isCheckingAuth) {
-            console.log('Already checking auth, skipping refresh');
+            // console.log('Already checking auth, skipping refresh');
             return;
         }
 
         set({ isCheckingAuth: true });
         try {
-            console.log('Refreshing token...');
+            // console.log('Refreshing token...');
             const response = await axios.post("/user/refresh-token");
             
             set({ isCheckingAuth: false });
-            console.log('Token refreshed successfully');
+            // console.log('Token refreshed successfully');
             return response.data;
         } catch (error) {
             console.log('Token refresh failed:', error.response?.status);
@@ -467,59 +467,56 @@ export const userStore = create((set, get) => ({
 let refreshPromise = null;
 
 axios.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    
-    console.log('Axios interceptor caught error:', {
-      status: error.response?.status,
-      url: originalRequest?.url,
-      retry: originalRequest?._retry
-    });
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+        
+        // console.log('Axios interceptor caught error:', {
+        //   status: error.response?.status,
+        //   url: originalRequest?.url,
+        //   retry: originalRequest?._retry
+        // });
 
-    const skipRefreshUrls = ['/login', '/signup', '/refresh-token', '/logout'];
-    const shouldSkipRefresh = skipRefreshUrls.some(url =>
-      originalRequest?.url?.includes(url)
-    );
+        const skipRefreshUrls = ['/login', '/signup', '/refresh-token', '/logout'];
+        const shouldSkipRefresh = skipRefreshUrls.some(url =>
+        originalRequest?.url?.includes(url)
+        );
 
-    if (shouldSkipRefresh) {
-      console.log('Skipping refresh for:', originalRequest?.url);
-      return Promise.reject(error);
-    }
-
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      try {
-        if (refreshPromise) {
-          console.log('Waiting for existing refresh...');
-          await refreshPromise;
-        } else {
-          console.log('Starting token refresh...');
-          refreshPromise = axios.post('/auth/refresh-token', {}, {
-            withCredentials: true
-          });
-          
-          await refreshPromise;
-          console.log('Token refreshed successfully');
-          refreshPromise = null;
+        if (shouldSkipRefresh) {
+        //   console.log('Skipping refresh for:', originalRequest?.url);
+        return Promise.reject(error);
         }
 
-        console.log('Retrying original request...');
-        return axios(originalRequest);
+        if (error.response?.status === 401 && !originalRequest._retry) {
+        originalRequest._retry = true;
 
-      } catch (refreshError) {
-        console.log('Token refresh failed:', refreshError);
-        refreshPromise = null;
-        
-        if (refreshError.response?.status === 401) {
-          userStore.getState().logout();
+        try {
+            if (refreshPromise) {
+            await refreshPromise;
+            } else {
+            refreshPromise = axios.post('/auth/refresh-token', {}, {
+                withCredentials: true
+            });
+            
+            await refreshPromise;
+            refreshPromise = null;
+            }
+
+            // console.log('Retrying original request...');
+            return axios(originalRequest);
+
+        } catch (refreshError) {
+            // console.log('Token refresh failed:', refreshError);
+            refreshPromise = null;
+            
+            if (refreshError.response?.status === 401) {
+            userStore.getState().logout();
+            }
+            
+            return Promise.reject(refreshError);
         }
-        
-        return Promise.reject(refreshError);
-      }
-    }
+        }
 
-    return Promise.reject(error);
-  }
+        return Promise.reject(error);
+    }
 );
