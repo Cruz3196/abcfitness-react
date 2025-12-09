@@ -1,29 +1,33 @@
 import { transporter } from "./nodemailerConfig.js";
 
 export const sendEmail = async (to, subject, text) => {
-    try {
-        
-        const result = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to,
-            subject,
-            text
-        });
-        
-        return result;
-    } catch (error) {
-        throw error; 
-    }
+  try {
+    const result = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject,
+      text,
+    });
+
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // Add the missing booking confirmation email function
-export const sendBookingConfirmationEmail = async (email, username, booking, classDetails) => {
-    try {
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: `Booking Confirmation - ${classDetails.classTitle}`,
-            html: `
+export const sendBookingConfirmationEmail = async (
+  email,
+  username,
+  booking,
+  classDetails
+) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Booking Confirmation - ${classDetails.classTitle}`,
+      html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
                         <h1 style="color: #333;">ABC Fitness</h1>
@@ -36,51 +40,82 @@ export const sendBookingConfirmationEmail = async (email, username, booking, cla
                         
                         <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0;">
                             <h3 style="margin: 0 0 10px 0; color: #333;">Booking Details</h3>
-                            <p><strong>Class:</strong> ${classDetails.classTitle}</p>
-                            <p><strong>Type:</strong> ${classDetails.classType}</p>
-                            <p><strong>Date:</strong> ${new Date(booking.sessionDate).toLocaleDateString()}</p>
-                            <p><strong>Time:</strong> ${classDetails.timeSlot?.startTime || 'TBD'} - ${classDetails.timeSlot?.endTime || 'TBD'}</p>
-                            <p><strong>Trainer:</strong> ${classDetails.trainer?.user?.username || 'TBD'}</p>
+                            <p><strong>Class:</strong> ${
+                              classDetails.classTitle
+                            }</p>
+                            <p><strong>Type:</strong> ${
+                              classDetails.classType
+                            }</p>
+                            <p><strong>Date:</strong> ${new Date(
+                              booking.sessionDate
+                            ).toLocaleDateString()}</p>
+                            <p><strong>Time:</strong> ${
+                              classDetails.timeSlot?.startTime || "TBD"
+                            } - ${classDetails.timeSlot?.endTime || "TBD"}</p>
+                            <p><strong>Trainer:</strong> ${
+                              classDetails.trainer?.user?.username || "TBD"
+                            }</p>
                             <p><strong>Booking ID:</strong> ${booking._id}</p>
                         </div>
                         
                         <p>We're excited to see you in class!</p>
                         
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="${process.env.CLIENT_URL}/profile" style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View My Bookings</a>
+                            <a href="${
+                              process.env.CLIENT_URL
+                            }/profile" style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View My Bookings</a>
                         </div>
                     </div>
                 </div>
             `,
-        };
+    };
 
-        const result = await transporter.sendMail(mailOptions);
-        return result;
-    } catch (error) {
-        throw error;
-    }
+    const result = await transporter.sendMail(mailOptions);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
-export const sendOrderConfirmationEmail = async (email, orderId, products, totalAmount) => {
-    try {
-        // Create products HTML
-        const productsHTML = products.map(product => `
+export const sendOrderConfirmationEmail = async (
+  email,
+  orderId,
+  products,
+  totalAmount
+) => {
+  try {
+    // Create products HTML
+    const productsHTML = products
+      .map(
+        (product) => `
             <tr>
                 <td style="padding: 10px; border: 1px solid #ddd;">
-                    <img src="${product.img}" alt="${product.productName}" style="width: 50px; height: 50px; object-fit: cover;">
+                    <img src="${product.img}" alt="${
+          product.productName
+        }" style="width: 50px; height: 50px; object-fit: cover;">
                 </td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${product.productName}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${product.quantity}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${product.productPrice.toFixed(2)}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${(product.productPrice * product.quantity).toFixed(2)}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${
+                  product.productName
+                }</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">${
+                  product.quantity
+                }</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${product.productPrice.toFixed(
+                  2
+                )}</td>
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${(
+                  product.productPrice * product.quantity
+                ).toFixed(2)}</td>
             </tr>
-        `).join('');
+        `
+      )
+      .join("");
 
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: `Order Confirmation - ABC Fitness (Order #${orderId})`,
-            html: `
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: `Order Confirmation - ABC Fitness (Order #${orderId})`,
+      html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
                         <h1 style="color: #333; margin: 0;">ABC Fitness</h1>
@@ -95,7 +130,9 @@ export const sendOrderConfirmationEmail = async (email, orderId, products, total
                             <h3 style="margin: 0 0 10px 0; color: #333;">Order Details</h3>
                             <p style="margin: 5px 0;"><strong>Order ID:</strong> ${orderId}</p>
                             <p style="margin: 5px 0;"><strong>Order Date:</strong> ${new Date().toLocaleDateString()}</p>
-                            <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${totalAmount.toFixed(2)}</p>
+                            <p style="margin: 5px 0;"><strong>Total Amount:</strong> $${totalAmount.toFixed(
+                              2
+                            )}</p>
                         </div>
 
                         <h3 style="color: #333;">Items Ordered:</h3>
@@ -115,7 +152,9 @@ export const sendOrderConfirmationEmail = async (email, orderId, products, total
                             <tfoot>
                                 <tr style="background-color: #f8f9fa; font-weight: bold;">
                                     <td colspan="4" style="padding: 10px; border: 1px solid #ddd; text-align: right;">Grand Total:</td>
-                                    <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${totalAmount.toFixed(2)}</td>
+                                    <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">$${totalAmount.toFixed(
+                                      2
+                                    )}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -134,7 +173,11 @@ export const sendOrderConfirmationEmail = async (email, orderId, products, total
                         <div style="text-align: center; margin: 30px 0;">
                             <p>Thank you for choosing ABC Fitness!</p>
                             <p style="color: #666; font-size: 14px;">
-                                Visit us at: <a href="${process.env.CLIENT_URL}" style="color: #28a745;">${process.env.CLIENT_URL}</a>
+                                Visit us at: <a href="${
+                                  process.env.CLIENT_URL
+                                }" style="color: #28a745;">${
+        process.env.CLIENT_URL
+      }</a>
                             </p>
                         </div>
                     </div>
@@ -145,23 +188,22 @@ export const sendOrderConfirmationEmail = async (email, orderId, products, total
                     </div>
                 </div>
             `,
-        };
+    };
 
-        const result = await transporter.sendMail(mailOptions);
-        return result;
-
-    } catch (error) {
-        throw error;
-    }
+    const result = await transporter.sendMail(mailOptions);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export const sendWelcomeEmail = async (email, name) => {
-    try {
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: 'Welcome to ABC Fitness!',
-            html: `
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Welcome to ABC Fitness!",
+      html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
                         <h1 style="color: #333;">Welcome to ABC Fitness!</h1>
@@ -176,11 +218,11 @@ export const sendWelcomeEmail = async (email, name) => {
                     </div>
                 </div>
             `,
-        };
+    };
 
-        const result = await transporter.sendMail(mailOptions);
-        return result;
-    } catch (error) {
-        throw error;
-    }
+    const result = await transporter.sendMail(mailOptions);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
