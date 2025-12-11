@@ -70,15 +70,12 @@ export const createUser = async (req, res) => {
       console.error("Failed to send welcome email:", emailError);
     });
 
+    // Authenticate user immediately
     const { accessToken, refreshToken } = generateTokens(user._id);
-
-    // AWAIT the Redis storage to ensure it's stored before responding
-    await storageRefreshToken(user._id, refreshToken).catch((err) => {
-      console.error("Failed to store refresh token:", err);
-    });
-
+    await storageRefreshToken(user._id, refreshToken);
     setCookies(res, accessToken, refreshToken);
 
+    // Respond immediately without waiting for email
     res.status(201).json({
       user: {
         _id: user._id,
@@ -96,21 +93,23 @@ export const createUser = async (req, res) => {
 
 export const loginUser = async (req, res) => {
   try {
+    // getting the email and password from the body
     const { email, password } = req.body;
+    // finding the user from the database
     const user = await User.findOne({ email });
-
+    // if the user exists and the password is correct
     if (user && (await user.comparePassword(password))) {
+      // generating the token for the user
       const { accessToken, refreshToken } = generateTokens(user._id);
-
-      // AWAIT the Redis storage to ensure it's stored before responding
-      await storageRefreshToken(user._id, refreshToken).catch((err) => {
-        console.error("Failed to store refresh token:", err);
-      });
-
+      // storing the refresh token
+      await storageRefreshToken(user._id, refreshToken);
+      // setting the cookies
       setCookies(res, accessToken, refreshToken);
 
+      //Use stored value to eliminate delay
       const hasTrainerProfile = user.hasTrainerProfile || false;
 
+      // if the user exists and the password is correct then return the user
       res.json({
         _id: user._id,
         username: user.username,
