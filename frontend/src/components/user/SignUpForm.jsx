@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { userStore } from "../../storeData/userStore";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
