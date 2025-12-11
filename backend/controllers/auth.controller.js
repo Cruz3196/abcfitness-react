@@ -72,8 +72,8 @@ export const createUser = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(user._id);
 
-    // Store refresh token asynchronously (don't await)
-    storageRefreshToken(user._id, refreshToken).catch((err) => {
+    // AWAIT the Redis storage to ensure it's stored before responding
+    await storageRefreshToken(user._id, refreshToken).catch((err) => {
       console.error("Failed to store refresh token:", err);
     });
 
@@ -102,8 +102,8 @@ export const loginUser = async (req, res) => {
     if (user && (await user.comparePassword(password))) {
       const { accessToken, refreshToken } = generateTokens(user._id);
 
-      // Store refresh token asynchronously without blocking response
-      storageRefreshToken(user._id, refreshToken).catch((err) => {
+      // AWAIT the Redis storage to ensure it's stored before responding
+      await storageRefreshToken(user._id, refreshToken).catch((err) => {
         console.error("Failed to store refresh token:", err);
       });
 
