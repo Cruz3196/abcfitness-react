@@ -72,10 +72,7 @@ export const createUser = async (req, res) => {
 
     // Authenticate user immediately
     const { accessToken, refreshToken } = generateTokens(user._id);
-    // Store refresh token asynchronously (don't await to avoid blocking response)
-    storageRefreshToken(user._id, refreshToken).catch((err) => {
-      console.error("Failed to store refresh token:", err);
-    });
+    await storageRefreshToken(user._id, refreshToken);
     setCookies(res, accessToken, refreshToken);
 
     // Respond immediately without waiting for email
@@ -104,10 +101,8 @@ export const loginUser = async (req, res) => {
     if (user && (await user.comparePassword(password))) {
       // generating the token for the user
       const { accessToken, refreshToken } = generateTokens(user._id);
-      // storing the refresh token asynchronously (don't await to avoid blocking response)
-      storageRefreshToken(user._id, refreshToken).catch((err) => {
-        console.error("Failed to store refresh token:", err);
-      });
+      // storing the refresh token
+      await storageRefreshToken(user._id, refreshToken);
       // setting the cookies
       setCookies(res, accessToken, refreshToken);
 
