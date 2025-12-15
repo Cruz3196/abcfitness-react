@@ -1,8 +1,8 @@
-import { create } from 'zustand';
-import axios from '../api/axios';
-import toast from 'react-hot-toast';
+import { create } from "zustand";
+import axios from "../api/axios";
+import toast from "react-hot-toast";
 
-export const adminStore = create((set, get) => ({
+export const adminStore = create((set) => ({
   // State
   users: [],
   trainers: [],
@@ -16,12 +16,15 @@ export const adminStore = create((set, get) => ({
   fetchAllUsers: async () => {
     set({ isLoading: true });
     try {
-      const { data } = await axios.get('/admin/users');
+      const { data } = await axios.get("/admin/users");
       set({ users: data, isLoading: false });
       return data;
     } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to fetch users');
+      console.error("Error fetching users:", error);
+      // Don't show toast for 401 errors - these are handled by the axios interceptor
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch users");
+      }
       set({ isLoading: false, error: error.message });
       return [];
     }
@@ -31,12 +34,15 @@ export const adminStore = create((set, get) => ({
   fetchAllTrainers: async () => {
     set({ isLoading: true });
     try {
-      const { data } = await axios.get('/admin/trainers');
+      const { data } = await axios.get("/admin/trainers");
       set({ trainers: data, isLoading: false });
       return data;
     } catch (error) {
-      console.error('Error fetching trainers:', error);
-      toast.error('Failed to fetch trainers');
+      console.error("Error fetching trainers:", error);
+      // Don't show toast for 401 errors - these are handled by the axios interceptor
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch trainers");
+      }
       set({ isLoading: false, error: error.message });
       return [];
     }
@@ -44,14 +50,17 @@ export const adminStore = create((set, get) => ({
 
   // Fetch class insights
   fetchClassInsights: async () => {
-      set({ isLoading: true });
-      try{
-      const { data } = await axios.get('/admin/classes');
+    set({ isLoading: true });
+    try {
+      const { data } = await axios.get("/admin/classes");
       set({ viewClasses: data, isLoading: false });
       return data;
-    }catch (error){
-      console.error('Error fetching class insights:', error);
-      toast.error('Failed to fetch class insights');
+    } catch (error) {
+      console.error("Error fetching class insights:", error);
+      // Don't show toast for 401 errors - these are handled by the axios interceptor
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch class insights");
+      }
       set({ isLoading: false, error: error.message });
       return [];
     }
@@ -61,12 +70,15 @@ export const adminStore = create((set, get) => ({
   fetchPendingTrainers: async () => {
     set({ isLoading: true });
     try {
-      const { data } = await axios.get('/admin/trainers/pending-profiles');
+      const { data } = await axios.get("/admin/trainers/pending-profiles");
       set({ pendingTrainers: data, isLoading: false });
       return data;
     } catch (error) {
-      console.error('Error fetching pending trainers:', error);
-      toast.error('Failed to fetch pending trainers');
+      console.error("Error fetching pending trainers:", error);
+      // Don't show toast for 401 errors - these are handled by the axios interceptor
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch pending trainers");
+      }
       set({ isLoading: false, error: error.message });
       return [];
     }
@@ -76,12 +88,15 @@ export const adminStore = create((set, get) => ({
   fetchDashboardStats: async () => {
     set({ isLoading: true });
     try {
-      const { data } = await axios.get('/admin/dashboard/stats');
+      const { data } = await axios.get("/admin/dashboard/stats");
       set({ dashboardStats: data, isLoading: false });
       return data;
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      toast.error('Failed to fetch dashboard statistics');
+      console.error("Error fetching dashboard stats:", error);
+      // Don't show toast for 401 errors - these are handled by the axios interceptor
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch dashboard statistics");
+      }
       set({ isLoading: false, error: error.message });
       return null;
     }
@@ -92,14 +107,14 @@ export const adminStore = create((set, get) => ({
     try {
       await axios.delete(`/admin/users/${userId}`);
       // Update local state by removing the deleted user
-      set(state => ({
-        users: state.users.filter(user => user._id !== userId)
+      set((state) => ({
+        users: state.users.filter((user) => user._id !== userId),
       }));
-      toast.success('User deleted successfully');
+      toast.success("User deleted successfully");
       return true;
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      console.error("Error deleting user:", error);
+      toast.error("Failed to delete user");
       return false;
     }
   },
@@ -109,16 +124,16 @@ export const adminStore = create((set, get) => ({
     try {
       const { data } = await axios.put(`/admin/users/${userId}/statusChange`);
       // Update local state
-      set(state => ({
-        users: state.users.map(user => 
-          user._id === userId ? { ...user, role: 'trainer' } : user
-        )
+      set((state) => ({
+        users: state.users.map((user) =>
+          user._id === userId ? { ...user, role: "trainer" } : user
+        ),
       }));
       toast.success(data.message);
       return true;
     } catch (error) {
-      console.error('Error changing user status:', error);
-      toast.error('Failed to change user status');
+      console.error("Error changing user status:", error);
+      toast.error("Failed to change user status");
       return false;
     }
   },
@@ -131,7 +146,7 @@ export const adminStore = create((set, get) => ({
       pendingTrainers: [],
       dashboardStats: null,
       isLoading: false,
-      error: null
+      error: null,
     });
-  }
+  },
 }));
