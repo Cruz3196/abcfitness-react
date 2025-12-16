@@ -8,6 +8,7 @@ export const userStore = create((set, get) => ({
   bookings: [],
   isCheckingAuth: true,
   isLoading: false,
+  isLoadingBookings: false,
   selectedClass: null,
   error: null,
   bookingsLoaded: false,
@@ -76,6 +77,7 @@ export const userStore = create((set, get) => ({
         isLoading: false,
         isAuthenticated: true,
         bookings: [], // Clear bookings on login
+        bookingsLoaded: false, // Reset so bookings will be fetched fresh
       });
 
       toast.success(`Welcome back, ${res.data.username}!`);
@@ -110,6 +112,7 @@ export const userStore = create((set, get) => ({
       user: null,
       isAuthenticated: false,
       bookings: [],
+      bookingsLoaded: false,
       selectedClass: null,
     });
 
@@ -451,16 +454,23 @@ export const userStore = create((set, get) => ({
   },
 
   fetchMyBookings: async (forceRefresh = false) => {
-    const { bookings, isLoading } = get();
+    const { isLoadingBookings, bookingsLoaded } = get();
 
-    if (isLoading || (bookings.length > 0 && !forceRefresh)) {
-      console.log("Using cached bookings or already loading");
+    // Skip if already loading bookings
+    if (isLoadingBookings) {
+      console.log("Already loading bookings, skipping");
+      return;
+    }
+
+    // Only use cache if not forcing refresh and bookings were previously loaded
+    if (!forceRefresh && bookingsLoaded) {
+      console.log("Using cached bookings");
       return;
     }
 
     try {
       console.log("Fetching bookings from API...");
-      set({ isLoading: true });
+      set({ isLoadingBookings: true });
 
       const response = await axios.get("/user/bookings");
       const fetchedBookings = response.data.bookings || [];
@@ -473,7 +483,8 @@ export const userStore = create((set, get) => ({
 
       set({
         bookings: uniqueBookings,
-        isLoading: false,
+        bookingsLoaded: true,
+        isLoadingBookings: false,
       });
 
       console.log("Bookings loaded:", uniqueBookings.length);
@@ -481,7 +492,8 @@ export const userStore = create((set, get) => ({
       console.error("Error fetching bookings:", error);
       set({
         bookings: [],
-        isLoading: false,
+        bookingsLoaded: true,
+        isLoadingBookings: false,
         error: error.response?.data?.message || "Failed to fetch bookings",
       });
     }

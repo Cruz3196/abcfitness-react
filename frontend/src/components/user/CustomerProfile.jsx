@@ -19,7 +19,8 @@ const CustomerProfile = () => {
         deleteUserAccount, 
         bookings,
         fetchMyBookings, 
-        isLoading: isUserLoading 
+        isLoading: isUserLoading,
+        isLoadingBookings 
     } = userStore();
 
     const { 
@@ -76,11 +77,12 @@ const CustomerProfile = () => {
     }, [bookings]);
 
     // Fetch bookings when bookings tab is active
-        useEffect(() => {
-            if (activeTab === 'bookings') {
-                fetchMyBookings();
-            }
-        }, [activeTab, fetchMyBookings]);
+    useEffect(() => {
+        if (activeTab === 'bookings') {
+            fetchMyBookings();
+        }
+    }, [activeTab, fetchMyBookings]);
+
     // Redirect to login if not authenticated
     useEffect(() => {
         if (!user) {
@@ -98,27 +100,15 @@ const CustomerProfile = () => {
         }
     }, [user, navigate, clearOrders]);
 
-useEffect(() => {
-    if (!user) return;
+    // Fetch orders when orders tab is active
+    useEffect(() => {
+        if (!user) return;
 
-    switch (activeTab) {
-        case 'bookings':
-            // Only fetch if bookings don't exist or are empty
-            if (!user.bookings || !Array.isArray(user.bookings) || user.bookings.length === 0) {
-                console.log('🔄 Fetching bookings data...');
-                fetchMyBookings();
-            }
-            break;
-        case 'orders':
-            if (orders.length === 0) {
-                console.log('🔄 Fetching orders data...');
-                fetchOrderHistory();
-            }
-            break;
-        default:
-            break;
-    }
-}, [activeTab, user, fetchMyBookings, fetchOrderHistory, orders.length]);
+        if (activeTab === 'orders' && orders.length === 0) {
+            console.log('🔄 Fetching orders data...');
+            fetchOrderHistory();
+        }
+    }, [activeTab, user, fetchOrderHistory, orders.length]);
     // Logout handler
     const handleLogout = useCallback(async () => {
         try {
@@ -237,7 +227,7 @@ useEffect(() => {
                     {activeTab === 'bookings' && (
                         <BookingsTab 
                             upcomingBookings={upcomingBookings}
-                            isLoading={isUserLoading}
+                            isLoading={isLoadingBookings}
                         />
                     )}
 
@@ -446,6 +436,23 @@ const BookingsTab = React.memo(({ upcomingBookings, isLoading }) => (
             <div className="text-center py-12">
                 <span className="loading loading-spinner loading-lg"></span>
                 <p className="mt-4">Loading your bookings...</p>
+            </div>
+        ) : upcomingBookings.length === 0 ? (
+            // Enhanced empty state when no bookings exist
+            <div className="card bg-base-100 shadow-lg">
+                <div className="card-body items-center text-center py-16">
+                    <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+                        <Calendar className="w-12 h-12 text-primary" />
+                    </div>
+                    <h3 className="text-2xl font-bold mb-2">No Classes Booked Yet</h3>
+                    <p className="text-base-content/60 mb-6 max-w-md">
+                        Ready to start your fitness journey? Browse our classes and find the perfect workout for you!
+                    </p>
+                    <Link to="/classes" className="btn btn-primary gap-2">
+                        <Calendar className="w-5 h-5" />
+                        Browse Classes
+                    </Link>
+                </div>
             </div>
         ) : (
             <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
