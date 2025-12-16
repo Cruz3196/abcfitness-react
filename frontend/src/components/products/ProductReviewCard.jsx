@@ -1,32 +1,39 @@
-import { useState } from 'react';
-import { Star, Edit, Trash2, User } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { Star, Edit, Trash2, User } from "lucide-react";
+import toast from "react-hot-toast";
 
-const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitting }) => {
+const ProductReviewCard = ({
+  review,
+  currentUser,
+  onUpdate,
+  onDelete,
+  isSubmitting,
+}) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(review?.text || '');
+  const [editText, setEditText] = useState(review?.text || "");
   const [editRating, setEditRating] = useState(review?.rating || 0);
   const [hoverRating, setHoverRating] = useState(0);
 
   if (!review) return null;
 
   const reviewUser = review.user || {};
-  const isAuthor = currentUser && reviewUser._id && currentUser._id === reviewUser._id;
+  const isAuthor =
+    currentUser && reviewUser._id && currentUser._id === reviewUser._id;
 
   const handleUpdate = async () => {
     if (editRating === 0) {
-      toast.error('Please select a rating');
+      toast.error("Please select a rating");
       return;
     }
-    
+
     if (!editText.trim()) {
-      toast.error('Please write a review');
+      toast.error("Please write a review");
       return;
     }
 
     const result = await onUpdate(review._id, {
       text: editText.trim(),
-      rating: editRating
+      rating: editRating,
     });
 
     if (result?.success) {
@@ -35,22 +42,22 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
+    if (window.confirm("Are you sure you want to delete this review?")) {
       await onDelete(review._id);
     }
   };
 
   const handleCancel = () => {
-    setEditText(review.text || '');
+    setEditText(review.text || "");
     setEditRating(review.rating || 0);
     setIsEditing(false);
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -63,16 +70,18 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
             key={star}
             type="button"
             disabled={!interactive}
-            className={`${interactive ? 'btn btn-ghost btn-xs p-0 hover:bg-transparent' : ''}`}
+            className={`${
+              interactive ? "btn btn-ghost btn-xs p-0 hover:bg-transparent" : ""
+            }`}
             onMouseEnter={() => interactive && setHoverRating(star)}
             onMouseLeave={() => interactive && setHoverRating(0)}
             onClick={() => interactive && setEditRating(star)}
           >
             <Star
               className={`w-4 h-4 ${
-                star <= (interactive ? (hoverRating || editRating) : rating)
-                  ? 'fill-warning text-warning'
-                  : 'text-base-content/30'
+                star <= (interactive ? hoverRating || editRating : rating)
+                  ? "fill-warning text-warning"
+                  : "text-base-content/30"
               }`}
             />
           </button>
@@ -92,7 +101,7 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
                 {reviewUser.profileImage ? (
                   <img
                     src={reviewUser.profileImage}
-                    alt={reviewUser.username || 'User'}
+                    alt={reviewUser.username || "User"}
                     className="object-cover w-full h-full"
                   />
                 ) : (
@@ -102,7 +111,7 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
             </div>
             <div>
               <h4 className="font-semibold text-sm">
-                {reviewUser.username || 'Anonymous'}
+                {reviewUser.username || "Anonymous"}
               </h4>
               <p className="text-xs text-base-content/60">
                 {formatDate(review.createdAt)}
@@ -168,7 +177,7 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
                 {isSubmitting ? (
                   <span className="loading loading-spinner loading-xs"></span>
                 ) : (
-                  'Save'
+                  "Save"
                 )}
               </button>
             </div>
@@ -176,9 +185,7 @@ const ProductReviewCard = ({ review, currentUser, onUpdate, onDelete, isSubmitti
         ) : (
           <div className="mt-2">
             {/* Display Rating */}
-            <div className="mb-2">
-              {renderStars(review.rating)}
-            </div>
+            <div className="mb-2">{renderStars(review.rating)}</div>
             {/* Display Review Text */}
             <p className="text-sm text-base-content/80 leading-relaxed">
               {review.text}

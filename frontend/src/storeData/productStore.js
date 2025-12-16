@@ -172,8 +172,11 @@ export const productStore = create((set, get) => ({
   submitProductReview: async (productId, reviewData) => {
     set({ reviewSubmitting: true });
     try {
-      const { data } = await axios.post(`/products/${productId}/reviews`, reviewData);
-      
+      const { data } = await axios.post(
+        `/products/${productId}/reviews`,
+        reviewData
+      );
+
       // Add the new review to the beginning of the reviews array
       set((state) => ({
         productReviews: [data.review, ...state.productReviews],
@@ -191,7 +194,8 @@ export const productStore = create((set, get) => ({
       return { success: true, review: data.review };
     } catch (error) {
       console.error("Error submitting review:", error);
-      const errorMessage = error.response?.data?.message || "Failed to submit review";
+      const errorMessage =
+        error.response?.data?.message || "Failed to submit review";
       toast.error(errorMessage);
       set({ reviewSubmitting: false });
       return { success: false, error: errorMessage };
@@ -202,8 +206,11 @@ export const productStore = create((set, get) => ({
   updateProductReview: async (productId, reviewId, updateData) => {
     set({ reviewSubmitting: true });
     try {
-      const { data } = await axios.put(`/products/${productId}/reviews/${reviewId}`, updateData);
-      
+      const { data } = await axios.put(
+        `/products/${productId}/reviews/${reviewId}`,
+        updateData
+      );
+
       // Update the review in the store
       set((state) => ({
         productReviews: state.productReviews.map((review) =>
@@ -223,7 +230,8 @@ export const productStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       console.error("Error updating review:", error);
-      const errorMessage = error.response?.data?.message || "Failed to update review";
+      const errorMessage =
+        error.response?.data?.message || "Failed to update review";
       toast.error(errorMessage);
       set({ reviewSubmitting: false });
       return { success: false, error: errorMessage };
@@ -234,11 +242,15 @@ export const productStore = create((set, get) => ({
   deleteProductReview: async (productId, reviewId) => {
     set({ reviewSubmitting: true });
     try {
-      const { data } = await axios.delete(`/products/${productId}/reviews/${reviewId}`);
-      
+      const { data } = await axios.delete(
+        `/products/${productId}/reviews/${reviewId}`
+      );
+
       // Remove the review from the store
       set((state) => ({
-        productReviews: state.productReviews.filter((review) => review._id !== reviewId),
+        productReviews: state.productReviews.filter(
+          (review) => review._id !== reviewId
+        ),
         reviewSubmitting: false,
       }));
 
@@ -253,7 +265,8 @@ export const productStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       console.error("Error deleting review:", error);
-      const errorMessage = error.response?.data?.message || "Failed to delete review";
+      const errorMessage =
+        error.response?.data?.message || "Failed to delete review";
       toast.error(errorMessage);
       set({ reviewSubmitting: false });
       return { success: false, error: errorMessage };

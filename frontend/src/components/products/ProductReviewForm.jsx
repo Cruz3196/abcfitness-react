@@ -1,33 +1,33 @@
-import { useState } from 'react';
-import { Star } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useState } from "react";
+import { Star } from "lucide-react";
+import toast from "react-hot-toast";
 
 const ProductReviewForm = ({ productId, onSubmit, isSubmitting }) => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
+  const [reviewText, setReviewText] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (rating === 0) {
-      toast.error('Please select a rating');
-      return;
-    }
-    
-    if (!reviewText.trim()) {
-      toast.error('Please write a review');
+      toast.error("Please select a rating");
       return;
     }
 
-    const result = await onSubmit({ 
-      text: reviewText.trim(), 
-      rating 
+    if (!reviewText.trim()) {
+      toast.error("Please write a review");
+      return;
+    }
+
+    const result = await onSubmit({
+      text: reviewText.trim(),
+      rating,
     });
 
     if (result?.success) {
       setRating(0);
-      setReviewText('');
+      setReviewText("");
     }
   };
 
@@ -54,19 +54,19 @@ const ProductReviewForm = ({ productId, onSubmit, isSubmitting }) => {
                   <Star
                     className={`w-7 h-7 transition-colors ${
                       star <= (hoverRating || rating)
-                        ? 'fill-warning text-warning'
-                        : 'text-base-content/30'
+                        ? "fill-warning text-warning"
+                        : "text-base-content/30"
                     }`}
                   />
                 </button>
               ))}
               {rating > 0 && (
                 <span className="ml-2 text-sm text-base-content/70 self-center">
-                  {rating === 1 && 'Poor'}
-                  {rating === 2 && 'Fair'}
-                  {rating === 3 && 'Good'}
-                  {rating === 4 && 'Very Good'}
-                  {rating === 5 && 'Excellent'}
+                  {rating === 1 && "Poor"}
+                  {rating === 2 && "Fair"}
+                  {rating === 3 && "Good"}
+                  {rating === 4 && "Very Good"}
+                  {rating === 5 && "Excellent"}
                 </span>
               )}
             </div>
@@ -104,7 +104,7 @@ const ProductReviewForm = ({ productId, onSubmit, isSubmitting }) => {
                   Submitting...
                 </>
               ) : (
-                'Submit Review'
+                "Submit Review"
               )}
             </button>
           </div>
