@@ -9,6 +9,7 @@ import Navbar from "./components/common/Navbar"
 import CTA from "./components/common/CTA";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import { ThemeProvider } from "./components/common/ThemeProvider";
+import ChatAssistant from "./components/common/ChatAssistant";
 
 //Authentication Pages
 import LogIn from "./pages/LogIn"
@@ -164,6 +165,7 @@ function App() {
           </Routes>
         <PreventFooter />
       </Container>
+      <ChatAssistant />
       <Toaster position="top-center" reverseOrder={false} toastOptions={{duration: 4000,}}/> {/* Toast notifications */}
     </ThemeProvider>
   )
