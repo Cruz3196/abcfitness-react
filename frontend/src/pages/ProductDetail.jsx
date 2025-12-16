@@ -4,9 +4,12 @@ import { productStore } from '../storeData/productStore.js';
 import Spinner from '../components/common/Spinner';
 import PeopleAlsoBought from '../components/products/PeopleAlsoBought.jsx';
 import Breadcrumbs from '../components/common/Breadcrumbs';
+import ProductReviewForm from '../components/products/ProductReviewForm.jsx';
+import ProductReviewCard from '../components/products/ProductReviewCard.jsx';
 import useCartStore from '../storeData/cartStore.js';
 import { userStore } from '../storeData/userStore.js';
 import { toast } from 'react-hot-toast';
+import { Star } from 'lucide-react';
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -17,16 +20,29 @@ const ProductDetail = () => {
         isLoading, 
         getProductById, 
         fetchAllProducts, // This is the function
-        recommendedProducts, 
+        recommendedProducts,
+        // Review-related state and functions
+        productReviews,
+        reviewsLoading,
+        reviewSubmitting,
+        fetchProductReviews,
+        submitProductReview,
+        updateProductReview,
+        deleteProductReview,
+        hasUserReviewed,
+        clearProductReviews,
     } = productStore();
 
     useEffect(() => {
         if (products.length === 0) {
             fetchAllProducts();
         }
-        // Remove this line since fetchRecommendedProducts might not exist
-        // fetchRecommendedProducts(id);
-    }, [id, products.length, fetchAllProducts]);
+        // Fetch reviews when product ID changes
+        fetchProductReviews(id);
+        
+        // Cleanup reviews when leaving the page
+        return () => clearProductReviews();
+    }, [id, products.length, fetchAllProducts, fetchProductReviews, clearProductReviews]);
 
     const product = getProductById(id);
 
@@ -42,6 +58,21 @@ const ProductDetail = () => {
             addToCart(product);
         }
     };
+
+    // Review handlers
+    const handleSubmitReview = async (reviewData) => {
+        return await submitProductReview(id, reviewData);
+    };
+
+    const handleUpdateReview = async (reviewId, updateData) => {
+        return await updateProductReview(id, reviewId, updateData);
+    };
+
+    const handleDeleteReview = async (reviewId) => {
+        return await deleteProductReview(id, reviewId);
+    };
+
+    const userHasReviewed = user ? hasUserReviewed(user._id) : false;
 
     if (!product) {
         return (
@@ -64,6 +95,24 @@ const ProductDetail = () => {
     // Optionally, limit to first 4-8 products for better performance
     const recommendedProductsToShow = filteredProducts.slice(0, 4);
 
+    // Render stars helper
+    const renderStars = (rating) => {
+        return (
+            <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                        key={star}
+                        className={`w-5 h-5 ${
+                            star <= rating
+                                ? 'fill-warning text-warning'
+                                : 'text-base-content/30'
+                        }`}
+                    />
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className="container mx-auto px-4 py-12">
             <div className="mb-6">
@@ -82,6 +131,15 @@ const ProductDetail = () => {
                 <div className="card-body lg:w-1/2">
                     <div className="badge badge-secondary">{product.productCategory}</div>
                     <h1 className="card-title text-4xl font-bold mt-2">{product.productName}</h1>
+                    
+                    {/* Rating Display */}
+                    <div className="flex items-center gap-3 mt-2">
+                        {renderStars(Math.round(product.productRating || 0))}
+                        <span className="text-sm text-base-content/70">
+                            {product.productRating?.toFixed(1) || '0.0'} ({productReviews.length} reviews)
+                        </span>
+                    </div>
+
                     <p className="text-2xl text-primary font-semibold my-4">${product.productPrice.toFixed(2)}</p>
                     <p className="text-base-content/80">{product.productDescription}</p>
                     <div className="card-actions justify-end mt-6">
@@ -92,6 +150,58 @@ const ProductDetail = () => {
                             Add to Cart
                         </button>
                     </div>
+                </div>
+            </div>
+
+            {/* Reviews Section */}
+            <div className="mt-16">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 className="text-2xl font-bold">Customer Reviews</h2>
+                        <div className="flex items-center gap-2 mt-1">
+                            {renderStars(Math.round(product.productRating || 0))}
+                            <span className="text-sm text-base-content/70">
+                                {product.productRating?.toFixed(1) || '0.0'} out of 5 · {productReviews.length} {productReviews.length === 1 ? 'review' : 'reviews'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Review Form - Only show for logged in users who haven't reviewed */}
+                {user && !userHasReviewed && (
+                    <div className="mb-8">
+                        <ProductReviewForm
+                            productId={id}
+                            onSubmit={handleSubmitReview}
+                            isSubmitting={reviewSubmitting}
+                        />
+                    </div>
+                )}
+
+                {/* Reviews List */}
+                <div>
+                    {reviewsLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Spinner />
+                        </div>
+                    ) : productReviews.length > 0 ? (
+                        <div className="space-y-4">
+                            {productReviews.map((review) => (
+                                <ProductReviewCard
+                                    key={review._id}
+                                    review={review}
+                                    currentUser={user}
+                                    onUpdate={handleUpdateReview}
+                                    onDelete={handleDeleteReview}
+                                    isSubmitting={reviewSubmitting}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-base-content/60">
+                            <p>No reviews yet. {user ? 'Be the first to review this product!' : ''}</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
