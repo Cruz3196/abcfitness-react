@@ -554,30 +554,44 @@ axios.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        if (refreshPromise) {
-          await refreshPromise;
-        } else {
+        if (!refreshPromise) {
+          // Use correct route: /user/refresh-token
+          console.log("Attempting token refresh...");
           refreshPromise = axios.post(
-            "/auth/refresh-token",
+            "/user/refresh-token",
             {},
             {
               withCredentials: true,
             }
           );
-
-          await refreshPromise;
-          refreshPromise = null;
         }
 
-        // console.log('Retrying original request...');
-        return axios(originalRequest);
-      } catch (refreshError) {
-        // console.log('Token refresh failed:', refreshError);
+        // Wait for refresh to complete
+        await refreshPromise;
+        console.log("Token refresh successful, retrying original request...");
         refreshPromise = null;
 
-        if (refreshError.response?.status === 401) {
-          userStore.getState().logout();
-        }
+        // Ensure credentials are included in retry request
+        originalRequest.withCredentials = true;
+
+        // Small delay to ensure cookie is set
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        return axios(originalRequest);
+      } catch (refreshError) {
+        console.log("Token refresh failed:", refreshError.response?.status);
+        refreshPromise = null;
+
+        // Clear user state without making API call (cookies already cleared by backend)
+        useOrderStore.getState().clearOrders();
+        userStore.setState({
+          user: null,
+          isAuthenticated: false,
+          isCheckingAuth: false,
+          bookings: [],
+          bookingsLoaded: false,
+          selectedClass: null,
+        });
 
         return Promise.reject(refreshError);
       }

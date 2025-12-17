@@ -117,7 +117,19 @@ export const refresh = async (req, res) => {
       return res.status(401).json({ message: "No refresh token provided" });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    } catch (jwtError) {
+      // Token is expired or invalid
+      console.log("Refresh token verification failed:", jwtError.message);
+      res.clearCookie("accessToken");
+      res.clearCookie("refreshToken");
+      return res
+        .status(401)
+        .json({ message: "Refresh token expired or invalid" });
+    }
+
     const storedToken = await redis.get(`refreshToken:${decoded.userId}`);
 
     if (storedToken !== refreshToken) {
