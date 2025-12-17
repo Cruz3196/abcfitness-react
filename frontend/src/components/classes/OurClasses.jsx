@@ -1,47 +1,56 @@
-import { useEffect } from 'react';
-import { classStore } from '../../storeData/classStore.js';
-import ClassCard from './ClassCard';
+import { useEffect } from "react";
+import { Link } from "react-router-dom";
+import { classStore } from "../../storeData/classStore.js";
+import ClassCard from "./ClassCard";
+import { ArrowRight } from "lucide-react";
 
 const OurClasses = () => {
-    const { classes, isLoading, fetchAllClasses } = classStore();
+  const { classes, isLoading, fetchAllClasses } = classStore();
 
-    useEffect(() => {
-        fetchAllClasses();
-    }, [fetchAllClasses]);
+  useEffect(() => {
+    fetchAllClasses();
+  }, [fetchAllClasses]);
 
+  const featuredClasses = classes.slice(0, 4);
 
-    const featuredClasses = classes.slice(0, 4);
-
-    if (isLoading) {
-        return (
-        <div className="container mx-auto px-4 py-12">
-            <div className="flex justify-center">
-            <span className="loading loading-spinner loading-lg"></span>
-            </div>
-        </div>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <div className="container mx-auto px-4 py-12">
-            <div className="text-center my-8">
-                <h2 className="text-3xl font-bold">Explore Our Classes</h2>
-                <p className="text-gray-600 mt-6">Find the perfect class to match your fitness goals and schedule.</p>
-            </div>
-
-            <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {featuredClasses.map((classInfo) => (
-                <ClassCard key={classInfo._id} classInfo={classInfo} />
-                ))}
-            </div>
-
-            {featuredClasses.length === 0 && !isLoading && (
-                <div className="text-center text-gray-500 py-12">
-                <p>No classes available at the moment.</p>
-                </div>
-            )}
+      <div className="max-w-6xl mx-auto px-4 py-10">
+        <div className="flex justify-center py-12">
+          <span className="loading loading-spinner loading-md"></span>
         </div>
+      </div>
     );
+  }
+
+  if (featuredClasses.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-medium">Popular Classes</h2>
+          <p className="text-sm text-base-content/60 mt-1">
+            Find the perfect class for your fitness goals
+          </p>
+        </div>
+        <Link
+          to="/classes"
+          className="text-sm text-primary hover:underline flex items-center gap-1"
+        >
+          See all <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {featuredClasses.map((classInfo) => (
+          <ClassCard key={classInfo._id} classInfo={classInfo} />
+        ))}
+      </div>
+    </div>
+  );
 };
 
 export default OurClasses;

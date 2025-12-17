@@ -1,81 +1,44 @@
-import { motion } from 'framer-motion'
-import { useState, useEffect } from 'react'
-import HeroImage from '../../../assets/abcfitnesshero.jpg'
-import { Link } from 'react-router-dom'
+import { Link } from "react-router-dom";
+import HeroImage from "../../../assets/abcfitnesshero.jpg";
 
 const Hero = () => {
-  const [imageLoaded, setImageLoaded] = useState(false)
-
-  // Preload the image
-  useEffect(() => {
-    const img = new Image()
-    img.src = HeroImage
-    img.onload = () => setImageLoaded(true)
-  }, [])
-
   return (
-    <div className="hero min-h-96 bg-base-200">
-      <div className="hero-content w-full max-w-7xl px-6 py-12">
+    <div className="bg-base-200">
+      <div className="max-w-6xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* shows first on mobile */}
-          <motion.div
-            className="flex justify-center lg:justify-end order-1 lg:order-2"
-            initial={{ opacity: 0, x: 50 }}
-            animate={imageLoaded ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          >
+          {/* Text Content */}
+          <div className="order-2 lg:order-1">
+            <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
+              Transform Your Fitness Journey
+            </h1>
+            <p className="text-base-content/70 mb-6">
+              Join ABC Fitness and discover a community dedicated to helping you
+              achieve your health and wellness goals. Expert trainers,
+              state-of-the-art equipment, and personalized programs await you.
+            </p>
+            <div className="flex gap-3">
+              <Link to="/store" className="btn btn-primary">
+                Shop Now
+              </Link>
+              <Link to="/classes" className="btn btn-outline">
+                View Classes
+              </Link>
+            </div>
+          </div>
+
+          {/* Image */}
+          <div className="order-1 lg:order-2">
             <img
               src={HeroImage}
-              className="rounded-lg shadow-2xl max-w-full h-auto object-cover"
-              alt="ABC Fitness gym interior"
+              className="rounded-lg w-full h-auto max-h-[400px] object-cover"
+              alt="ABC Fitness"
               loading="eager"
-              style={{ 
-                minHeight: '200px',
-                opacity: imageLoaded ? 1 : 0,
-                transition: 'opacity 0.3s ease-in-out'
-              }}
             />
-          </motion.div>
-
-          {/* shows second on mobile */}
-          <div className="max-w-lg order-2 lg:order-1">
-            <motion.h1
-              className="text-5xl font-bold leading-tight mb-4"
-              initial={{ opacity: 0, y: -20 }}
-              animate={imageLoaded ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            >
-              Transform Your Fitness Journey
-            </motion.h1>
-
-            <motion.p
-              className="text-lg py-6 opacity-80"
-              initial={{ opacity: 0, y: -20 }}
-              animate={imageLoaded ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            >
-              Join ABC Fitness and discover a community dedicated to helping you achieve
-              your health and wellness goals. Expert trainers, state-of-the-art equipment,
-              and personalized programs await you.
-            </motion.p>
-
-            <Link to="/store">
-              <motion.button
-                className="btn btn-primary btn-md"
-                initial={{ opacity: 0, y: 20 }}
-                animate={imageLoaded ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                Shop Now
-              </motion.button>
-            </Link>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Hero
+export default Hero;

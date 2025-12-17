@@ -8,6 +8,7 @@ export const adminStore = create((set) => ({
   trainers: [],
   pendingTrainers: [],
   viewClasses: [],
+  orders: [],
   dashboardStats: null,
   isLoading: false,
   error: null,
@@ -60,6 +61,23 @@ export const adminStore = create((set) => ({
       // Don't show toast for 401 errors - these are handled by the axios interceptor
       if (error.response?.status !== 401) {
         toast.error("Failed to fetch class insights");
+      }
+      set({ isLoading: false, error: error.message });
+      return [];
+    }
+  },
+
+  // Fetch all orders
+  fetchAllOrders: async () => {
+    set({ isLoading: true });
+    try {
+      const { data } = await axios.get("/admin/orders");
+      set({ orders: data, isLoading: false });
+      return data;
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      if (error.response?.status !== 401) {
+        toast.error("Failed to fetch orders");
       }
       set({ isLoading: false, error: error.message });
       return [];
@@ -144,6 +162,7 @@ export const adminStore = create((set) => ({
       users: [],
       trainers: [],
       pendingTrainers: [],
+      orders: [],
       dashboardStats: null,
       isLoading: false,
       error: null,

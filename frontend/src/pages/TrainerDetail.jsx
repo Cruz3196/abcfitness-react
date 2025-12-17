@@ -1,105 +1,165 @@
-import { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { trainerStore } from '../storeData/trainerStore.js';
-import Spinner from '../components/common/Spinner';
-import ClassCard from '../components/classes/ClassCard';
-import Breadcrumbs from '../components/common/Breadcrumbs';
+import { useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { Award, Clock, Mail } from "lucide-react";
+import { trainerStore } from "../storeData/trainerStore.js";
+import Spinner from "../components/common/Spinner";
+import ClassCard from "../components/classes/ClassCard";
 
 const TrainerDetail = () => {
-    const { id } = useParams();
-    const { 
-        selectedTrainer, 
-        trainerClasses,
-        isLoading, 
-        error,
-        fetchTrainerById, 
-        fetchClassesByTrainer, 
-        clearSelectedTrainer 
-    } = trainerStore();
+  const { id } = useParams();
+  const {
+    selectedTrainer,
+    trainerClasses,
+    isLoading,
+    error,
+    fetchTrainerById,
+    fetchClassesByTrainer,
+    clearSelectedTrainer,
+  } = trainerStore();
 
-    useEffect(() => {
-        if (id) {
-            fetchTrainerById(id);
-            fetchClassesByTrainer(id);
-        }
-
-        return () => {
-            clearSelectedTrainer();
-        };
-    }, [id, fetchTrainerById, fetchClassesByTrainer, clearSelectedTrainer]);
-
-    if (isLoading) {
-        return <div className="flex justify-center pt-20"><Spinner /></div>;
+  useEffect(() => {
+    if (id) {
+      fetchTrainerById(id);
+      fetchClassesByTrainer(id);
     }
 
-    if (error) {
-        return (
-            <div className="text-center py-20">
-                <h2 className="text-3xl font-bold mb-4">Error Loading Trainer</h2>
-                <p className="text-base-content/60 mb-6">{error}</p>
-                <Link to="/trainers" className="btn btn-primary">Back to All Trainers</Link>
-            </div>
-        );
-    }
+    return () => {
+      clearSelectedTrainer();
+    };
+  }, [id, fetchTrainerById, fetchClassesByTrainer, clearSelectedTrainer]);
 
-    if (!selectedTrainer) {
-        return (
-            <div className="text-center py-20">
-                <h2 className="text-3xl font-bold">Trainer Not Found</h2>
-                <Link to="/trainers" className="btn btn-primary mt-6">Back to All Trainers</Link>
-            </div>
-        );
-    }
-
-    // Safety checks for trainer data structure
-    const trainerName = selectedTrainer.user?.username || 'Unknown Trainer';
-    const trainerBio = selectedTrainer.bio || 'No bio available';
-    const trainerSpecialization = selectedTrainer.specialization || 'General Fitness';
-    const trainerProfilePic = selectedTrainer.trainerProfilePic || 'https://placehold.co/150x150?text=Trainer';
-
-    const breadcrumbPaths = [
-        { name: 'Home', link: '/' },
-        { name: 'Trainers', link: '/trainers' },
-        { name: trainerName, link: `/trainers/${id}` }
-    ];
-
+  if (isLoading) {
     return (
-        <div className="bg-base-200">
-            {/* Trainer Hero Section */}
-            <div className="hero min-h-[40vh]" style={{ backgroundImage: `url(https://placehold.co/1200x400?text=${encodeURIComponent(trainerName)})` }}>
-                <div className="hero-overlay bg-opacity-60"></div>
-                <div className="hero-content text-center text-neutral-content flex-col md:flex-row gap-8">
-                    <img 
-                        src={trainerProfilePic} 
-                        alt={trainerName} 
-                        className="w-40 h-40 object-cover rounded-full border-4 border-primary shadow-2xl" 
-                    />
-                    <div className="max-w-md text-left">
-                        <h1 className="mb-2 text-5xl font-bold">{trainerName}</h1>
-                        <p className="mb-5 text-xl text-primary font-semibold">{trainerSpecialization}</p>
-                        <p>{trainerBio}</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Trainer's Classes Section */}
-            <div className="container mx-auto px-4 py-12">
-                <div className="mb-8">
-                    <Breadcrumbs paths={breadcrumbPaths} />
-                </div>
-                <h2 className="text-3xl font-bold text-center mb-8">Classes by {trainerName}</h2>
-                {trainerClasses && trainerClasses.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {trainerClasses.map(classInfo => (
-                            <ClassCard key={classInfo._id} classInfo={classInfo} />
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-center text-base-content/70">This trainer does not have any upcoming classes scheduled.</p>
-                )}
-            </div>
-        </div>
+      <div className="flex justify-center pt-20">
+        <Spinner />
+      </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-xl font-medium mb-2">Error Loading Trainer</h2>
+        <p className="text-sm text-base-content/60 mb-4">{error}</p>
+        <Link to="/trainers" className="btn btn-sm btn-primary">
+          Back to Trainers
+        </Link>
+      </div>
+    );
+  }
+
+  if (!selectedTrainer) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-xl font-medium mb-4">Trainer Not Found</h2>
+        <Link to="/trainers" className="btn btn-sm btn-primary">
+          Back to Trainers
+        </Link>
+      </div>
+    );
+  }
+
+  const trainerName = selectedTrainer.user?.username || "Unknown Trainer";
+  const trainerEmail = selectedTrainer.user?.email || "";
+  const trainerBio = selectedTrainer.bio || "No bio available";
+  const trainerSpecialization =
+    selectedTrainer.specialization || "General Fitness";
+  const trainerProfilePic =
+    selectedTrainer.trainerProfilePic || "https://placehold.co/150";
+  const trainerExperience = selectedTrainer.experience || 0;
+  const trainerCertifications = selectedTrainer.certifications || "";
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      {/* Breadcrumb */}
+      <div className="text-sm breadcrumbs mb-6">
+        <ul>
+          <li>
+            <Link to="/">Home</Link>
+          </li>
+          <li>
+            <Link to="/trainers">Trainers</Link>
+          </li>
+          <li>{trainerName}</li>
+        </ul>
+      </div>
+
+      {/* Trainer Profile */}
+      <div className="border border-base-300 rounded-lg p-6 mb-8">
+        <div className="flex flex-col sm:flex-row gap-6">
+          {/* Avatar */}
+          <div className="flex-shrink-0">
+            <div className="w-28 h-28 rounded-full overflow-hidden border border-base-300">
+              <img
+                src={trainerProfilePic}
+                alt={trainerName}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="flex-1">
+            <h1 className="text-2xl font-medium">{trainerName}</h1>
+            <p className="text-primary text-sm mt-1">{trainerSpecialization}</p>
+
+            <p className="text-sm text-base-content/70 mt-4 leading-relaxed">
+              {trainerBio}
+            </p>
+
+            <div className="flex flex-wrap gap-4 mt-4 text-sm text-base-content/60">
+              {trainerExperience > 0 && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {trainerExperience} years experience
+                </span>
+              )}
+              {trainerCertifications && (
+                <span className="flex items-center gap-1">
+                  <Award className="w-4 h-4" />
+                  {trainerCertifications}
+                </span>
+              )}
+              {trainerEmail && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-4 h-4" />
+                  {trainerEmail}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Classes Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium">
+            Classes by {trainerName}
+            {trainerClasses?.length > 0 && (
+              <span className="text-sm text-base-content/50 font-normal ml-2">
+                ({trainerClasses.length})
+              </span>
+            )}
+          </h2>
+        </div>
+
+        {trainerClasses && trainerClasses.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {trainerClasses.map((classInfo) => (
+              <ClassCard key={classInfo._id} classInfo={classInfo} />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-base-300 rounded-lg p-8 text-center">
+            <p className="text-sm text-base-content/60">
+              No upcoming classes scheduled.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default TrainerDetail;

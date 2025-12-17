@@ -1,37 +1,41 @@
-const CategorySidebar = ({ categories, selectedCategories, onCategoryChange }) => {
-    return (
-        <aside className="w-full md:w-64 lg:w-72 flex-shrink-0">
-            <div className="card bg-base-200 shadow-xl">
-                <div className="card-body">
-                <h2 className="card-title border-b border-base-300 pb-2">
-                    Categories
-                </h2>
-                <div className="form-control space-y-2">
-                    {categories.map((category) => (
-                    <label key={category} className="label cursor-pointer justify-start">
-                        <input
-                        type="checkbox"
-                        className="checkbox checkbox-primary"
-                        checked={selectedCategories.includes(category)}
-                        onChange={() => onCategoryChange(category)}
-                        />
-                        <span className="label-text ml-3 capitalize">{category}</span>
-                    </label>
-                    ))}
-                </div>
-                {selectedCategories.length > 0 && (
-                    <button
-                    onClick={() => onCategoryChange('__CLEAR__')}
-                    className="btn btn-ghost btn-xs mt-4"
-                    >
-                    Clear Filters
-                    </button>
-                )}
-                </div>
-            </div>
-        </aside>
-    );
+const CategorySidebar = ({
+  categories,
+  selectedCategories,
+  onCategoryChange,
+}) => {
+  return (
+    <aside className="w-full md:w-48 flex-shrink-0">
+      <div className="sticky top-20">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium">Categories</h2>
+          {selectedCategories.length > 0 && (
+            <button
+              onClick={() => onCategoryChange("__CLEAR__")}
+              className="text-xs text-primary hover:underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="space-y-1">
+          {categories.map((category) => (
+            <label
+              key={category}
+              className="flex items-center gap-2 py-1 cursor-pointer hover:text-primary transition-colors"
+            >
+              <input
+                type="checkbox"
+                className="checkbox checkbox-xs checkbox-primary"
+                checked={selectedCategories.includes(category)}
+                onChange={() => onCategoryChange(category)}
+              />
+              <span className="text-sm capitalize">{category}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
 };
 
 export default CategorySidebar;
-

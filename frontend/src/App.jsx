@@ -93,10 +93,20 @@ function App() {
     return <CTA />;
   };
 
+  // Hide navbar on admin dashboard
+  const ShowNavbar = () => {
+    const location = useLocation();
+    const noNavbarPaths = ["/admindashboard"];
+    if (noNavbarPaths.includes(location.pathname)) {
+      return null;
+    }
+    return <Navbar />;
+  };
+
   return (
     <ThemeProvider>
       <Container>
-        <Navbar />
+        <ShowNavbar />
         <Routes>
           {/* Authentication Routes */}
           <Route path="/login" element={<LogIn />} />

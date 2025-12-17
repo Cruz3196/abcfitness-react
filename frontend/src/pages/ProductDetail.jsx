@@ -9,7 +9,7 @@ import ProductReviewCard from "../components/products/ProductReviewCard.jsx";
 import useCartStore from "../storeData/cartStore.js";
 import { userStore } from "../storeData/userStore.js";
 import { toast } from "react-hot-toast";
-import { Star } from "lucide-react";
+import { Star, ShoppingCart, Check } from "lucide-react";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -107,89 +107,106 @@ const ProductDetail = () => {
   // Optionally, limit to first 4-8 products for better performance
   const recommendedProductsToShow = filteredProducts.slice(0, 4);
 
-  // Render stars helper
-  const renderStars = (rating) => {
-    return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`w-5 h-5 ${
-              star <= rating
-                ? "fill-warning text-warning"
-                : "text-base-content/30"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
-
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="mb-6">
+    <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="mb-4">
         <Breadcrumbs paths={breadcrumbPaths} />
       </div>
 
-      {/* Main Product Details Card */}
-      <div className="card lg:card-side bg-base-100 shadow-xl">
-        <figure className="lg:w-1/2 p-4 bg-white">
+      {/* Main Product Section */}
+      <div className="grid md:grid-cols-2 gap-8 mb-12">
+        {/* Product Image */}
+        <div className="bg-white rounded-lg p-4 border border-base-300">
           <img
             src={
               product.productImage ||
-              "https://placehold.co/600x400?text=No+Image"
+              "https://placehold.co/600x600?text=No+Image"
             }
             alt={product.productName}
-            className="w-full h-96 object-contain rounded-lg"
+            className="w-full h-auto max-h-[500px] object-contain"
           />
-        </figure>
-        <div className="card-body lg:w-1/2">
-          <div className="badge badge-secondary">{product.productCategory}</div>
-          <h1 className="card-title text-4xl font-bold mt-2">
-            {product.productName}
-          </h1>
+        </div>
 
-          {/* Rating Display */}
-          <div className="flex items-center gap-3 mt-2">
-            {renderStars(Math.round(product.productRating || 0))}
-            <span className="text-sm text-base-content/70">
-              {product.productRating?.toFixed(1) || "0.0"} (
-              {productReviews.length} reviews)
+        {/* Product Info */}
+        <div>
+          <p className="text-sm text-base-content/60 uppercase tracking-wide mb-1">
+            {product.productCategory}
+          </p>
+
+          <h1 className="text-2xl font-medium mb-2">{product.productName}</h1>
+
+          {/* Rating */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${
+                    star <= Math.round(product.productRating || 0)
+                      ? "fill-warning text-warning"
+                      : "text-base-content/20"
+                  }`}
+                />
+              ))}
+            </div>
+            <Link
+              to="#reviews"
+              className="text-sm text-primary hover:underline"
+            >
+              {productReviews.length}{" "}
+              {productReviews.length === 1 ? "review" : "reviews"}
+            </Link>
+          </div>
+
+          <div className="border-t border-base-300 pt-4 mb-4">
+            <span className="text-3xl font-bold">
+              ${product.productPrice.toFixed(2)}
             </span>
           </div>
 
-          <p className="text-2xl text-primary font-semibold my-4">
-            ${product.productPrice.toFixed(2)}
+          <p className="text-base-content/70 mb-6 leading-relaxed">
+            {product.productDescription}
           </p>
-          <p className="text-base-content/80">{product.productDescription}</p>
-          <div className="card-actions justify-end mt-6">
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleAddToCart}
-            >
-              Add to Cart
-            </button>
+
+          <div className="flex items-center gap-2 text-sm text-success mb-4">
+            <Check className="w-4 h-4" />
+            <span>In Stock</span>
           </div>
+
+          <button
+            className="btn btn-primary gap-2 w-full sm:w-auto"
+            onClick={handleAddToCart}
+          >
+            <ShoppingCart className="w-5 h-5" />
+            Add to Cart
+          </button>
         </div>
       </div>
 
       {/* Reviews Section */}
-      <div className="mt-16">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Customer Reviews</h2>
-            <div className="flex items-center gap-2 mt-1">
-              {renderStars(Math.round(product.productRating || 0))}
-              <span className="text-sm text-base-content/70">
-                {product.productRating?.toFixed(1) || "0.0"} out of 5 ·{" "}
-                {productReviews.length}{" "}
-                {productReviews.length === 1 ? "review" : "reviews"}
-              </span>
-            </div>
+      <div id="reviews" className="border-t border-base-300 pt-8">
+        <h2 className="text-xl font-medium mb-1">Customer Reviews</h2>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="flex">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                className={`w-4 h-4 ${
+                  star <= Math.round(product.productRating || 0)
+                    ? "fill-warning text-warning"
+                    : "text-base-content/20"
+                }`}
+              />
+            ))}
           </div>
+          <span className="text-sm text-base-content/60">
+            {product.productRating?.toFixed(1) || "0.0"} out of 5 ·{" "}
+            {productReviews.length}{" "}
+            {productReviews.length === 1 ? "review" : "reviews"}
+          </span>
         </div>
 
-        {/* Review Form - Only show for logged in users who haven't reviewed */}
+        {/* Review Form */}
         {user && !userHasReviewed && (
           <div className="mb-8">
             <ProductReviewForm
@@ -201,39 +218,34 @@ const ProductDetail = () => {
         )}
 
         {/* Reviews List */}
-        <div>
-          {reviewsLoading ? (
-            <div className="flex justify-center py-12">
-              <Spinner />
-            </div>
-          ) : productReviews.length > 0 ? (
-            <div className="space-y-4">
-              {productReviews.map((review) => (
-                <ProductReviewCard
-                  key={review._id}
-                  review={review}
-                  currentUser={user}
-                  onUpdate={handleUpdateReview}
-                  onDelete={handleDeleteReview}
-                  isSubmitting={reviewSubmitting}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-base-content/60">
-              <p>
-                No reviews yet.{" "}
-                {user ? "Be the first to review this product!" : ""}
-              </p>
-            </div>
-          )}
-        </div>
+        {reviewsLoading ? (
+          <div className="flex justify-center py-8">
+            <Spinner />
+          </div>
+        ) : productReviews.length > 0 ? (
+          <div className="space-y-4">
+            {productReviews.map((review) => (
+              <ProductReviewCard
+                key={review._id}
+                review={review}
+                currentUser={user}
+                onUpdate={handleUpdateReview}
+                onDelete={handleDeleteReview}
+                isSubmitting={reviewSubmitting}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-center py-6 text-base-content/50">
+            No reviews yet. {user ? "Be the first to review!" : ""}
+          </p>
+        )}
       </div>
 
-      {/* Recommended Products Section */}
-      <div className="mt-16">
+      {/* Recommended Products */}
+      <div className="border-t border-base-300 mt-12 pt-8">
         <PeopleAlsoBought
-          products={recommendedProductsToShow} // Pass the actual products array
+          products={recommendedProductsToShow}
           title="You Might Also Like"
           subtitle="Explore other products that might interest you."
         />

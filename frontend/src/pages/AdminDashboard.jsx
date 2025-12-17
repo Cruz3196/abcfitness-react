@@ -1,44 +1,37 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Users, UserCheck, DollarSign, Package } from "lucide-react";
-import { userStore } from "../storeData/userStore";
 import { adminStore } from "../storeData/adminStore";
 import { productStore } from "../storeData/productStore";
 
-// Your existing imports - FIX THIS LINE
-import { ProductRow } from "../components/admin/adminUI/ProductRow";
-import { UserRow } from "../components/admin/adminUI/UserRow";
-import { TabNavigation } from "../components/admin/adminUI/TabNavigation";
+// Admin UI components
+import { Sidebar } from "../components/admin/adminUI/Sidebar";
 import { RevenueChart } from "../components/admin/charts/RevenueChart";
 import { MonthlyTrendsChart } from "../components/admin/charts/MonthlyTrendsChart";
 import { ProductCategoriesChart } from "../components/admin/charts/ProductCategoriesChart";
 import { ClassesTab } from "../components/admin/tabs/ClassesTab";
 import { ProductsTab } from "../components/admin/tabs/ProductsTab";
 import { TrainersTab } from "../components/admin/tabs/TrainersTab";
-import { UsersTab } from "../components/admin/tabs/UsersTab"; // Changed from UserTab to UsersTab
+import { UsersTab } from "../components/admin/tabs/UsersTab";
+import { OrdersTab } from "../components/admin/tabs/OrdersTab";
 
 // Additional imports that might be needed
 import ProductForm from "../components/admin/ProductForm";
 import ProductEditForm from "../components/admin/ProductEditForm";
 
 const AdminDashboard = () => {
-  const { user } = userStore();
   const [activeTab, setActiveTab] = useState("overview");
   const [showProductForm, setShowProductForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   // Get store data
   const {
     dashboardStats,
-    users,
-    trainers,
-    viewClasses,
-    isLoading: isLoadingAdmin,
     fetchDashboardStats,
     fetchAllUsers,
     fetchAllTrainers,
     fetchClassInsights,
+    fetchAllOrders,
     deleteUser,
     changeUserStatus,
   } = adminStore();
@@ -46,7 +39,6 @@ const AdminDashboard = () => {
   const {
     products,
     categories,
-    isLoading: isLoadingProducts,
     fetchAllProducts,
     deleteProduct,
     toggleFeaturedProduct,
@@ -72,6 +64,9 @@ const AdminDashboard = () => {
       case "classes":
         fetchClassInsights();
         break;
+      case "orders":
+        fetchAllOrders();
+        break;
       default:
         break;
     }
@@ -82,6 +77,7 @@ const AdminDashboard = () => {
     fetchAllProducts,
     fetchAllTrainers,
     fetchClassInsights,
+    fetchAllOrders,
   ]);
 
   // Handler functions
@@ -100,7 +96,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleToggleFeatured = async (productId, currentStatus) => {
+  const handleToggleFeatured = async (productId) => {
     await toggleFeaturedProduct(productId);
   };
 
@@ -120,125 +116,104 @@ const AdminDashboard = () => {
     }
   };
 
-  // Note: ProtectedRoute already handles access control - no need for redundant check here
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+  const getTabTitle = () => {
+    const titles = {
+      overview: "Overview",
+      users: "Users",
+      products: "Products",
+      orders: "Orders",
+      trainers: "Trainers",
+      classes: "Classes",
+    };
+    return titles[activeTab] || "Dashboard";
   };
 
   return (
-    <motion.div
-      className="min-h-screen bg-base-200 py-8"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-    >
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <motion.div className="text-center mb-8" variants={itemVariants}>
-          <h1 className="text-4xl font-bold text-base-content mb-2">
-            Admin Dashboard
+    <div className="min-h-screen bg-base-200">
+      {/* Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+      />
+
+      {/* Main Content */}
+      <div className="lg:ml-56 pt-14 lg:pt-0">
+        {/* Page Header */}
+        <div className="bg-base-100 border-b border-base-300 px-4 lg:px-6 py-4">
+          <h1 className="text-lg font-semibold text-base-content">
+            {getTabTitle()}
           </h1>
-          <p className="text-base-content/70">
-            Manage your fitness business from one place
-          </p>
-        </motion.div>
+        </div>
 
-        {/* Tab Navigation */}
-        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {/* Tab Content */}
-        <div className="mb-8">
+        {/* Page Content */}
+        <main className="p-4 lg:p-6">
+          {/* Tab Content */}
           {/* Overview Tab */}
           {activeTab === "overview" && (
-            <motion.div variants={containerVariants}>
+            <div>
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <motion.div
-                  className="stat bg-base-100 shadow-lg rounded-lg"
-                  variants={itemVariants}
-                >
-                  <div className="stat-figure text-primary">
-                    <Users className="w-8 h-8" />
-                  </div>
-                  <div className="stat-title">Total Users</div>
-                  <div className="stat-value text-primary">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <p className="text-sm text-base-content/60">Total Users</p>
+                  <p className="text-2xl font-semibold">
                     {dashboardStats?.users?.totalUsers || 0}
-                  </div>
-                  <div className="stat-desc">
-                    {dashboardStats?.users?.newUsersThisMonth || 0} new this
-                    month
-                  </div>
-                </motion.div>
+                  </p>
+                  <p className="text-xs text-success">
+                    +{dashboardStats?.users?.newUsersThisMonth || 0} this month
+                  </p>
+                </div>
 
-                <motion.div
-                  className="stat bg-base-100 shadow-lg rounded-lg"
-                  variants={itemVariants}
-                >
-                  <div className="stat-figure text-secondary">
-                    <UserCheck className="w-8 h-8" />
-                  </div>
-                  <div className="stat-title">Trainers</div>
-                  <div className="stat-value text-secondary">
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <p className="text-sm text-base-content/60">Trainers</p>
+                  <p className="text-2xl font-semibold">
                     {dashboardStats?.users?.totalTrainers || 0}
-                  </div>
-                  <div className="stat-desc">Active trainers</div>
-                </motion.div>
+                  </p>
+                  <p className="text-xs text-base-content/50">Active</p>
+                </div>
 
-                <motion.div
-                  className="stat bg-base-100 shadow-lg rounded-lg"
-                  variants={itemVariants}
-                >
-                  <div className="stat-figure text-accent">
-                    <DollarSign className="w-8 h-8" />
-                  </div>
-                  <div className="stat-title">Total Revenue</div>
-                  <div className="stat-value text-accent">
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <p className="text-sm text-base-content/60">Revenue</p>
+                  <p className="text-2xl font-semibold">
                     $
                     {(
                       (dashboardStats?.financials?.totalProductRevenue || 0) +
                       (dashboardStats?.financials?.totalClassRevenue || 0)
                     ).toLocaleString()}
-                  </div>
-                  <div className="stat-desc">Products + Classes</div>
-                </motion.div>
+                  </p>
+                  <p className="text-xs text-base-content/50">
+                    Products + Classes
+                  </p>
+                </div>
 
-                <motion.div
-                  className="stat bg-base-100 shadow-lg rounded-lg"
-                  variants={itemVariants}
-                >
-                  <div className="stat-figure text-info">
-                    <Package className="w-8 h-8" />
-                  </div>
-                  <div className="stat-title">Products</div>
-                  <div className="stat-value text-info">
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <p className="text-sm text-base-content/60">Products</p>
+                  <p className="text-2xl font-semibold">
                     {products?.length || 0}
-                  </div>
-                  <div className="stat-desc">Total products</div>
-                </motion.div>
+                  </p>
+                  <p className="text-xs text-base-content/50">In catalog</p>
+                </div>
               </div>
 
               {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <RevenueChart dashboardStats={dashboardStats} />
-                <ProductCategoriesChart
-                  products={products}
-                  categories={categories}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <RevenueChart dashboardStats={dashboardStats} />
+                </div>
+                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                  <ProductCategoriesChart
+                    products={products}
+                    categories={categories}
+                  />
+                </div>
               </div>
 
               {/* Monthly Trends Chart */}
-              <MonthlyTrendsChart />
-            </motion.div>
+              <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                <MonthlyTrendsChart />
+              </div>
+            </div>
           )}
 
           {/* Users Tab - CHANGED FROM UserTab TO UsersTab */}
@@ -260,33 +235,14 @@ const AdminDashboard = () => {
           )}
 
           {/* Orders Tab */}
-          {activeTab === "orders" && (
-            <motion.div
-              className="card bg-base-100 shadow-lg"
-              variants={itemVariants}
-            >
-              <div className="card-body">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="card-title">Order Management</h2>
-                  <button className="btn btn-outline btn-sm">Refresh</button>
-                </div>
-                <div className="text-center py-8">
-                  <Package className="mx-auto w-16 h-16 text-base-300 mb-2" />
-                  <p className="text-base-content/70 mb-4">No orders found</p>
-                  <p className="text-sm text-base-content/50">
-                    Orders will appear here when customers make purchases
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {activeTab === "orders" && <OrdersTab />}
 
           {/* Trainers Tab */}
           {activeTab === "trainers" && <TrainersTab />}
 
           {/* Classes Tab */}
           {activeTab === "classes" && <ClassesTab />}
-        </div>
+        </main>
       </div>
 
       {/* Modals */}
@@ -308,7 +264,7 @@ const AdminDashboard = () => {
           }}
         />
       )}
-    </motion.div>
+    </div>
   );
 };
 
