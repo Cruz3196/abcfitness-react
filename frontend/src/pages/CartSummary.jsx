@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ShoppingCart, ArrowLeft } from "lucide-react";
+import { ShoppingCart, ArrowLeft, Package } from "lucide-react";
 import useCartStore from "../storeData/cartStore";
 import CartItem from "../components/cart/CartItem";
 import OrderSummary from "../components/cart/OrderSummary";
@@ -34,29 +34,20 @@ const CartSummary = () => {
       variants={containerVariants}
     >
       <div className="container mx-auto px-3 sm:px-4 md:px-6 max-w-7xl">
-        {/* Header */}
+        {/* Simplified Header */}
         <motion.div
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 md:mb-8 bg-base-100 p-4 sm:p-5 md:p-6 rounded-lg shadow-lg gap-3 sm:gap-4"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 bg-base-100 p-4 sm:p-5 rounded-lg shadow-sm gap-3"
           variants={itemVariants}
         >
-          <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-wrap">
-            <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-primary flex-shrink-0" />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-base-content">
-              {cart.length > 0 ? "In the bag" : "Shopping Cart"}
+          <div className="flex items-center gap-3">
+            <ShoppingCart className="w-6 h-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+              Shopping Cart
             </h1>
-            {cart.length > 0 && (
-              <div className="badge badge-primary badge-md sm:badge-lg">
-                {getTotalItems()} {getTotalItems() === 1 ? "item" : "items"}
-              </div>
-            )}
           </div>
-          <Link
-            to="/store"
-            className="btn btn-outline btn-primary gap-2 btn-sm sm:btn-md w-full sm:w-auto"
-          >
+          <Link to="/store" className="btn btn-ghost btn-sm gap-2">
             <ArrowLeft className="w-4 h-4" />
-            <span className="hidden xs:inline">Continue Shopping</span>
-            <span className="xs:hidden">Shop More</span>
+            Continue Shopping
           </Link>
         </motion.div>
 
@@ -67,48 +58,50 @@ const CartSummary = () => {
           >
             <div className="card bg-base-100 shadow-xl max-w-md mx-auto">
               <div className="card-body items-center text-center p-6 sm:p-8">
-                <ShoppingCart className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-base-300 mb-3 sm:mb-4" />
-                <h2 className="card-title text-xl sm:text-2xl mb-3 sm:mb-4">
+                <Package className="w-16 h-16 sm:w-20 sm:h-20 text-base-300 mb-3 sm:mb-4" />
+                <h2 className="card-title text-xl sm:text-2xl mb-2">
                   Your cart is empty
                 </h2>
                 <p className="text-sm sm:text-base text-base-content/70 mb-4 sm:mb-6">
-                  Looks like you haven't added anything yet.
+                  Discover amazing products in our store
                 </p>
-                <Link
-                  to="/store"
-                  className="btn btn-primary btn-wide w-full sm:w-auto"
-                >
+                <Link to="/store" className="btn btn-primary w-full">
                   Start Shopping
                 </Link>
               </div>
             </div>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
+            {/* Right Column: Order Summary - Show first on mobile for quick checkout */}
+            <div className="lg:col-span-1 order-first lg:order-last">
+              <div className="lg:sticky lg:top-4">
+                <OrderSummary />
+              </div>
+            </div>
+
             {/* Left Column: Cart Items */}
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6 md:space-y-8">
+            <div className="lg:col-span-2 order-last lg:order-first">
               <motion.div
-                className="card bg-base-100 shadow-xl"
+                className="card bg-base-100 shadow-sm"
                 variants={itemVariants}
               >
-                <div className="card-body p-4 sm:p-5 md:p-6">
-                  <h2 className="card-title text-lg sm:text-xl md:text-2xl mb-3 sm:mb-4">
-                    Review Your Items
-                  </h2>
-                  <div className="space-y-3 sm:space-y-4">
+                <div className="card-body p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-base-content/70">
+                      {getTotalItems()}{" "}
+                      {getTotalItems() === 1 ? "item" : "items"}
+                    </h2>
+                    <span className="text-sm text-base-content/50">Price</span>
+                  </div>
+                  <div className="divider my-0"></div>
+                  <div className="space-y-2">
                     {cart.map((item) => (
                       <CartItem key={item._id} item={item} />
                     ))}
                   </div>
                 </div>
               </motion.div>
-            </div>
-
-            {/* Right Column: Order Summary - Sticky on desktop, normal on mobile */}
-            <div className="lg:col-span-1">
-              <div className="lg:sticky lg:top-4">
-                <OrderSummary />
-              </div>
             </div>
           </div>
         )}
