@@ -109,6 +109,14 @@ const ChatAssistant = () => {
         "Sure! What product are you looking for? Type a keyword like 'shirt', 'shoes', 'yoga mat', etc.",
       action: null,
     },
+    {
+      id: "demo",
+      label: "Demo Credentials",
+      icon: HelpCircle,
+      response:
+        "**Demo Credentials**\n\nHere are the test accounts you can use to explore the platform:\n\n**Customer Account:**\n• Email: `user@gmail.com`\n• Password: `123456`\n\n**Trainer Account:**\n• Email: `trainer@gmail.com`\n• Password: `123456`\n\n**Admin Account:**\n• Email: `admin@gmail.com`\n• Password: `123456`\n\nWould you like me to take you to the login page?",
+      action: null,
+    },
   ];
 
   const addBotMessage = (text, delay = 1000, extra = {}) => {
@@ -317,6 +325,20 @@ const ChatAssistant = () => {
     ) {
       botResponse = "I'll take you to the login page!";
       navigationAction = () => navigate("/login");
+    }
+    // Demo/Test credentials for employers and testers
+    else if (
+      userMessage.includes("demo") ||
+      userMessage.includes("test") ||
+      userMessage.includes("credential") ||
+      userMessage.includes("cred") ||
+      userMessage.includes("account") ||
+      userMessage.includes("employer") ||
+      userMessage.includes("testing") ||
+      userMessage.includes("try out") ||
+      userMessage.includes("sample")
+    ) {
+      botResponse = `🔐 **Demo Credentials**\n\nHere are the test accounts you can use to explore the platform:\n\n**👤 Customer Account:**\n• Email: \`customer@test.com\`\n• Password: \`Test123!\`\n\n**🏋️ Trainer Account:**\n• Email: \`trainer@test.com\`\n• Password: \`Test123!\`\n\n**👑 Admin Account:**\n• Email: \`admin@test.com\`\n• Password: \`Test123!\`\n\nWould you like me to take you to the login page?`;
     } else {
       // Try to search products with the input
       const results = searchProducts(userMessage);
