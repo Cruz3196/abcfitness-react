@@ -51,7 +51,7 @@ const ProductCard = ({ product }) => {
         </p>
 
         <button
-          className="btn btn-primary btn-sm mt-3 gap-2"
+          className="btn btn-primary btn-md mt-3 gap-2"
           onClick={handleAddToCart}
         >
           <ShoppingCart className="w-4 h-4" />

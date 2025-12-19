@@ -24,16 +24,20 @@ const CustomerProfile = () => {
     showDeleteModal,
     profileForm,
     passwordForm,
+    profileImage,
     upcomingBookings,
     totalBookings,
     isUserLoading,
     isLoadingOrders,
     isLoadingBookings,
     isChangingPassword,
+    isUploadingImage,
     setActiveTab,
     setShowDeleteModal,
     handleInputChange,
     handlePasswordInputChange,
+    handleProfileImageChange,
+    handleDeleteProfileImage,
     handleUpdateProfile,
     handleChangePassword,
     handleDeleteAccount,
@@ -135,14 +139,18 @@ const CustomerProfile = () => {
               <EditProfileTab
                 profileForm={profileForm}
                 passwordForm={passwordForm}
+                profileImage={profileImage}
                 handleInputChange={handleInputChange}
                 handlePasswordInputChange={handlePasswordInputChange}
+                handleProfileImageChange={handleProfileImageChange}
+                handleDeleteProfileImage={handleDeleteProfileImage}
                 handleUpdateProfile={handleUpdateProfile}
                 handleChangePassword={handleChangePassword}
                 setActiveTab={setActiveTab}
                 setShowDeleteModal={setShowDeleteModal}
                 isLoading={isUserLoading}
                 isChangingPassword={isChangingPassword}
+                isUploadingImage={isUploadingImage}
               />
             )}
           </main>

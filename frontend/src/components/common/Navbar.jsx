@@ -79,7 +79,15 @@ const Navbar = () => {
                   tabIndex={0}
                   className="flex items-center gap-1 cursor-pointer text-sm hover:text-primary transition-colors"
                 >
-                  <User className="w-5 h-5" />
+                  {user.profileImage ? (
+                    <div className="avatar">
+                      <div className="w-7 h-7 rounded-full ring-2 ring-base-300">
+                        <img src={user.profileImage} alt="Profile" />
+                      </div>
+                    </div>
+                  ) : (
+                    <User className="w-5 h-5" />
+                  )}
                   <span className="hidden sm:inline max-w-[80px] truncate">
                     {user.username}
                   </span>

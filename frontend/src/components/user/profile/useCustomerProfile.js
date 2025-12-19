@@ -37,6 +37,8 @@ export const useCustomerProfile = () => {
     confirmPassword: "",
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [profileImage, setProfileImage] = useState(user?.profileImage || "");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Booking data memoization
   const { upcomingBookings, totalBookings } = useMemo(() => {
@@ -85,6 +87,13 @@ export const useCustomerProfile = () => {
     }
   }, [user, navigate, clearOrders, profileForm.username, profileForm.email]);
 
+  // Sync profileImage with store's user.profileImage
+  useEffect(() => {
+    if (user) {
+      setProfileImage(user.profileImage || "");
+    }
+  }, [user?.profileImage]);
+
   // Fetch orders when orders tab is active
   useEffect(() => {
     if (!user) return;
@@ -111,6 +120,39 @@ export const useCustomerProfile = () => {
     const { name, value } = e.target;
     setProfileForm((prev) => ({ ...prev, [name]: value }));
   }, []);
+
+  const handleProfileImageChange = useCallback(
+    async (base64Image) => {
+      if (!base64Image) return;
+
+      setIsUploadingImage(true);
+      try {
+        const success = await updateProfile({ profileImage: base64Image });
+        if (success) {
+          setProfileImage(base64Image);
+        }
+      } catch {
+        toast.error("Failed to update profile picture");
+      } finally {
+        setIsUploadingImage(false);
+      }
+    },
+    [updateProfile]
+  );
+
+  const handleDeleteProfileImage = useCallback(async () => {
+    setIsUploadingImage(true);
+    try {
+      const success = await updateProfile({ profileImage: "" });
+      if (success) {
+        setProfileImage("");
+      }
+    } catch {
+      toast.error("Failed to remove profile picture");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, [updateProfile]);
 
   const handlePasswordInputChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -192,6 +234,7 @@ export const useCustomerProfile = () => {
     showDeleteModal,
     profileForm,
     passwordForm,
+    profileImage,
     upcomingBookings,
     totalBookings,
 
@@ -200,6 +243,7 @@ export const useCustomerProfile = () => {
     isLoadingOrders,
     isLoadingBookings,
     isChangingPassword,
+    isUploadingImage,
 
     // Setters
     setActiveTab,
@@ -209,6 +253,8 @@ export const useCustomerProfile = () => {
     handleLogout,
     handleInputChange,
     handlePasswordInputChange,
+    handleProfileImageChange,
+    handleDeleteProfileImage,
     handleUpdateProfile,
     handleChangePassword,
     handleDeleteAccount,

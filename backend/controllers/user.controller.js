@@ -155,23 +155,39 @@ export const editUserInfo = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        // --- PROFILE IMAGE UPLOAD LOGIC ---
-        if (profileImage) {
-            // If the user already has a profile image, delete the old one from Cloudinary.
-            if (user.profileImage) {
-                try {
-                    const publicId = user.profileImage.split('/').pop().split('.')[0];
-                    await cloudinary.uploader.destroy(`user_profiles/${publicId}`);
-                } catch (cloudinaryError) {
-                    console.error("Failed to delete old profile image from Cloudinary:", cloudinaryError);
-                    // Don't block the update if deletion fails, just log it.
+        // --- PROFILE IMAGE UPLOAD/REMOVAL LOGIC ---
+        // Check if profileImage is explicitly in the request body (including empty string for removal)
+        if (profileImage !== undefined) {
+            // If empty string, user wants to remove their profile image
+            if (profileImage === "" || profileImage === null) {
+                // Delete old image from Cloudinary if it exists
+                if (user.profileImage) {
+                    try {
+                        const publicId = user.profileImage.split('/').pop().split('.')[0];
+                        await cloudinary.uploader.destroy(`user_profiles/${publicId}`);
+                    } catch (cloudinaryError) {
+                        console.error("Failed to delete old profile image from Cloudinary:", cloudinaryError);
+                    }
                 }
+                user.profileImage = null;
+            } else {
+                // User wants to upload a new image
+                // If the user already has a profile image, delete the old one from Cloudinary.
+                if (user.profileImage) {
+                    try {
+                        const publicId = user.profileImage.split('/').pop().split('.')[0];
+                        await cloudinary.uploader.destroy(`user_profiles/${publicId}`);
+                    } catch (cloudinaryError) {
+                        console.error("Failed to delete old profile image from Cloudinary:", cloudinaryError);
+                        // Don't block the update if deletion fails, just log it.
+                    }
+                }
+                // Upload the new image to a 'user_profiles' folder in Cloudinary.
+                const uploadedImage = await cloudinary.uploader.upload(profileImage, {
+                    folder: "user_profiles",
+                });
+                user.profileImage = uploadedImage.secure_url;
             }
-            // Upload the new image to a 'user_profiles' folder in Cloudinary.
-            const uploadedImage = await cloudinary.uploader.upload(profileImage, {
-                folder: "user_profiles",
-            });
-            user.profileImage = uploadedImage.secure_url;
         }
 
 
