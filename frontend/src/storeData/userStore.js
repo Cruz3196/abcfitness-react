@@ -37,7 +37,7 @@ export const userStore = create((set, get) => ({
 
   // AUTHENTICATION ACTIONS
   signup: async ({ username, email, password }) => {
-    set({ isLoading: true });
+    set({ isLoading: true, isCheckingAuth: false });
     try {
       const res = await axios.post("/user/signup", {
         username,
@@ -49,11 +49,12 @@ export const userStore = create((set, get) => ({
         user: res.data.user,
         isAuthenticated: true,
         isLoading: false,
+        isCheckingAuth: false,
       });
 
       return true;
     } catch (error) {
-      set({ isLoading: false });
+      set({ isLoading: false, isCheckingAuth: false });
       toast.error(error.response?.data?.message || "An error occurred");
       return false;
     }
@@ -68,7 +69,7 @@ export const userStore = create((set, get) => ({
     }
     useOrderStore.getState().clearOrders();
 
-    set({ isLoading: true });
+    set({ isLoading: true, isCheckingAuth: false });
     try {
       const res = await axios.post("/user/login", { email, password });
 
@@ -76,6 +77,7 @@ export const userStore = create((set, get) => ({
         user: res.data,
         isLoading: false,
         isAuthenticated: true,
+        isCheckingAuth: false,
         bookings: [], // Clear bookings on login
         bookingsLoaded: false, // Reset so bookings will be fetched fresh
       });
@@ -83,7 +85,7 @@ export const userStore = create((set, get) => ({
       toast.success(`Welcome back, ${res.data.username}!`);
       return res.data;
     } catch (error) {
-      set({ isLoading: false });
+      set({ isLoading: false, isCheckingAuth: false });
       toast.error(error.response?.data?.message || "Login failed");
       return false;
     }

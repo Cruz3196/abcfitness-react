@@ -12,24 +12,27 @@ import cloudinary from "../lib/cloudinaryConfig.js";
 // getting user info by id
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select("-password");
+    const user = await User.findById(req.user._id).select("-password").lean();
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     if (user.role === "trainer") {
-      const trainerProfile = await Trainer.findOne({ user: user._id });
+      // Run trainer profile query first, then classes query in parallel where possible
+      const trainerProfile = await Trainer.findOne({ user: user._id }).lean();
+
+      // Only fetch classes if trainer profile exists
       const trainerClasses = trainerProfile
-        ? await Class.find({ trainer: trainerProfile._id })
+        ? await Class.find({ trainer: trainerProfile._id }).lean()
         : [];
 
       const fullProfile = {
-        ...user.toObject(),
+        ...user,
         hasTrainerProfile: !!trainerProfile,
         trainerProfile: trainerProfile
           ? {
-              ...trainerProfile.toObject(),
+              ...trainerProfile,
               user: {
                 username: user.username,
                 email: user.email,
@@ -43,7 +46,7 @@ export const getProfile = async (req, res) => {
 
     // For customers, just return user data
     const userProfile = {
-      ...user.toObject(),
+      ...user,
       hasTrainerProfile: false,
     };
 
@@ -61,12 +64,10 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res
-        .status(200)
-        .json({
-          message:
-            "If a user with that email exists, a password reset link has been sent.",
-        });
+      return res.status(200).json({
+        message:
+          "If a user with that email exists, a password reset link has been sent.",
+      });
     }
 
     const resetToken = crypto.randomBytes(32).toString("hex");
@@ -89,12 +90,10 @@ export const forgotPassword = async (req, res) => {
 
     await sendEmail(user.email, subject, text);
 
-    res
-      .status(200)
-      .json({
-        message:
-          "If a user with that email exists, a password reset link has been sent.",
-      });
+    res.status(200).json({
+      message:
+        "If a user with that email exists, a password reset link has been sent.",
+    });
   } catch (error) {
     // This is a safety measure. req.user will likely not exist here.
     // The core logic is to prevent leaving hanging tokens in the DB if something fails.
@@ -217,11 +216,9 @@ export const editUserInfo = async (req, res) => {
     if (email) {
       const existingUser = await User.findOne({ email });
       if (existingUser && existingUser._id.toString() !== userId.toString()) {
-        return res
-          .status(400)
-          .json({
-            message: "This email is already in use by another account.",
-          });
+        return res.status(400).json({
+          message: "This email is already in use by another account.",
+        });
       }
     }
 
@@ -241,12 +238,9 @@ export const editUserInfo = async (req, res) => {
       (!newPassword && currentPassword) ||
       (!currentPassword && newPassword)
     ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Please provide both the current and new password to change it",
-        });
+      return res.status(400).json({
+        error: "Please provide both the current and new password to change it",
+      });
     }
 
     // --- GENERAL PROFILE UPDATES ---
