@@ -389,10 +389,15 @@ export const bookClass = async (req, res) => {
 
     const savedBooking = await newBooking.save();
 
-    // Add user to class attendees
-    await Class.findByIdAndUpdate(classId, {
-      $addToSet: { attendees: userId },
-    });
+    // Add user to class attendees and add booking to user's bookings array
+    await Promise.all([
+      Class.findByIdAndUpdate(classId, {
+        $addToSet: { attendees: userId },
+      }),
+      User.findByIdAndUpdate(userId, {
+        $push: { bookings: savedBooking._id },
+      }),
+    ]);
 
     console.log(" Booking created:", savedBooking._id);
 
@@ -458,10 +463,15 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Remove user from class attendees
-    await Class.findByIdAndUpdate(booking.class._id, {
-      $pull: { attendees: userId },
-    });
+    // Remove user from class attendees and remove booking from user's bookings array
+    await Promise.all([
+      Class.findByIdAndUpdate(booking.class._id, {
+        $pull: { attendees: userId },
+      }),
+      User.findByIdAndUpdate(userId, {
+        $pull: { bookings: bookingId },
+      }),
+    ]);
 
     res.status(200).json({
       message: "Booking cancelled successfully",
