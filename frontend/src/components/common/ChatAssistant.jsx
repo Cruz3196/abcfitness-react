@@ -28,11 +28,6 @@ const ChatAssistant = () => {
   const { products, fetchAllProducts } = productStore();
   const { classes, fetchAllClasses } = classStore();
 
-  // Generate storage key based on user
-  const getStorageKey = () => {
-    return user?._id ? `abc_chat_${user._id}` : "abc_chat_guest";
-  };
-
   // Default welcome message
   const getWelcomeMessage = () => ({
     id: 1,
@@ -43,27 +38,10 @@ const ChatAssistant = () => {
     timestamp: new Date().toISOString(),
   });
 
-  // Load messages from localStorage on mount or user change
+  // Initialize welcome message on mount or when user changes
   useEffect(() => {
-    const savedMessages = localStorage.getItem(getStorageKey());
-    if (savedMessages) {
-      try {
-        const parsed = JSON.parse(savedMessages);
-        setMessages(parsed);
-      } catch {
-        setMessages([getWelcomeMessage()]);
-      }
-    } else {
-      setMessages([getWelcomeMessage()]);
-    }
-  }, [user]);
-
-  // Save messages to localStorage whenever they change
-  useEffect(() => {
-    if (messages.length > 0) {
-      localStorage.setItem(getStorageKey(), JSON.stringify(messages));
-    }
-  }, [messages]);
+    setMessages([getWelcomeMessage()]);
+  }, [user?._id]);
 
   // Fetch products and classes if not loaded
   useEffect(() => {
@@ -362,9 +340,7 @@ const ChatAssistant = () => {
 
   // Clear chat history
   const clearChatHistory = () => {
-    const welcomeMsg = getWelcomeMessage();
-    setMessages([welcomeMsg]);
-    localStorage.setItem(getStorageKey(), JSON.stringify([welcomeMsg]));
+    setMessages([getWelcomeMessage()]);
   };
 
   return (

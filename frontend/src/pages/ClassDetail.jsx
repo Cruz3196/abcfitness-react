@@ -86,15 +86,7 @@ const ClassDetail = () => {
     return await deleteReview(reviewId);
   };
 
-  // Function to generate localStorage key
-  const getStorageKey = () => {
-    if (user && id) {
-      return `booked_${user._id}_${id}`;
-    }
-    return null;
-  };
-
-  // Sync booked sessions from localStorage and user bookings
+  // Sync booked sessions from user bookings (no localStorage needed)
   useEffect(() => {
     if (user && selectedClass && user.bookings) {
       const userBookedDatesForThisClass = new Set(
@@ -112,15 +104,6 @@ const ClassDetail = () => {
       );
 
       setBookedSessions(userBookedDatesForThisClass);
-
-      // Sync localStorage with server state
-      const storageKey = getStorageKey();
-      if (storageKey) {
-        localStorage.setItem(
-          storageKey,
-          JSON.stringify([...userBookedDatesForThisClass])
-        );
-      }
     }
   }, [user?.bookings, selectedClass]);
 
