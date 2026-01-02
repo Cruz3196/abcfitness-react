@@ -4,13 +4,22 @@ import { ShoppingCart, ArrowLeft, Package } from "lucide-react";
 import useCartStore from "../storeData/cartStore";
 import CartItem from "../components/cart/CartItem";
 import OrderSummary from "../components/cart/OrderSummary";
+import Spinner from "../components/common/Spinner";
 
 const CartSummary = () => {
-  const { cart } = useCartStore();
+  const { cart, isLoading } = useCartStore();
 
   const getTotalItems = () => {
     return cart.reduce((total, item) => total + item.quantity, 0);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-base-200 flex justify-center items-center">
+        <Spinner />
+      </div>
+    );
+  }
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },

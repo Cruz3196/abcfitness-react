@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { adminStore } from "../storeData/adminStore";
 import { productStore } from "../storeData/productStore";
+import Spinner from "../components/common/Spinner";
 
 // Admin UI components
 import { Sidebar } from "../components/admin/adminUI/Sidebar";
@@ -27,6 +28,7 @@ const AdminDashboard = () => {
   // Get store data
   const {
     dashboardStats,
+    isLoading: isAdminLoading,
     fetchDashboardStats,
     fetchAllUsers,
     fetchAllTrainers,
@@ -39,10 +41,13 @@ const AdminDashboard = () => {
   const {
     products,
     categories,
+    isLoading: isProductLoading,
     fetchAllProducts,
     deleteProduct,
     toggleFeaturedProduct,
   } = productStore();
+
+  const isLoading = isAdminLoading || isProductLoading;
 
   // Fetch data based on active tab
   // Note: ProtectedRoute ensures only admins reach this component
@@ -149,99 +154,111 @@ const AdminDashboard = () => {
 
         {/* Page Content */}
         <main className="p-4 lg:p-6">
-          {/* Tab Content */}
-          {/* Overview Tab */}
-          {activeTab === "overview" && (
-            <div>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <p className="text-sm text-base-content/60">Total Users</p>
-                  <p className="text-2xl font-semibold">
-                    {dashboardStats?.users?.totalUsers || 0}
-                  </p>
-                  <p className="text-xs text-success">
-                    +{dashboardStats?.users?.newUsersThisMonth || 0} this month
-                  </p>
-                </div>
-
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <p className="text-sm text-base-content/60">Trainers</p>
-                  <p className="text-2xl font-semibold">
-                    {dashboardStats?.users?.totalTrainers || 0}
-                  </p>
-                  <p className="text-xs text-base-content/50">Active</p>
-                </div>
-
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <p className="text-sm text-base-content/60">Revenue</p>
-                  <p className="text-2xl font-semibold">
-                    $
-                    {(
-                      (dashboardStats?.financials?.totalProductRevenue || 0) +
-                      (dashboardStats?.financials?.totalClassRevenue || 0)
-                    ).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-base-content/50">
-                    Products + Classes
-                  </p>
-                </div>
-
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <p className="text-sm text-base-content/60">Products</p>
-                  <p className="text-2xl font-semibold">
-                    {products?.length || 0}
-                  </p>
-                  <p className="text-xs text-base-content/50">In catalog</p>
-                </div>
-              </div>
-
-              {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <RevenueChart dashboardStats={dashboardStats} />
-                </div>
-                <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                  <ProductCategoriesChart
-                    products={products}
-                    categories={categories}
-                  />
-                </div>
-              </div>
-
-              {/* Monthly Trends Chart */}
-              <div className="bg-base-100 border border-base-300 rounded-lg p-4">
-                <MonthlyTrendsChart />
-              </div>
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <Spinner />
             </div>
+          ) : (
+            <>
+              {/* Tab Content */}
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div>
+                  {/* Stats Cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <p className="text-sm text-base-content/60">
+                        Total Users
+                      </p>
+                      <p className="text-2xl font-semibold">
+                        {dashboardStats?.users?.totalUsers || 0}
+                      </p>
+                      <p className="text-xs text-success">
+                        +{dashboardStats?.users?.newUsersThisMonth || 0} this
+                        month
+                      </p>
+                    </div>
+
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <p className="text-sm text-base-content/60">Trainers</p>
+                      <p className="text-2xl font-semibold">
+                        {dashboardStats?.users?.totalTrainers || 0}
+                      </p>
+                      <p className="text-xs text-base-content/50">Active</p>
+                    </div>
+
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <p className="text-sm text-base-content/60">Revenue</p>
+                      <p className="text-2xl font-semibold">
+                        $
+                        {(
+                          (dashboardStats?.financials?.totalProductRevenue ||
+                            0) +
+                          (dashboardStats?.financials?.totalClassRevenue || 0)
+                        ).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-base-content/50">
+                        Products + Classes
+                      </p>
+                    </div>
+
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <p className="text-sm text-base-content/60">Products</p>
+                      <p className="text-2xl font-semibold">
+                        {products?.length || 0}
+                      </p>
+                      <p className="text-xs text-base-content/50">In catalog</p>
+                    </div>
+                  </div>
+
+                  {/* Charts Section */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <RevenueChart dashboardStats={dashboardStats} />
+                    </div>
+                    <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                      <ProductCategoriesChart
+                        products={products}
+                        categories={categories}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Monthly Trends Chart */}
+                  <div className="bg-base-100 border border-base-300 rounded-lg p-4">
+                    <MonthlyTrendsChart />
+                  </div>
+                </div>
+              )}
+
+              {/* Users Tab - CHANGED FROM UserTab TO UsersTab */}
+              {activeTab === "users" && (
+                <UsersTab
+                  onDeleteUser={handleDeleteUser}
+                  onPromoteUser={handlePromoteUser}
+                />
+              )}
+
+              {/* Products Tab */}
+              {activeTab === "products" && (
+                <ProductsTab
+                  setShowProductForm={setShowProductForm}
+                  handleEditProduct={handleEditProduct}
+                  handleDeleteProduct={handleDeleteProduct}
+                  handleToggleFeatured={handleToggleFeatured}
+                />
+              )}
+
+              {/* Orders Tab */}
+              {activeTab === "orders" && <OrdersTab />}
+
+              {/* Trainers Tab */}
+              {activeTab === "trainers" && <TrainersTab />}
+
+              {/* Classes Tab */}
+              {activeTab === "classes" && <ClassesTab />}
+            </>
           )}
-
-          {/* Users Tab - CHANGED FROM UserTab TO UsersTab */}
-          {activeTab === "users" && (
-            <UsersTab
-              onDeleteUser={handleDeleteUser}
-              onPromoteUser={handlePromoteUser}
-            />
-          )}
-
-          {/* Products Tab */}
-          {activeTab === "products" && (
-            <ProductsTab
-              setShowProductForm={setShowProductForm}
-              handleEditProduct={handleEditProduct}
-              handleDeleteProduct={handleDeleteProduct}
-              handleToggleFeatured={handleToggleFeatured}
-            />
-          )}
-
-          {/* Orders Tab */}
-          {activeTab === "orders" && <OrdersTab />}
-
-          {/* Trainers Tab */}
-          {activeTab === "trainers" && <TrainersTab />}
-
-          {/* Classes Tab */}
-          {activeTab === "classes" && <ClassesTab />}
         </main>
       </div>
 
