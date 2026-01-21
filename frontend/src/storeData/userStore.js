@@ -73,16 +73,30 @@ export const userStore = create((set, get) => ({
     try {
       const res = await axios.post("/user/login", { email, password });
 
+      // Set initial user data and authenticated state
       set({
         user: res.data,
         isLoading: false,
         isAuthenticated: true,
-        isCheckingAuth: false,
+        isCheckingAuth: true, // Set to true so we fetch the full profile
         bookings: [], // Clear bookings on login
         bookingsLoaded: false, // Reset so bookings will be fetched fresh
       });
 
       toast.success(`Welcome back, ${res.data.username}!`);
+
+      // Fetch full profile data to ensure all user fields are available
+      try {
+        const fullProfileRes = await axios.get("/user/profile");
+        set({
+          user: fullProfileRes.data,
+          isCheckingAuth: false,
+        });
+      } catch (profileError) {
+        console.log("Failed to fetch full profile after login:", profileError);
+        set({ isCheckingAuth: false });
+      }
+
       return res.data;
     } catch (error) {
       set({ isLoading: false, isCheckingAuth: false });
@@ -247,7 +261,7 @@ export const userStore = create((set, get) => ({
       return true;
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Failed to send reset link."
+        error.response?.data?.message || "Failed to send reset link.",
       );
       return false;
     } finally {
@@ -297,7 +311,7 @@ export const userStore = create((set, get) => ({
     } catch (error) {
       set({ isLoading: false });
       toast.error(
-        error.response?.data?.message || "Failed to create trainer profile"
+        error.response?.data?.message || "Failed to create trainer profile",
       );
       return false;
     }
@@ -308,7 +322,7 @@ export const userStore = create((set, get) => ({
     try {
       const response = await axios.put(
         "/trainer/updatingTrainerProfile",
-        updatedData
+        updatedData,
       );
       // Force refresh to get updated profile data
       await get().checkAuthStatus(true);
@@ -338,7 +352,7 @@ export const userStore = create((set, get) => ({
 
       const response = await axios.post(
         "/trainer/createClass",
-        sanitizedClassData
+        sanitizedClassData,
       );
       await get().fetchMyClasses();
       toast.success("Class created successfully!");
@@ -358,7 +372,7 @@ export const userStore = create((set, get) => ({
         toast.error(
           error.response?.data?.message ||
             error.response?.data?.error ||
-            "Failed to create class"
+            "Failed to create class",
         );
       }
       return false;
@@ -391,7 +405,7 @@ export const userStore = create((set, get) => ({
     } catch (error) {
       console.error("Fetch class by ID error:", error);
       toast.error(
-        error.response?.data?.message || "Could not load class details."
+        error.response?.data?.message || "Could not load class details.",
       );
       set({ isLoading: false });
     }
@@ -402,7 +416,7 @@ export const userStore = create((set, get) => ({
     try {
       const response = await axios.put(
         `/trainer/updatingClass/${classId}`,
-        classData
+        classData,
       );
 
       const currentSelectedClass = get().selectedClass;
@@ -423,7 +437,7 @@ export const userStore = create((set, get) => ({
         toast.error(
           error.response?.data?.error ||
             error.response?.data?.message ||
-            "Failed to update class"
+            "Failed to update class",
         );
       }
       return false;
@@ -449,7 +463,7 @@ export const userStore = create((set, get) => ({
       toast.error(
         error.response?.data?.error ||
           error.response?.data?.message ||
-          "Failed to delete class"
+          "Failed to delete class",
       );
       return false;
     }
@@ -479,8 +493,8 @@ export const userStore = create((set, get) => ({
 
       const uniqueBookings = Array.from(
         new Map(
-          fetchedBookings.map((booking) => [booking._id, booking])
-        ).values()
+          fetchedBookings.map((booking) => [booking._id, booking]),
+        ).values(),
       );
 
       set({
@@ -509,7 +523,7 @@ export const userStore = create((set, get) => ({
 
       const { bookings } = get();
       const updatedBookings = bookings.filter(
-        (booking) => booking._id !== bookingId
+        (booking) => booking._id !== bookingId,
       );
       set({ bookings: updatedBookings });
 
@@ -544,7 +558,7 @@ axios.interceptors.response.use(
 
     const skipRefreshUrls = ["/login", "/signup", "/refresh-token", "/logout"];
     const shouldSkipRefresh = skipRefreshUrls.some((url) =>
-      originalRequest?.url?.includes(url)
+      originalRequest?.url?.includes(url),
     );
 
     if (shouldSkipRefresh) {
@@ -564,7 +578,7 @@ axios.interceptors.response.use(
             {},
             {
               withCredentials: true,
-            }
+            },
           );
         }
 
@@ -600,5 +614,5 @@ axios.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
