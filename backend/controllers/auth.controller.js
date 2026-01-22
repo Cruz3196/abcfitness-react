@@ -95,7 +95,7 @@ export const logoutUser = async (req, res) => {
       // jwt verifying the refresh token
       const decoded = jwt.verify(
         refreshToken,
-        process.env.REFRESH_TOKEN_SECRET
+        process.env.REFRESH_TOKEN_SECRET,
       );
       await redis.del(`refreshToken:${decoded.userId}`);
     }
@@ -142,13 +142,15 @@ export const refresh = async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       {
         expiresIn: "15m",
-      }
+      },
     );
+
+    const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: "lax",
+      secure: isProduction, // Only HTTPS in production
+      sameSite: "strict", // CSRF protection
       maxAge: 15 * 60 * 1000,
     });
 

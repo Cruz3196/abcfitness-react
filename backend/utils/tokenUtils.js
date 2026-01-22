@@ -20,17 +20,22 @@ export const storageRefreshToken = async (userId, refreshToken) => {
     `refreshToken:${userId}`,
     refreshToken,
     "EX",
-    7 * 24 * 60 * 60
+    7 * 24 * 60 * 60,
   );
 };
 
 //* "accessToken" is the key name, and accessToken is the value, function for setting the cookies
 export const setCookies = (res, accessToken, refreshToken) => {
-  // cookie settings for localhost
+  // Determine secure flag based on environment
+  // In production: secure: true (requires HTTPS)
+  // In development: secure: false (allows HTTP)
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // cookie settings
   const cookieOptions = {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    httpOnly: true, // Prevents JavaScript access (XSS protection)
+    secure: isProduction, // Only send over HTTPS in production
+    sameSite: "strict", // CSRF protection - strict mode prevents cross-site cookie sending
   };
 
   //setting the access token
