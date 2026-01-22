@@ -58,7 +58,7 @@ Create a ```.env``` file at the root of the root directory and add the following
   ## CLOUDINARY CREDS 
   CLOUDINARY_CLOUD_NAME= your_cloudinary_cloud_name_here
 
-  CLOUDINARY_API_KEY= 261875643614937
+  CLOUDINARY_API_KEY= your_cloudinary_secret_api_key
 
   CLOUDINARY_API_SECRET_KEY= your_cloudinary_api_secret_key_here
 
