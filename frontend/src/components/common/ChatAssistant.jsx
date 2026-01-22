@@ -92,7 +92,7 @@ const ChatAssistant = () => {
       label: "Demo Credentials",
       icon: HelpCircle,
       response:
-        "**Demo Credentials**\n\nHere are the test accounts you can use to explore the platform:\n\n**Customer Account:**\n• Email: `user@gmail.com`\n• Password: `123456`\n\n**Trainer Account:**\n• Email: `trainer@gmail.com`\n• Password: `123456`\n\n**Admin Account:**\n• Email: `admin@gmail.com`\n• Password: `123456`\n\nWould you like me to take you to the login page?",
+        "**Demo Credentials**\n\nHere are the test accounts you can use to explore the platform:\n\n**Customer Account:**\n• Email: `user@gmail.com`\n• Password: `123456`\n\n**Trainer Account:**\n• Email: `trainer@gmail.com`\n• Password: `123456`\n\nWould you like me to take you to the login page?",
       action: null,
     },
   ];
@@ -143,7 +143,7 @@ const ChatAssistant = () => {
         (p) =>
           p.productName?.toLowerCase().includes(searchTerm) ||
           p.productCategory?.toLowerCase().includes(searchTerm) ||
-          p.productDescription?.toLowerCase().includes(searchTerm)
+          p.productDescription?.toLowerCase().includes(searchTerm),
       )
       .slice(0, 3); // Return top 3 matches
   };

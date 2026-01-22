@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   X,
+  User,
 } from "lucide-react";
 import { userStore } from "../../../storeData/userStore";
 import { Link } from "react-router-dom";
@@ -23,6 +24,7 @@ const Sidebar = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
     { id: "users", label: "Users", icon: Users },
     { id: "trainers", label: "Trainers", icon: Dumbbell },
     { id: "classes", label: "Classes", icon: Calendar },
+    { id: "profile", label: "My Profile", icon: User },
   ];
 
   const handleLogout = async () => {

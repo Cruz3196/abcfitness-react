@@ -17,6 +17,8 @@ import { OrdersTab } from "../components/admin/tabs/OrdersTab";
 // Additional imports that might be needed
 import ProductForm from "../components/admin/ProductForm";
 import ProductEditForm from "../components/admin/ProductEditForm";
+import AdminProfile from "../components/admin/AdminProfile";
+import { userStore } from "../storeData/userStore";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -37,6 +39,8 @@ const AdminDashboard = () => {
     deleteUser,
     changeUserStatus,
   } = adminStore();
+
+  const { user } = userStore();
 
   const {
     products,
@@ -94,7 +98,7 @@ const AdminDashboard = () => {
   const handleDeleteProduct = async (productId, productName) => {
     if (
       window.confirm(
-        `Are you sure you want to delete "${productName}"? This action cannot be undone.`
+        `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
       )
     ) {
       await deleteProduct(productId);
@@ -108,7 +112,7 @@ const AdminDashboard = () => {
   const handleDeleteUser = async (userId, username) => {
     if (
       window.confirm(
-        `Are you sure you want to delete user "${username}"? This action cannot be undone.`
+        `Are you sure you want to delete user "${username}"? This action cannot be undone.`,
       )
     ) {
       await deleteUser(userId);
@@ -129,6 +133,7 @@ const AdminDashboard = () => {
       orders: "Orders",
       trainers: "Trainers",
       classes: "Classes",
+      profile: "My Profile",
     };
     return titles[activeTab] || "Dashboard";
   };
@@ -256,6 +261,9 @@ const AdminDashboard = () => {
               {activeTab === "trainers" && <TrainersTab />}
 
               {/* Classes Tab */}
+
+              {/* Profile Tab */}
+              {activeTab === "profile" && <AdminProfile user={user} />}
               {activeTab === "classes" && <ClassesTab />}
             </>
           )}
