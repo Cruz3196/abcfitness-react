@@ -24,7 +24,7 @@ Tailwind CSS used for front end development.
 
 ## 🛣️ The Routes in depth: 
  
-   User Routes: Users can book classes, purchase products, delete their accounts, and view their history of booked classes and purchased products. The authentication controller is also located within the user routes. It uses bcrypt, JSON Web Tokens (JWT), and cookie-parser. When a user creates an account, a token is generated to authenticate the user during login. This includes both access and refresh tokens. The refresh token resets every 15 minutes using a Redis cache system. The access token is used to log in to the account, and passwords are hashed using bcrypt. Middleware checks are implemented to determine if the user is an admin or has a trainer profile.
+   User Routes: Users can book classes, purchase products, delete their accounts, and view their history of booked classes and purchased products. The authentication controller is also located within the user routes. It uses bcrypt, JSON Web Tokens (JWT), and cookie-parser. When a user creates an account, a token is generated to authenticate the user during login. This includes both access and refresh tokens. The access token is refreshed every 15 minutes using Redis. The access token is used to log in to the account, and passwords are hashed using bcrypt. Middleware checks are implemented to determine if the user is an admin or has a trainer profile.
 
   Product Routes: Half of the routes are public, used for the product listing and product detail pages. The other half is restricted to admin accounts for creating, updating, and deleting products.
 Trainer Routes: Trainers can host classes, edit their classes, and delete them.
